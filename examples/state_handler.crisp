@@ -1,0 +1,59 @@
+--- State Effect and Handler
+---
+--- Demonstrates algebraic effects with a state handler that transforms
+--- stateful computations into pure functions.
+
+module StateExample
+
+effect State S:
+  get : Unit -> S
+  put : S -> Unit
+
+--- Increment the state by one.
+fn increment -> Unit ! State Nat:
+  do
+    n <- State.get ()
+    State.put (succ n)
+
+--- Decrement the state by one (if positive).
+fn decrement -> Unit ! State Nat:
+  do
+    n <- State.get ()
+    match n
+      0       -> ()
+      succ m  -> State.put m
+
+--- Run a stateful computation with an initial value.
+--- The handler transforms the effectful computation into a pure function
+--- that threads state through the computation.
+handler RunState (S: Type) (init: S) for State S ! Pure:
+  get () -> resume:
+    λs. resume s s
+
+  put new_s -> resume:
+    λ_. resume () new_s
+
+  return x ->
+    λ_. x
+
+--- Example: increment three times and return the final value.
+fn example -> Nat:
+  with RunState Nat 0
+    do
+      increment
+      increment
+      increment
+      n <- State.get ()
+      n
+-- Returns 3
+
+--- Example: use state to accumulate a sum.
+fn sum_list (xs: List Nat) -> Nat:
+  with RunState Nat 0
+    do
+      for_each xs add_to_state
+      State.get ()
+  where
+    add_to_state n = do
+      current <- State.get ()
+      State.put (add current n)

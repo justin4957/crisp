@@ -1,0 +1,124 @@
+cabal-version:      3.0
+name:               crisp
+version:            0.1.0.0
+synopsis:           A programming language with dependent types and algebraic effects
+description:
+    Crisp is a programming language with dependent types and algebraic effects,
+    compiling to WebAssembly. This is the Haskell MVP implementation, with a
+    planned transition to a self-hosting Rust/Wasm compiler.
+
+license:            Apache-2.0
+license-file:       LICENSE
+author:             Crisp Contributors
+maintainer:         crisp@example.com
+category:           Language, Compiler
+build-type:         Simple
+extra-doc-files:    README.md
+                    docs/SPECIFICATION.md
+                    docs/IMPLEMENTATION_PLAN.md
+
+common warnings
+    ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates
+                 -Wincomplete-uni-patterns -Wmissing-export-lists
+                 -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+
+library
+    import:           warnings
+    exposed-modules:
+        Crisp.Syntax.Span
+        Crisp.Syntax.Surface
+        Crisp.Lexer.Token
+        Crisp.Lexer.Lexer
+        Crisp.Parser.Parser
+        Crisp.Core.Term
+        Crisp.Core.Desugar
+        Crisp.Types.Context
+        Crisp.Types.Checker
+        Crisp.Effects.Row
+        Crisp.IR.TypedIR
+        Crisp.IR.ENIR
+        Crisp.Codegen.Wasm
+
+    other-modules:
+        Crisp.Lexer.Layout
+
+    build-depends:
+        base >= 4.14 && < 5,
+        text >= 1.2 && < 3,
+        containers >= 0.6 && < 1,
+        mtl >= 2.2 && < 3,
+        transformers >= 0.5 && < 1,
+        megaparsec >= 9.0 && < 10,
+        parser-combinators >= 1.3 && < 2,
+        aeson >= 2.0 && < 3,
+        bytestring >= 0.10 && < 1,
+        vector >= 0.12 && < 1,
+        unordered-containers >= 0.2 && < 1,
+        prettyprinter >= 1.7 && < 2,
+        prettyprinter-ansi-terminal >= 1.1 && < 2,
+        filepath >= 1.4 && < 2,
+        directory >= 1.3 && < 2
+
+    hs-source-dirs:   src
+    default-language: GHC2021
+    default-extensions:
+        OverloadedStrings
+        LambdaCase
+        DerivingStrategies
+        DeriveGeneric
+        DeriveAnyClass
+        GeneralizedNewtypeDeriving
+        TypeFamilies
+        DataKinds
+        GADTs
+        StandaloneDeriving
+        FlexibleContexts
+        FlexibleInstances
+        MultiParamTypeClasses
+        ScopedTypeVariables
+        RankNTypes
+
+executable crisp
+    import:           warnings
+    main-is:          Main.hs
+    other-modules:
+        Crisp.CLI.Commands
+        Crisp.CLI.Options
+
+    build-depends:
+        base >= 4.14 && < 5,
+        crisp,
+        text >= 1.2 && < 3,
+        optparse-applicative >= 0.16 && < 1,
+        filepath >= 1.4 && < 2,
+        directory >= 1.3 && < 2
+
+    hs-source-dirs:   app
+    default-language: GHC2021
+    default-extensions:
+        OverloadedStrings
+        LambdaCase
+
+test-suite crisp-test
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    other-modules:
+        Crisp.Lexer.LexerSpec
+        Crisp.Parser.ParserSpec
+        Crisp.Types.CheckerSpec
+
+    build-depends:
+        base >= 4.14 && < 5,
+        crisp,
+        hspec >= 2.7 && < 3,
+        hspec-megaparsec >= 2.2 && < 3,
+        text >= 1.2 && < 3,
+        containers >= 0.6 && < 1,
+        QuickCheck >= 2.14 && < 3
+
+    hs-source-dirs:   test
+    default-language: GHC2021
+    default-extensions:
+        OverloadedStrings
+        LambdaCase

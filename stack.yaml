@@ -1,0 +1,11 @@
+resolver: lts-22.43
+
+packages:
+  - .
+
+extra-deps: []
+
+# Enable profiling for development
+# build:
+#   library-profiling: true
+#   executable-profiling: true

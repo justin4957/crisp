@@ -1,0 +1,11 @@
+--- Hello World in Crisp
+---
+--- Demonstrates basic effect usage with the Console effect.
+
+module Main
+
+effect Console:
+  print : String -> Unit
+
+fn main -> Unit ! Console:
+  perform Console.print "Hello, Crisp!"

@@ -1,0 +1,50 @@
+--- Safe List Operations
+---
+--- Demonstrates dependent types with length-indexed vectors.
+--- The type system guarantees operations like `head` cannot be called
+--- on empty lists.
+
+module SafeList
+
+type Vec T (n: Nat):
+  Nil  : Vec T 0
+  Cons : T -> Vec T m -> Vec T (succ m)
+
+--- Get the first element of a non-empty vector.
+--- Note: the type (succ n) guarantees the vector has at least one element.
+fn head [T, n: Nat] (xs: Vec T (succ n)) -> T:
+  match xs
+    Cons x _ -> x
+
+--- Get all but the first element of a non-empty vector.
+fn tail [T, n: Nat] (xs: Vec T (succ n)) -> Vec T n:
+  match xs
+    Cons _ rest -> rest
+
+--- Apply a function to each element of a vector.
+fn map [A, B, n: Nat, ε] (f: A -> B ! ε) (xs: Vec A n) -> Vec B n ! ε:
+  match xs
+    Nil       -> Nil
+    Cons x t  -> Cons (f x) (map f t)
+
+--- Zip two vectors of the same length into a vector of pairs.
+fn zip [A, B, n: Nat] (xs: Vec A n) (ys: Vec B n) -> Vec (Pair A B) n:
+  match xs
+    Nil ->
+      match ys
+        Nil -> Nil
+    Cons x xs' ->
+      match ys
+        Cons y ys' -> Cons (Pair x y) (zip xs' ys')
+
+--- Safely index into a vector using a bounded index.
+type prop Lt (a: Nat) (b: Nat):
+  lt_zero : Lt 0 (succ n)
+  lt_succ : Lt m n => Lt (succ m) (succ n)
+
+fn index [T, n: Nat, i: Nat] (xs: Vec T n) (idx: i) (proof: Lt i n) -> T:
+  match xs
+    Cons x rest ->
+      match idx
+        0 -> x
+        _ -> index rest (pred idx) (lt_pred proof)

@@ -1,0 +1,67 @@
+--- Authorization with Proofs
+---
+--- Demonstrates the Prop universe and proof-carrying code.
+--- Authorization proofs are erased at runtime but guarantee
+--- at compile time that actions are only executed with
+--- sufficient authority.
+
+module Authorization
+
+type Authority:
+  name  : String
+  level : Nat
+
+type Action:
+  description    : String
+  required_level : Nat
+
+--- Proof that an authority can perform an action.
+--- This is a proposition (Prop), so it will be erased at runtime.
+type prop Authorized (a: Authority) (act: Action):
+  authorized : (gte a.level act.required_level) => Authorized a act
+
+--- Attempt to construct an authorization proof.
+--- Returns None if the authority level is insufficient.
+fn authorize (a: Authority) (act: Action) -> Option (Authorized a act):
+  if gte a.level act.required_level
+    then Some authorized
+    else None
+
+--- Execute an action only if we have proof of authorization.
+--- The proof parameter is erased at runtime but ensures type safety.
+fn execute (a: Authority) (act: Action) (proof: Authorized a act)
+    -> Result Unit String ! Log:
+  do
+    perform Log.info (concat a.name (concat " executing: " act.description))
+    Ok ()
+
+--- Attempt to execute an action, failing gracefully if unauthorized.
+fn attempt (a: Authority) (act: Action) -> Result Unit String ! Log:
+  match authorize a act
+    Some proof -> execute a act proof
+    None       -> Err "Insufficient authority"
+
+--- Example authorities and actions
+fn example -> Result Unit String ! Log:
+  let admin = Authority { name = "Admin", level = 100 }
+  let guest = Authority { name = "Guest", level = 10 }
+
+  let read_action = Action {
+    description = "read public data",
+    required_level = 10
+  }
+
+  let delete_action = Action {
+    description = "delete all records",
+    required_level = 90
+  }
+
+  do
+    -- Guest can read (succeeds)
+    attempt guest read_action
+
+    -- Guest cannot delete (fails gracefully)
+    attempt guest delete_action
+
+    -- Admin can delete (succeeds)
+    attempt admin delete_action

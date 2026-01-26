@@ -1,0 +1,38 @@
+# Gleam build artifacts
+/build/
+/deps/
+
+# Generated files
+erl_crash.dump
+*.beam
+*.ez
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Compiled WebAssembly output
+*.wasm
+
+# TIR artifacts (unless explicitly committed)
+*.tir.json
+
+# Manifest files (generated during compilation)
+*.crisp-manifest.json
+
+# Coverage reports
+cover/

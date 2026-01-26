@@ -1,0 +1,8 @@
+packages: .
+
+-- Enable all warnings
+package crisp
+  ghc-options: -Wall
+
+-- For development: enable faster builds
+-- optimization: 0
