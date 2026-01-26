@@ -178,11 +178,18 @@ lexTokenKind = choice
   [ -- Multi-char operators (must come before single-char)
     Arrow <$ string "->"
   , FatArrow <$ string "=>"
+  , LeftArrow <$ string "<-"
   , DoubleColon <$ string "::"
   , PipeForward <$ string "|>"
   , PipeBackward <$ string "<|"
   , ComposeRight <$ string ">>"
   , ComposeLeft <$ string "<<"
+  , LessEq <$ string "<="
+  , GreaterEq <$ string ">="
+  , EqEq <$ string "=="
+  , NotEq <$ string "/="
+  , AndAnd <$ string "&&"
+  , OrOr <$ string "||"
 
     -- Single char operators and punctuation
   , Pipe <$ char '|'
@@ -196,6 +203,15 @@ lexTokenKind = choice
   , Bang <$ char '!'
   , Backslash <$ char '\\'
   , Lambda <$ char 'λ'
+  , Plus <$ char '+'
+  , Minus <$ char '-'
+  , Star <$ char '*'
+  , Slash <$ char '/'
+  , Less <$ char '<'
+  , Greater <$ char '>'
+  , Percent <$ char '%'
+  , Caret <$ char '^'
+  , Tilde <$ char '~'
 
     -- Delimiters
   , try lexUnit
@@ -232,14 +248,20 @@ lexNumber = do
     _ -> do
       intPart <- some digitChar
       floatPart <- optional (try $ char '.' *> some digitChar)
-      expPart <- optional (try $ oneOf ("eE" :: String) *> optional (oneOf ("+-" :: String)) *> some digitChar)
+      expPart <- optional (try lexExponent)
       case (floatPart, expPart) of
         (Nothing, Nothing) -> pure $ IntLit (read intPart)
         _ -> do
           let floatStr = intPart
                       ++ maybe "" ("." ++) floatPart
-                      ++ maybe "" (\e -> "e" ++ e) expPart
+                      ++ maybe "" id expPart
           pure $ FloatLit (read floatStr)
+  where
+    lexExponent = do
+      e <- oneOf ("eE" :: String)
+      sign <- optional (oneOf ("+-" :: String))
+      digits <- some digitChar
+      pure $ [e] ++ maybe "" (:[]) sign ++ digits
 
 -- | Lex a string literal
 lexString :: Lexer TokenKind
