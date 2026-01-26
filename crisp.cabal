@@ -33,6 +33,7 @@ library
         Crisp.Parser.Parser
         Crisp.Core.Term
         Crisp.Core.Desugar
+        Crisp.Core.PatternCompiler
         Crisp.Types.Context
         Crisp.Types.Checker
         Crisp.Effects.Row
@@ -111,6 +112,7 @@ test-suite crisp-test
         Crisp.Lexer.ErrorSpec
         Crisp.Parser.ParserSpec
         Crisp.Types.CheckerSpec
+        Crisp.Core.PatternSpec
 
     build-depends:
         base >= 4.14 && < 5,
