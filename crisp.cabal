@@ -51,6 +51,7 @@ library
         megaparsec >= 9.0 && < 10,
         parser-combinators >= 1.3 && < 2,
         aeson >= 2.0 && < 3,
+        aeson-pretty >= 0.8 && < 1,
         bytestring >= 0.10 && < 1,
         vector >= 0.12 && < 1,
         unordered-containers >= 0.2 && < 1,
@@ -89,6 +90,7 @@ executable crisp
         base >= 4.14 && < 5,
         crisp,
         text >= 1.2 && < 3,
+        bytestring >= 0.10 && < 1,
         optparse-applicative >= 0.16 && < 1,
         filepath >= 1.4 && < 2,
         directory >= 1.3 && < 2

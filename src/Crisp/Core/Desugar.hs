@@ -145,9 +145,8 @@ desugarExpr = \case
     -- Build nested applications
     pure $ foldl C.TmApp func' args'
 
-  S.ELam params body _ -> do
-    body' <- foldr wrapParam (desugarExpr body) params
-    body'
+  S.ELam params body _ ->
+    foldr wrapParam (desugarExpr body) params
     where
       wrapParam param bodyM = do
         ty <- desugarType (S.paramType param)

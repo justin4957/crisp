@@ -23,7 +23,7 @@ import Data.Char (isAlpha, isAlphaNum, isDigit, isLower, isUpper, isSpace)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
-import Text.Megaparsec
+import Text.Megaparsec hiding (Token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 

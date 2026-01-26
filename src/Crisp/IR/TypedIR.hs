@@ -352,7 +352,9 @@ unwords' [] = ""
 unwords' xs = foldr1 (\a b -> a <> " " <> b) xs
 
 showT :: Show a => a -> Text
-showT = Aeson.toJSON
+showT x = case Aeson.toJSON (show x) of
+  Aeson.String t -> t
+  _ -> ""
 
 -- | Encode a module to JSON
 encodeModule :: TypedModule -> ByteString

@@ -23,7 +23,7 @@ import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void (Void)
-import Text.Megaparsec
+import Text.Megaparsec hiding (ParseError)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
@@ -183,7 +183,7 @@ pTypeDef = do
   mKind <- optional (symbol ":" *> pKind)
   cons <- optional (symbol ":" *> pConstructors)
   span' <- spanFrom start
-  pure $ TypeDef name params mKind (concat $ maybe [] id cons) mods span'
+  pure $ TypeDef name params mKind (maybe [] id cons) mods span'
 
 pTypeModifiers :: Parser TypeModifiers
 pTypeModifiers = do
@@ -227,16 +227,23 @@ pTypeParam = choice
   ]
 
 pKind :: Parser Kind
-pKind = makeExprParser pKindAtom
-  [ [InfixR (KindArrow <$> getPos <*> (symbol "->" *> spanFrom =<< getPos) <*> pure undefined)] ]
+pKind = do
+  k1 <- pKindAtom
+  mArrow <- optional (symbol "->")
+  case mArrow of
+    Nothing -> pure k1
+    Just _ -> do
+      k2 <- pKind
+      start <- getPos
+      span' <- spanFrom start
+      pure $ KindArrow k1 k2 span'
   where
-    -- Placeholder - actual implementation would be more complete
     pKindAtom = do
       start <- getPos
       choice
-        [ KindType Nothing <$> (keyword "Type" *> spanFrom start)
-        , KindProp <$> (keyword "Prop" *> spanFrom start)
-        , KindLinear <$> (keyword "Linear" *> spanFrom start)
+        [ keyword "Type" *> (KindType Nothing <$> spanFrom start)
+        , keyword "Prop" *> (KindProp <$> spanFrom start)
+        , keyword "Linear" *> (KindLinear <$> spanFrom start)
         ]
 
 pEffectDef :: Parser EffectDef
@@ -350,15 +357,30 @@ pEffectRef = do
 -- * Type parsing
 
 pType :: Parser Type
-pType = makeExprParser pTypeApp
+pType = do
+  result <- pTypeInner
+  -- Check for trailing effect annotation
+  mEffs <- optional (symbol "!" *> pEffectList)
+  case mEffs of
+    Nothing -> pure result
+    Just effs -> case result of
+      -- Attach effects to the innermost function type
+      TyFn from to [] span' -> pure $ TyFn from to effs span'
+      _ -> do
+        start <- getPos
+        span' <- spanFrom start
+        -- Create a function type with effects (for effectful expressions)
+        pure $ TyFn result result effs span'  -- Placeholder, effects on non-function types
+
+pTypeInner :: Parser Type
+pTypeInner = makeExprParser pTypeApp
   [ [InfixR pArrow] ]
   where
     pArrow = do
       start <- getPos
-      symbol "->"
-      effs <- option [] (symbol "!" *> pEffectList)
+      _ <- symbol "->"
       span' <- spanFrom start
-      pure $ \from to -> TyFn from to effs span'
+      pure $ \from to -> TyFn from to [] span'
 
 pTypeApp :: Parser Type
 pTypeApp = do
@@ -446,11 +468,32 @@ pLet = do
   keyword "let"
   pat <- pPattern
   mTy <- optional (symbol ":" *> pType)
-  symbol "="
-  value <- pExpr
-  body <- pExpr  -- In real impl, would handle block structure
+  _ <- symbol "="
+  value <- pLetValue  -- Parse value up to 'in'
+  keyword "in"
+  body <- pExpr
   span' <- spanFrom start
   pure $ ELet pat mTy value body span'
+  where
+    -- Parse a let value - atoms that don't include 'in' keyword
+    pLetValue :: Parser Expr
+    pLetValue = do
+      start <- getPos
+      func <- pLetAtom
+      args <- many (try $ notFollowedBy (keyword "in") *> pLetAtom)
+      span' <- spanFrom start
+      case args of
+        [] -> pure func
+        _  -> pure $ EApp func args span'
+
+    pLetAtom :: Parser Expr
+    pLetAtom = choice
+      [ pLazy
+      , pForce
+      , pLiteral
+      , pVar
+      , pParens
+      ]
 
 pMatch :: Parser Expr
 pMatch = do
@@ -563,7 +606,7 @@ pForce = do
 pLiteral :: Parser Expr
 pLiteral = choice
   [ pUnit
-  , pFloat
+  , try pFloat  -- Try float first (with backtracking) so "42" doesn't consume "4" expecting decimal
   , pInt
   , pString
   , pChar
