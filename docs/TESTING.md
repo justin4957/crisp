@@ -123,6 +123,46 @@ The lexer test suite covers:
 **Integration (10 tests)**
 - Realistic code snippets (function definitions, type definitions, etc.)
 
+### Lexer Error Tests (`test/Crisp/Lexer/ErrorSpec.hs`)
+
+The lexer error test suite covers error recovery and reporting:
+
+**Error Recovery (12 tests)**
+- Unterminated string literals (end of line, at newline, span tracking)
+- Unterminated block comments (simple, nested, error kind verification)
+- Unterminated character literals
+- Invalid character literals (empty, multi-character)
+- Unexpected characters
+
+**Multiple Error Collection (2 tests)**
+- Continuing after an error to find valid tokens
+- Collecting errors while producing partial token stream
+
+**Error Formatting (5 tests)**
+- Error codes in output (L001, L002, etc.)
+- File position in output
+- Error messages
+- Help text
+
+**Error Codes (8 tests)**
+- L001: Unterminated string
+- L002: Unterminated block comment
+- L003: Unterminated character literal
+- L004: Invalid escape sequence
+- L005: Invalid character literal
+- L006: Invalid numeric literal
+- L007: Unexpected character
+- L008: Tab character
+
+**Error Construction (5 tests)**
+- Creating various error types with context
+
+**Error Predicates (4 tests)**
+- `isLexError` and `getLexErrors` functions
+
+**Valid Input (5 tests)**
+- Ensuring valid code still lexes correctly with recovery mode
+
 ### Parser Tests (`test/Crisp/Parser/ParserSpec.hs`)
 
 - Expression parsing (literals, applications, let, if, lambda, etc.)
