@@ -44,6 +44,7 @@ library
         Crisp.Types.Exhaustive
         Crisp.Effects.Row
         Crisp.Effects.Typing
+        Crisp.Effects.Polymorphism
         Crisp.IR.TypedIR
         Crisp.IR.ENIR
         Crisp.Codegen.Wasm
@@ -124,6 +125,7 @@ test-suite crisp-test
         Crisp.Types.KindSpec
         Crisp.Types.ExhaustiveSpec
         Crisp.Effects.TypingSpec
+        Crisp.Effects.PolymorphismSpec
         Crisp.Core.PatternSpec
 
     build-depends:
