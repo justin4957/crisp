@@ -20,6 +20,7 @@ import qualified Crisp.Core.PatternSpec
 import qualified Crisp.IR.CPSSpec
 import qualified Crisp.Types.DependentSpec
 import qualified Crisp.Types.GADTSpec
+import qualified Crisp.Types.PropSpec
 
 main :: IO ()
 main = hspec $ do
@@ -33,8 +34,10 @@ main = hspec $ do
   describe "Crisp.Types.Exhaustive" Crisp.Types.ExhaustiveSpec.spec
   describe "Crisp.Effects.Typing" Crisp.Effects.TypingSpec.spec
   describe "Crisp.Effects.Polymorphism" Crisp.Effects.PolymorphismSpec.spec
+  describe "Crisp.Effects.Handler" Crisp.Effects.HandlerSpec.spec
   describe "Crisp.Types.Constructor" Crisp.Types.ConstructorSpec.spec
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec
   describe "Crisp.IR.CPS" Crisp.IR.CPSSpec.spec
   describe "Crisp.Types.Dependent" Crisp.Types.DependentSpec.spec
   describe "Crisp.Types.GADT" Crisp.Types.GADTSpec.spec
+  describe "Crisp.Types.Prop" Crisp.Types.PropSpec.spec
