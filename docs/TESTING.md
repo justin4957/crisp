@@ -267,6 +267,58 @@ The pattern compiler test suite covers pattern match elaboration (~40 tests):
 - Deeply nested structures
 - Many variables in pattern
 
+### Type Unification Tests (`test/Crisp/Types/UnifySpec.hs`)
+
+The type unification test suite covers the MGU algorithm (~64 tests):
+
+**Basic Unification (~14 tests)**
+- Identical types: simple types, type variables, TyProp, TyUniverse
+- Wrapper types: Lazy, Ref, RefMut, Linear
+- Type variables: binding to concrete types, binding different vars
+
+**Function Type Unification (~7 tests)**
+- Identical function types
+- Variables in domain and codomain
+- Domain/codomain mismatches (failure cases)
+- Nested function types
+
+**Type Constructor Unification (~7 tests)**
+- Same name constructors with/without args
+- Different names (failure case)
+- Arity mismatch (failure case)
+- Substitution propagation through args
+
+**Occurs Check (~5 tests)**
+- Direct circular reference: `a ~ a -> Int`
+- Nested circular reference: `a ~ List a`
+- Deeply nested circular reference
+- Non-circular cases succeed
+
+**Substitution Operations (~7 tests)**
+- Empty substitution identity
+- Single substitution replacement
+- Application through types
+- Composition ordering and associativity
+
+**Effect Row Unification (~7 tests)**
+- Empty rows, identical sets
+- Effect variables with concrete effects
+- Effect unions
+
+**Symmetry (~4 tests)**
+- `unify a b` produces equivalent result to `unify b a`
+- Failure symmetry
+
+**Complex Types (~7 tests)**
+- Forall types, wrapper types
+- Complex nested types: `Maybe (a -> List b)`
+
+**Edge Cases (~6 tests)**
+- Multiple occurrences of same variable
+- Inconsistent variable binding (failure)
+- Chain of variable bindings
+- Universe level mismatch
+
 ## Writing Tests
 
 ### Test Naming Convention
