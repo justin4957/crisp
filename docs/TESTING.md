@@ -281,6 +281,89 @@ The type inference test suite covers Hindley-Milner style inference with let-pol
 - Higher-order function
 - Composition function: `\f.\g.\x. f (g x)`
 
+### Kind Checker Tests (`test/Crisp/Types/KindSpec.hs`)
+
+The kind checker test suite covers kind checking for types (~60 tests):
+
+**Basic Kind Tests (~4 tests)**
+- Primitive types: Int, Bool, String, Unit have kind Type
+- Type universe levels: `Type_0 : Type_1`, `Type_1 : Type_2`
+
+**Primitive Type Tests (~5 tests)**
+- `TyUniverse` levels
+- `TyProp` has kind Prop
+- Type variable kinds from environment
+- Unbound type variable errors
+
+**Type Constructor Tests (~4 tests)**
+- List : Type -> Type
+- Option : Type -> Type
+- Either : Type -> Type -> Type
+- Map : Type -> Type -> Type
+
+**Type Application Tests (~8 tests)**
+- `List(Int)` : Type
+- `Option(String)` : Type
+- `Either(Int, String)` : Type
+- Nested application: `List(List(Int))` : Type
+- Partial application: `Either(Int)` : Type -> Type
+- Over-applied constructor error
+- Kind mismatch in application error
+
+**Function Type Tests (~5 tests)**
+- `Int -> Bool` : Type
+- `Int -> Int -> Int` : Type
+- `List(a) -> Int` : Type
+- Ill-kinded domain rejection
+- Ill-kinded codomain rejection
+
+**Forall Type Tests (~5 tests)**
+- `forall a. a` : Type
+- `forall a. a -> a` : Type
+- `forall a. List(a)` : Type
+- Higher-kinded parameters: `forall (f : Type -> Type). f(Int)` : Type
+- Nested forall types
+
+**Effect Row Tests (~4 tests)**
+- Empty effect row well-kinded
+- Single effect well-kinded
+- Effect union well-kinded
+- Effect variable with environment
+
+**Special Type Tests (~6 tests)**
+- `Lazy(Int)` : Type
+- `Lazy(List(a))` : Type
+- `ref Int` : Type
+- `ref mut Int` : Type
+- `linear Int` : Linear
+- Ill-kinded Lazy argument rejection
+
+**Kind Error Tests (~5 tests)**
+- Unbound type constructor
+- Partial application returns remaining kind
+- Over-application error
+- Kind mismatch error
+- Unbound type variable error
+
+**Higher-Kinded Type Tests (~4 tests)**
+- Type -> Type parameter
+- (Type -> Type) -> Type parameter
+- Functor-like type: `forall (f: Type -> Type). f(Int) -> f(Bool)`
+- Nested higher-kinded kinds
+
+**Kind Environment Tests (~5 tests)**
+- Default environment has standard types
+- Environment extension
+- Shadowing behavior
+- Preservation of other bindings
+
+**Edge Cases (~5 tests)**
+- Deeply nested type application
+- Complex function types
+- Multiple type variables in forall
+- TyForallDep types
+- Mixed forall and function types
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
