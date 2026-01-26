@@ -53,6 +53,9 @@ library
         Crisp.IR.TypedIR
         Crisp.IR.ENIR
         Crisp.IR.CPS
+        Crisp.IR.LLIR
+        Crisp.IR.Monomorphize
+        Crisp.IR.Layout
         Crisp.Codegen.Wasm
 
     other-modules:
@@ -136,6 +139,7 @@ test-suite crisp-test
         Crisp.Types.ConstructorSpec
         Crisp.Core.PatternSpec
         Crisp.IR.CPSSpec
+        Crisp.IR.LLIRSpec
         Crisp.Types.DependentSpec
         Crisp.Types.GADTSpec
         Crisp.Types.PropSpec
