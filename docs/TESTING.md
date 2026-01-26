@@ -1193,3 +1193,92 @@ The Prop universe test suite covers computationally irrelevant proofs and proof 
 - Handles proof in type constructor arguments
 - Handles deeply nested proofs
 - Erases proof from match case
+
+### LLIR and Monomorphization Tests (`test/Crisp/IR/LLIRSpec.hs`)
+
+The LLIR test suite covers Low-Level IR representation and monomorphization (~75 tests):
+
+**LLIR Type Tests (~10 tests)**
+- Primitive type sizes (I32, I64, F32, F64)
+- Pointer types (wasm32)
+- Struct types and alignment
+- Tagged union layouts
+- Function type representation
+- Crisp to LLIR type conversion (Int, Bool, Unit, Float)
+
+**LLIR Instruction Tests (~15 tests)**
+- Constant values
+- Local variable access (get/set)
+- Memory operations (load/store)
+- Function calls (direct and indirect)
+- Control flow (if, block, loop, br, br_if)
+- Binary operations (add, sub, mul, etc.)
+- Comparison operations (eq, ne, lt, gt, etc.)
+- Return instruction
+
+**LLIR Function Tests (~4 tests)**
+- Monomorphic function representation
+- Local variable tracking
+- Stack frame size computation
+- Export function detection
+
+**LLIR Module Tests (~5 tests)**
+- Function collection
+- Type definitions
+- Memory layout management
+- Import tracking
+- Export tracking
+
+**Monomorphization Tests (~6 tests)**
+- Monomorphic function preservation
+- Identity function specialization for Int
+- Identity function specialization for Bool
+- Multi-parameter specialization (const)
+- Nested polymorphic calls
+- Type substitution in function body
+
+**Specialized Naming Tests (~6 tests)**
+- Simple specialized names (`id$Int`)
+- Multi-param names (`const$Int$Bool`)
+- Parameterized types (`head$List_Int`)
+- Nested parameterized types
+- Monomorphic name preservation
+- Special character escaping
+
+**Data Layout Tests (~8 tests)**
+- Int layout (4 bytes, 4 alignment)
+- Bool layout (i32 representation)
+- Struct layouts with field offsets
+- Tagged union layouts with tag size
+- Alignment padding
+- Recursive type layouts (pointers)
+- Empty struct layout
+
+**Closure Representation Tests (~6 tests)**
+- Closure with no captures
+- Closure with captured variables
+- Closure struct size computation
+- Closure allocation code generation
+- Closure invocation code generation
+- Nested closures
+
+**Dead Code Elimination Tests (~5 tests)**
+- Exported function preservation
+- Called function preservation
+- Transitive call preservation
+- Cyclic call graph handling
+- Unused specialization elimination
+
+**Recursive Polymorphism Tests (~4 tests)**
+- Simple recursive function handling
+- Polymorphic recursion cycle detection
+- Mutually recursive functions
+- Instantiation depth limiting
+
+**Edge Cases (~6 tests)**
+- Empty module handling
+- Functions with no parameters
+- Higher-kinded type parameters
+- Function order preservation
+- Unit return types
+- String type handling (pointers)
