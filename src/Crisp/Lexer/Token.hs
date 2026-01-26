@@ -45,6 +45,7 @@ data TokenKind
   | KwIf
   | KwThen
   | KwElse
+  | KwIn
   | KwWith
   | KwImport
   | KwModule
@@ -69,6 +70,7 @@ data TokenKind
   -- Operators and Punctuation
   | Arrow          -- ->
   | FatArrow       -- =>
+  | LeftArrow      -- <-
   | Pipe           -- |
   | Colon          -- :
   | DoubleColon    -- ::
@@ -85,6 +87,21 @@ data TokenKind
   | Bang           -- !
   | Backslash      -- \
   | Lambda         -- λ
+  | Plus           -- +
+  | Minus          -- -
+  | Star           -- *
+  | Slash          -- /
+  | Less           -- <
+  | Greater        -- >
+  | LessEq         -- <=
+  | GreaterEq      -- >=
+  | EqEq           -- ==
+  | NotEq          -- /=
+  | AndAnd         -- &&
+  | OrOr           -- ||
+  | Percent        -- %
+  | Caret          -- ^
+  | Tilde          -- ~
 
   -- Delimiters
   | LParen         -- (
@@ -127,6 +144,7 @@ isKeyword = \case
   KwIf -> True
   KwThen -> True
   KwElse -> True
+  KwIn -> True
   KwWith -> True
   KwImport -> True
   KwModule -> True
@@ -179,6 +197,7 @@ keywordMap = Map.fromList
   , ("if", KwIf)
   , ("then", KwThen)
   , ("else", KwElse)
+  , ("in", KwIn)
   , ("with", KwWith)
   , ("import", KwImport)
   , ("module", KwModule)

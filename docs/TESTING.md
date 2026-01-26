@@ -6,189 +6,258 @@ This document describes testing strategies for the Crisp compiler.
 
 ```bash
 # Run all tests
-gleam test
+stack test
 
 # Run tests with verbose output
-gleam test -- --verbose
+stack test --test-arguments "--verbose"
+
+# Run specific test module
+stack test --test-arguments "--match Lexer"
+
+# Run specific test case
+stack test --test-arguments "--match \"lexes fn keyword\""
+
+# Run with specific random seed (for reproducibility)
+stack test --test-arguments "--seed 12345"
 ```
 
 ## Test Structure
 
 ```
 test/
-├── crisp_compiler_test.gleam    # Main test entry point
-└── crisp/
-    ├── lexer/
-    │   └── lexer_test.gleam     # Lexer unit tests
-    ├── parser/
-    │   └── parser_test.gleam    # Parser unit tests (TODO)
-    ├── types/
-    │   └── checker_test.gleam   # Type checker tests (TODO)
-    └── effects/
-        └── effect_test.gleam    # Effect system tests (TODO)
+├── Main.hs                           # Test entry point (uses hspec-discover)
+└── Crisp/
+    ├── Lexer/
+    │   └── LexerSpec.hs              # Comprehensive lexer tests
+    ├── Parser/
+    │   └── ParserSpec.hs             # Parser tests
+    └── Types/
+        └── CheckerSpec.hs            # Type checker tests
+```
+
+## Test Framework
+
+The test suite uses [HSpec](https://hspec.github.io/) for test organization and assertions.
+
+### Basic Test Structure
+
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+
+module Crisp.Lexer.LexerSpec (spec) where
+
+import Test.Hspec
+import Crisp.Lexer.Lexer
+import Crisp.Lexer.Token
+
+spec :: Spec
+spec = do
+  describe "lexFile" $ do
+    it "lexes simple keywords" $ do
+      let result = lexFile "test" "fn let match"
+      result `shouldSatisfy` isRight
+
+    it "returns correct tokens" $ do
+      lexKinds "fn" `shouldBe` Right [KwFn]
 ```
 
 ## Test Categories
 
-### Unit Tests
+### Lexer Tests (`test/Crisp/Lexer/LexerSpec.hs`)
 
-Each module has corresponding unit tests that verify individual functions.
+The lexer test suite covers:
 
-**Lexer Tests** (`test/crisp/lexer/lexer_test.gleam`):
-- Token recognition for keywords, operators, identifiers
-- Literal parsing (integers, floats, strings, characters)
-- Indentation tracking and layout token generation
-- Comment handling (line and block comments)
-- Error token generation for invalid input
+**Keywords (31 tests)**
+- All language keywords (`fn`, `let`, `type`, `effect`, `handler`, `match`, etc.)
+- Keyword/identifier disambiguation (`fn` vs `fn_helper`)
 
-**Parser Tests** (TODO):
-- Expression parsing with correct precedence
-- Statement and definition parsing
-- Pattern parsing
-- Type annotation parsing
-- Error recovery
+**Identifiers (7 tests)**
+- Lowercase identifiers (`foo`, `camelCase`)
+- Uppercase identifiers (`Foo`, `PascalCase`)
+- Identifiers with underscores, primes, and numbers
 
-**Type Checker Tests** (TODO):
-- Variable lookup
-- Function application typing
-- Type inference for let-bindings
-- Effect tracking
-- Linearity checking
+**Operators (22 tests)**
+- Arrow operators (`->`, `=>`, `<-`)
+- Comparison operators (`<`, `>`, `<=`, `>=`, `==`, `/=`)
+- Arithmetic operators (`+`, `-`, `*`, `/`, `%`)
+- Logical operators (`&&`, `||`)
+- Pipe operators (`|>`, `<|`)
+- Other operators (`:`, `::`, `@`, `&`, `.`, `,`, `$`, `!`)
 
-### Integration Tests
+**Delimiters (6 tests)**
+- Parentheses, brackets, braces
+- Unit literal `()`
 
-End-to-end tests using complete `.crisp` source files:
+**Literals (18 tests)**
+- Integer literals (decimal, hex `0xFF`, binary `0b1010`)
+- Float literals (with decimals, exponents, signed exponents)
+- String literals (simple, with escapes, unicode)
+- Character literals (simple, escape sequences)
 
-```bash
-# Example integration test structure
-test/
-└── integration/
-    ├── hello_world/
-    │   ├── input.crisp
-    │   └── expected.json       # Expected TIR output
-    ├── effects/
-    │   ├── state_handler.crisp
-    │   └── expected.json
-    └── dependent_types/
-        ├── safe_list.crisp
-        └── expected.json
-```
+**Comments (6 tests)**
+- Line comments (`--`)
+- Block comments (`{- -}`)
+- Nested block comments
+- Comment-like sequences in strings
 
-### Property-Based Tests
+**Layout Tokens (5 tests)**
+- Indent generation
+- Dedent generation
+- Newline at same level
+- Multiple indent levels
+- Dedents at end of file
 
-For algebraic properties that should always hold:
+**Edge Cases (7 tests)**
+- Empty input
+- Whitespace-only input
+- Comment-only input
+- Very long identifiers
+- Consecutive operators
+- Tokens without spaces
 
-```gleam
-// Effect row algebra properties
-pub fn effect_union_commutative_test() -> Nil {
-  // forall a b: union(a, b) == union(b, a)
-}
+**Source Spans (3 tests)**
+- Token position tracking
+- Line number tracking
+- Filename preservation
 
-pub fn effect_union_associative_test() -> Nil {
-  // forall a b c: union(union(a, b), c) == union(a, union(b, c))
-}
+**Integration (10 tests)**
+- Realistic code snippets (function definitions, type definitions, etc.)
 
-pub fn effect_empty_identity_test() -> Nil {
-  // forall a: union(a, empty) == a
-}
-```
+### Parser Tests (`test/Crisp/Parser/ParserSpec.hs`)
+
+- Expression parsing (literals, applications, let, if, lambda, etc.)
+- Type parsing (simple, function, application, forall, effectful)
+- Module parsing (minimal, with authority)
+
+### Type Checker Tests (`test/Crisp/Types/CheckerSpec.hs`)
+
+- Variable synthesis
+- Constructor synthesis
+- Application synthesis
+- Lambda checking
+- (More tests pending)
 
 ## Writing Tests
 
 ### Test Naming Convention
 
-- Test functions must end with `_test`
-- Use descriptive names: `fn identifier_with_apostrophe_test()`
-- Group related tests in the same file
-
-### Test Assertions
-
-Use `gleeunit/should` for assertions:
-
-```gleam
-import gleeunit/should
-
-pub fn some_test() -> Nil {
-  let result = compute_something()
-
-  result
-  |> should.equal(expected_value)
-
-  result
-  |> should.be_true
-
-  result
-  |> should.be_ok
-
-  result
-  |> should.be_error
-}
+```haskell
+describe "module or feature" $ do
+  it "does something specific" $ do
+    -- test body
 ```
 
-### Testing Error Cases
+### Common Assertions
 
-```gleam
-pub fn invalid_input_test() -> Nil {
-  let result = parse("invalid syntax")
+```haskell
+import Test.Hspec
+import Data.Either (isRight, isLeft)
 
-  result
-  |> should.be_error
+-- Equality
+result `shouldBe` expected
 
-  case result {
-    Error(ParseError(message, span)) ->
-      message
-      |> should.equal("Expected expression")
-    _ ->
-      False
-      |> should.be_true
-  }
-}
+-- Predicates
+result `shouldSatisfy` isRight
+result `shouldSatisfy` isLeft
+
+-- List containment
+kinds `shouldContain` [Indent]
+
+-- Pattern matching
+case result of
+  Right tokens -> length tokens `shouldBe` 3
+  Left _ -> expectationFailure "Expected success"
 ```
 
-## Test Fixtures
+### Helper Functions
 
-Place test fixture files in `test/fixtures/`:
+The lexer tests use these helpers:
 
+```haskell
+-- Get token kinds from lexing result
+lexKinds :: Text -> Either String [TokenKind]
+lexKinds input = case lexFile "test" input of
+  Left err -> Left (show err)
+  Right tokens -> Right (map tokenKind tokens)
+
+-- Filter out layout tokens
+withoutLayout :: [TokenKind] -> [TokenKind]
+withoutLayout = filter (not . isLayoutToken)
 ```
-test/fixtures/
-├── lexer/
-│   ├── valid_tokens.crisp
-│   └── invalid_tokens.crisp
-├── parser/
-│   ├── expressions.crisp
-│   └── definitions.crisp
-└── programs/
-    ├── hello.crisp
-    └── state.crisp
-```
+
+## Test-Driven Development
+
+For new features:
+
+1. **Write failing tests first**
+   ```haskell
+   it "lexes new_keyword keyword" $ do
+     lexKinds "new_keyword" `shouldBe` Right [KwNewKeyword]
+   ```
+
+2. **Run tests to confirm failure**
+   ```bash
+   stack test --test-arguments "--match new_keyword"
+   ```
+
+3. **Implement the feature**
+
+4. **Run tests to confirm they pass**
+
+5. **Refactor if needed**
+
+## Test Coverage Goals
+
+| Module | Target Coverage | Current Status |
+|--------|-----------------|----------------|
+| Lexer | 90%+ | ✅ Comprehensive |
+| Parser | 80%+ | ⚠️ Basic coverage |
+| Type Checker | 80%+ | ⚠️ Basic coverage |
+| Effect System | 80%+ | ❌ Pending |
+| Code Generation | 70%+ | ❌ Pending |
 
 ## Continuous Integration
 
-Tests run automatically on:
-- Every push to any branch
-- Every pull request
+Tests run automatically on every push and pull request. The CI checks:
 
-CI configuration checks:
-1. `gleam build` - Compilation succeeds
-2. `gleam test` - All tests pass
-3. `gleam format --check` - Code is properly formatted
+1. `stack build` - Compilation succeeds
+2. `stack test` - All tests pass
 
 ## Adding New Tests
 
-1. Create test file in appropriate directory
-2. Import `gleeunit/should` for assertions
-3. Write test functions ending in `_test`
-4. Run `gleam test` to verify
-5. Commit with descriptive message
+1. Add test functions to the appropriate `*Spec.hs` file
+2. Use descriptive `describe` and `it` labels
+3. Run `stack test` to verify
+4. Commit with descriptive message
 
-## Test Coverage
+## Property-Based Testing
 
-Track test coverage for critical modules:
+For algebraic properties, use QuickCheck (already in dependencies):
 
-- [ ] Lexer token recognition
-- [ ] Lexer layout handling
-- [ ] Parser expression parsing
-- [ ] Parser definition parsing
-- [ ] Type checker inference
-- [ ] Effect row operations
-- [ ] TIR serialization
+```haskell
+import Test.Hspec
+import Test.Hspec.QuickCheck
+import Test.QuickCheck
+
+spec :: Spec
+spec = do
+  describe "effect row operations" $ do
+    prop "union is commutative" $ \a b ->
+      effectUnion a b == effectUnion b a
+
+    prop "union is associative" $ \a b c ->
+      effectUnion (effectUnion a b) c == effectUnion a (effectUnion b c)
+```
+
+## Debugging Failed Tests
+
+```bash
+# Run with verbose output
+stack test --test-arguments "--verbose"
+
+# Run with specific seed for reproducibility
+stack test --test-arguments "--seed 12345"
+
+# Run single test
+stack test --test-arguments "--match \"exact test name\""
+```
