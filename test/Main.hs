@@ -13,6 +13,7 @@ import qualified Crisp.Types.InferSpec
 import qualified Crisp.Types.KindSpec
 import qualified Crisp.Types.ExhaustiveSpec
 import qualified Crisp.Effects.TypingSpec
+import qualified Crisp.Effects.PolymorphismSpec
 import qualified Crisp.Core.PatternSpec
 
 main :: IO ()
@@ -26,4 +27,5 @@ main = hspec $ do
   describe "Crisp.Types.Kind" Crisp.Types.KindSpec.spec
   describe "Crisp.Types.Exhaustive" Crisp.Types.ExhaustiveSpec.spec
   describe "Crisp.Effects.Typing" Crisp.Effects.TypingSpec.spec
+  describe "Crisp.Effects.Polymorphism" Crisp.Effects.PolymorphismSpec.spec
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec

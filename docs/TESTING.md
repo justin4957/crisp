@@ -491,6 +491,73 @@ The effect declaration typing test suite covers effect typing (~29 tests):
 - Preserves operation order
 - Empty parameter list
 
+### Effect Polymorphism Tests (`test/Crisp/Effects/PolymorphismSpec.hs`)
+
+The effect polymorphism test suite covers row-polymorphic effects (~46 tests):
+
+**Row Variable Tests (~5 tests)**
+- Creating row variables with name and index
+- Checking if row contains variable
+- Concrete rows have no variables
+- Unions with variables
+- Extracting effect variables from rows
+
+**Row Unification Tests (~9 tests)**
+- Unifying empty rows
+- Row variable with empty
+- Row variable with concrete effects
+- Two row variables
+- Identical concrete rows
+- Same effects in different order
+- Mismatched concrete rows (failure)
+- Union with row variable
+- Occurs check handling
+
+**Row Operation Tests (~5 tests)**
+- Union of variable with concrete effects
+- Removing effect from row with variable
+- Row difference computation
+- Row subset checking
+- Effect row normalization
+
+**Effect Polymorphism Tests (~5 tests)**
+- Recognizing effect-polymorphic types
+- Recognizing non-polymorphic types
+- Pure functions and polymorphism
+- Extracting effect variables from types
+- Nested type effect variable extraction
+
+**Effect Scheme Tests (~3 tests)**
+- Creating effect scheme from type
+- Scheme with no effect variables
+- Environment-aware quantification
+
+**Effect Instantiation Tests (~3 tests)**
+- Instantiating with fresh variables
+- Preserving type structure
+- Multiple effect variable instantiation
+
+**Effect Subset Tests (~6 tests)**
+- Empty subset of anything
+- Concrete subset of larger concrete
+- Non-subset detection
+- Row variable subset flexibility
+- Union subset checking
+
+**Effect Constraint Tests (~4 tests)**
+- Constraint generation for function calls
+- Solving simple constraints
+- Failing unsatisfiable constraints
+- Propagating constraints through composition
+
+**Edge Cases (~6 tests)**
+- Empty effect sets
+- Nested unions
+- Effects with authority
+- Effect substitution in types
+- Higher-kinded effect variables
+- Effect variable name preservation
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
@@ -665,7 +732,7 @@ For new features:
 | Lexer | 90%+ | ✅ Comprehensive |
 | Parser | 80%+ | ⚠️ Basic coverage |
 | Type Checker | 80%+ | ⚠️ Basic coverage |
-| Effect System | 80%+ | ❌ Pending |
+| Effect System | 80%+ | ✅ Good coverage |
 | Code Generation | 70%+ | ❌ Pending |
 
 ## Continuous Integration
