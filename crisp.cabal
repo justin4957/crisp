@@ -42,6 +42,7 @@ library
         Crisp.Types.Infer
         Crisp.Types.KindChecker
         Crisp.Types.Exhaustive
+        Crisp.Types.Constructor
         Crisp.Effects.Row
         Crisp.Effects.Typing
         Crisp.Effects.Polymorphism
@@ -126,6 +127,7 @@ test-suite crisp-test
         Crisp.Types.ExhaustiveSpec
         Crisp.Effects.TypingSpec
         Crisp.Effects.PolymorphismSpec
+        Crisp.Types.ConstructorSpec
         Crisp.Core.PatternSpec
 
     build-depends:

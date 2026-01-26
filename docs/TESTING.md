@@ -558,6 +558,74 @@ The effect polymorphism test suite covers row-polymorphic effects (~46 tests):
 - Higher-kinded effect variables
 - Effect variable name preservation
 
+### Constructor Typing Tests (`test/Crisp/Types/ConstructorSpec.hs`)
+
+The constructor typing test suite covers algebraic data type constructors (~43 tests):
+
+**Type Declaration Tests (~5 tests)**
+- Simple type declaration registration
+- Type with parameters
+- Type with multiple parameters
+- Duplicate type name rejection
+- Duplicate constructor name rejection
+
+**Constructor Declaration Tests (~4 tests)**
+- Nullary constructor type
+- Unary constructor function type
+- Binary constructor curried function type
+- Constructor return type recording
+
+**Constructor Type Synthesis Tests (~3 tests)**
+- Nullary constructor synthesis
+- Parameterized constructor synthesis
+- Unknown constructor error
+
+**Constructor Application Tests (~5 tests)**
+- Nullary constructor application
+- Unary constructor with correct argument
+- Wrong argument type rejection
+- Wrong arity rejection
+- Partial application handling
+
+**Pattern Matching Tests (~6 tests)**
+- Type extraction from constructor pattern
+- Nested pattern type extraction
+- Wildcard pattern handling
+- Variable pattern on whole type
+- Wrong constructor rejection
+- Multi-arg constructor bindings
+
+**Parameterized Type Tests (~4 tests)**
+- Type parameter instantiation
+- Multiple type parameters
+- Return type after instantiation
+- Preserves non-parameterized types
+
+**Recursive Type Tests (~4 tests)**
+- Simple recursive type (List)
+- Nat type
+- Tree type
+- Mutually recursive types
+
+**GADT-Style Constructor Tests (~3 tests)**
+- Refined return type
+- GADT return type recording
+- Pattern match with GADT refinement
+
+**Type Instantiation Tests (~4 tests)**
+- Type variable substitution in param
+- Type variable in nested type
+- Multiple type variables
+- Non-parameterized type preservation
+
+**Edge Cases (~5 tests)**
+- Empty type (no constructors)
+- Single constructor type
+- Constructor with many parameters
+- Higher-kinded type parameter
+- Type with both type and value params
+- Constructor order preservation
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
