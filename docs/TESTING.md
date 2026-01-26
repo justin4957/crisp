@@ -685,6 +685,91 @@ The handler typing test suite covers effect handler typing rules (~40 tests):
 - Effect row with variables
 - Union effect rows
 
+### CPS Transformation Tests (`test/Crisp/IR/CPSSpec.hs`)
+
+The CPS transformation test suite covers continuation-passing style transformation (~49 tests):
+
+**Simple Value Transformation (~4 tests)**
+- Variable to CPS transformation
+- Constructor to CPS transformation
+- Unit to CPS transformation
+- Variable name preservation
+
+**Lambda Transformation (~3 tests)**
+- Identity lambda transformation
+- Lambda body is CPS-transformed
+- Continuation parameter added
+
+**Application Transformation (~4 tests)**
+- Simple application transformation
+- Function evaluated first
+- Argument evaluated second
+- Continuation passed to call
+
+**Let Binding Transformation (~3 tests)**
+- Let binding transformation
+- Let value is CPS-transformed
+- Body receives bound variable
+
+**Effect Operation Transformation (~5 tests)**
+- Perform to continuation capture
+- Continuation captured at perform site
+- Effect name recorded
+- Operation name recorded
+- Perform argument transformed
+
+**Effect in Expression Context (~2 tests)**
+- Effects sequenced before use
+- Nested continuations correct
+
+**Handler Transformation (~4 tests)**
+- Handler to CPS handler
+- Handler captures body continuation
+- Operation clauses have continuation access
+- Return clause CPS-transformed
+
+**Resume Continuation (~3 tests)**
+- Resume available in operation clause
+- Resume invokes captured continuation
+- Non-resuming handler can discard continuation
+
+**Multi-shot Continuations (~2 tests)**
+- Continuation can be called multiple times
+- Multi-shot generates independent results
+
+**Nested Handlers (~3 tests)**
+- Nested handlers handled correctly
+- Inner handler sees outer handler
+- Handler order matters
+
+**Evaluation Order Preservation (~2 tests)**
+- Left-to-right evaluation preserved
+- Let evaluation order preserved
+
+**Type Annotation Handling (~2 tests)**
+- Type annotations erased
+- Underlying term preserved
+
+**Lazy and Force Transformation (~2 tests)**
+- Lazy transformed to lambda
+- Force transformed to application
+
+**Match Transformation (~3 tests)**
+- Match scrutinee evaluated first
+- Each branch CPS-transformed
+- Continuation flows to branches
+
+**CPS Well-formedness (~3 tests)**
+- All effect calls have continuations
+- No dangling continuations
+- Continuation structure valid
+
+**Edge Cases (~4 tests)**
+- Empty handler handled
+- Deeply nested effects handled
+- Type abstraction erased
+- Type application erased
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
