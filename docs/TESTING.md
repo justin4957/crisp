@@ -221,6 +221,66 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Lambda checking
 - (More tests pending)
 
+### Type Inference Tests (`test/Crisp/Types/InferSpec.hs`)
+
+The type inference test suite covers Hindley-Milner style inference with let-polymorphism (~40 tests):
+
+**Simple Inference Tests (~7 tests)**
+- Unit, Bool, Int constructor inference
+- Bound variable type lookup
+- Unbound variable error handling
+- Polymorphic variable instantiation
+
+**Function Inference Tests (~6 tests)**
+- Identity function type: `\x. x : a -> a`
+- Constant function type: `\x. \y. x : a -> b -> a`
+- Lambda with application body
+- Application result type inference
+- Type mismatch in application (failure case)
+- Non-function application (failure case)
+
+**Let-Binding Tests (~7 tests)**
+- Simple let-bound variable in body
+- Nested let-bindings
+- Shadowing of outer bindings
+- Let-bound function usage
+- Polymorphic identity function generalization
+- Polymorphic instantiation at different types
+- Const function polymorphism: `let const = \x.\y.x in const True 42 : Bool`
+
+**Annotated Let-Binding Tests (~2 tests)**
+- Explicit type annotation respected
+- Annotation constrains inferred type
+
+**Generalization Tests (~3 tests)**
+- Free type variables are generalized
+- Environment variables are not generalized
+- Multiple free variables generalization
+
+**Instantiation Tests (~3 tests)**
+- Monomorphic scheme unchanged
+- Polymorphic scheme with fresh variables
+- Different instantiations get different variables
+
+**Type Scheme Tests (~3 tests)**
+- `monoScheme` creates scheme with no quantified vars
+- `schemeType` extracts type from scheme
+- Scheme with quantified variables
+
+**Free Variable Tests (~5 tests)**
+- Simple type has no free vars
+- Type variable is free
+- Function type collects vars from both sides
+- Type constructor collects vars from args
+- Nested types collect all vars
+
+**Edge Cases (~5 tests)**
+- Deeply nested let-bindings
+- Let-binding with complex type
+- Function returning function
+- Higher-order function
+- Composition function: `\f.\g.\x. f (g x)`
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
