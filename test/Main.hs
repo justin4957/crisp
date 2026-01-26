@@ -19,6 +19,7 @@ import qualified Crisp.Types.ConstructorSpec
 import qualified Crisp.Core.PatternSpec
 import qualified Crisp.IR.CPSSpec
 import qualified Crisp.Types.DependentSpec
+import qualified Crisp.Types.GADTSpec
 
 main :: IO ()
 main = hspec $ do
@@ -36,3 +37,4 @@ main = hspec $ do
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec
   describe "Crisp.IR.CPS" Crisp.IR.CPSSpec.spec
   describe "Crisp.Types.Dependent" Crisp.Types.DependentSpec.spec
+  describe "Crisp.Types.GADT" Crisp.Types.GADTSpec.spec
