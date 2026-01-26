@@ -38,6 +38,8 @@ library
         Crisp.Types.Checker
         Crisp.Types.Substitution
         Crisp.Types.Unify
+        Crisp.Types.Scheme
+        Crisp.Types.Infer
         Crisp.Effects.Row
         Crisp.IR.TypedIR
         Crisp.IR.ENIR
@@ -115,6 +117,7 @@ test-suite crisp-test
         Crisp.Parser.ParserSpec
         Crisp.Types.CheckerSpec
         Crisp.Types.UnifySpec
+        Crisp.Types.InferSpec
         Crisp.Core.PatternSpec
 
     build-depends:

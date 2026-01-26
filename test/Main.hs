@@ -9,6 +9,7 @@ import qualified Crisp.Lexer.ErrorSpec
 import qualified Crisp.Parser.ParserSpec
 import qualified Crisp.Types.CheckerSpec
 import qualified Crisp.Types.UnifySpec
+import qualified Crisp.Types.InferSpec
 import qualified Crisp.Core.PatternSpec
 
 main :: IO ()
@@ -18,4 +19,5 @@ main = hspec $ do
   describe "Crisp.Parser" Crisp.Parser.ParserSpec.spec
   describe "Crisp.Types.Checker" Crisp.Types.CheckerSpec.spec
   describe "Crisp.Types.Unify" Crisp.Types.UnifySpec.spec
+  describe "Crisp.Types.Infer" Crisp.Types.InferSpec.spec
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec
