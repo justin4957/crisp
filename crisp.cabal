@@ -41,6 +41,7 @@ library
         Crisp.Types.Scheme
         Crisp.Types.Infer
         Crisp.Types.KindChecker
+        Crisp.Types.Exhaustive
         Crisp.Effects.Row
         Crisp.IR.TypedIR
         Crisp.IR.ENIR
@@ -120,6 +121,7 @@ test-suite crisp-test
         Crisp.Types.UnifySpec
         Crisp.Types.InferSpec
         Crisp.Types.KindSpec
+        Crisp.Types.ExhaustiveSpec
         Crisp.Core.PatternSpec
 
     build-depends:
