@@ -69,6 +69,10 @@ data Type
   | TyRefMut !Type                            -- ^ Mutable reference type
   | TyUniverse !Int                           -- ^ Universe (Type_i)
   | TyProp                                    -- ^ Prop universe (for erased proofs)
+  | TySigma !Text !Type !Type                 -- ^ Sigma type (dependent pair): Sigma x:A. B
+  | TyNatLit !Int                             -- ^ Type-level natural number literal
+  | TyAdd !Type !Type                         -- ^ Type-level addition
+  | TyEffect !Text !Type                      -- ^ Effectful type expression (impure, rejected in types)
   deriving stock (Eq, Show, Generic)
 
 -- | Kind expressions

@@ -117,6 +117,15 @@ withPrelude = foldr registerType emptyContext preludeTypes
       , TypeInfo "Float" [] (KiType 0) [] False False
       , TypeInfo "String" [] (KiType 0) [] False False
       , TypeInfo "Char" [] (KiType 0) [] False False
+        -- Vec type for dependent type testing
+        -- Vec(A, n) is a length-indexed vector
+      , TypeInfo "Vec" [("A", KiType 0), ("n", KiType 0)] (KiType 0)
+          [ ConstructorInfo "Nil" [] (TyCon "Vec" [TyVar "A" 0, TyNatLit 0])
+          , ConstructorInfo "Cons"
+              [TyVar "A" 0, TyCon "Vec" [TyVar "A" 0, TyVar "n" 0]]
+              (TyCon "Vec" [TyVar "A" 0, TyAdd (TyVar "n" 0) (TyNatLit 1)])
+          ]
+          False False
       ]
 
 -- | Extend the context with a term binding
