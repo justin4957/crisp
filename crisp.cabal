@@ -29,6 +29,7 @@ library
         Crisp.Syntax.Surface
         Crisp.Lexer.Token
         Crisp.Lexer.Lexer
+        Crisp.Lexer.Error
         Crisp.Parser.Parser
         Crisp.Core.Term
         Crisp.Core.Desugar
@@ -107,6 +108,7 @@ test-suite crisp-test
     main-is:          Main.hs
     other-modules:
         Crisp.Lexer.LexerSpec
+        Crisp.Lexer.ErrorSpec
         Crisp.Parser.ParserSpec
         Crisp.Types.CheckerSpec
 
