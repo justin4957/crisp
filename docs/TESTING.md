@@ -442,6 +442,55 @@ The pattern exhaustiveness test suite covers exhaustiveness checking (~52 tests)
 - Complex patterns with wildcards
 - Order doesn't affect exhaustiveness
 
+### Effect Declaration Typing Tests (`test/Crisp/Effects/TypingSpec.hs`)
+
+The effect declaration typing test suite covers effect typing (~29 tests):
+
+**Effect Declaration Tests (~4 tests)**
+- Simple effect declaration validation
+- Effect with single operation
+- Effect with multiple operations
+- Effect with no operations
+
+**Operation Typing Tests (~3 tests)**
+- Nullary operation return type
+- Unary operation parameter type
+- Binary operation (get/put) types
+
+**Effect Environment Tests (~5 tests)**
+- Empty environment has no effects
+- Adding effect to environment
+- Looking up operation by effect and name
+- Unknown effect returns Nothing
+- Unknown operation returns Nothing
+
+**Parameterized Effect Tests (~4 tests)**
+- State(S) effect validation
+- Reader(R) effect validation
+- Effect with multiple type parameters
+- Effect parameters recorded in environment
+
+**Duplicate Detection Tests (~3 tests)**
+- Rejects duplicate effect names
+- Rejects duplicate operation names within effect
+- Allows same operation name in different effects
+
+**Operation Type Inference Tests (~3 tests)**
+- Infers full operation type with effect
+- Infers operation type with parameter
+- Infers parameterized operation type with substitution
+
+**Effect Scoping Tests (~2 tests)**
+- Effect parameters scope to all operations
+- Different effects have independent scopes
+
+**Edge Cases (~5 tests)**
+- Operation with multiple parameters
+- Complex return types
+- Higher-kinded effect parameters
+- Preserves operation order
+- Empty parameter list
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):

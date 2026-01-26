@@ -43,6 +43,7 @@ library
         Crisp.Types.KindChecker
         Crisp.Types.Exhaustive
         Crisp.Effects.Row
+        Crisp.Effects.Typing
         Crisp.IR.TypedIR
         Crisp.IR.ENIR
         Crisp.Codegen.Wasm
@@ -122,6 +123,7 @@ test-suite crisp-test
         Crisp.Types.InferSpec
         Crisp.Types.KindSpec
         Crisp.Types.ExhaustiveSpec
+        Crisp.Effects.TypingSpec
         Crisp.Core.PatternSpec
 
     build-depends:
