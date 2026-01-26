@@ -17,6 +17,7 @@ import qualified Crisp.Effects.PolymorphismSpec
 import qualified Crisp.Effects.HandlerSpec
 import qualified Crisp.Types.ConstructorSpec
 import qualified Crisp.Core.PatternSpec
+import qualified Crisp.IR.CPSSpec
 
 main :: IO ()
 main = hspec $ do
@@ -32,3 +33,4 @@ main = hspec $ do
   describe "Crisp.Effects.Polymorphism" Crisp.Effects.PolymorphismSpec.spec
   describe "Crisp.Types.Constructor" Crisp.Types.ConstructorSpec.spec
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec
+  describe "Crisp.IR.CPS" Crisp.IR.CPSSpec.spec
