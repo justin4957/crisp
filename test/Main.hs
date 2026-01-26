@@ -22,6 +22,7 @@ import qualified Crisp.IR.LLIRSpec
 import qualified Crisp.Types.DependentSpec
 import qualified Crisp.Types.GADTSpec
 import qualified Crisp.Types.PropSpec
+import qualified Crisp.Codegen.WasmBinarySpec
 
 main :: IO ()
 main = hspec $ do
@@ -43,3 +44,4 @@ main = hspec $ do
   describe "Crisp.Types.Dependent" Crisp.Types.DependentSpec.spec
   describe "Crisp.Types.GADT" Crisp.Types.GADTSpec.spec
   describe "Crisp.Types.Prop" Crisp.Types.PropSpec.spec
+  describe "Crisp.Codegen.WasmBinary" Crisp.Codegen.WasmBinarySpec.spec

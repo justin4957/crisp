@@ -945,7 +945,7 @@ For new features:
 | Parser | 80%+ | ⚠️ Basic coverage |
 | Type Checker | 80%+ | ⚠️ Basic coverage |
 | Effect System | 80%+ | ✅ Good coverage |
-| Code Generation | 70%+ | ❌ Pending |
+| Code Generation | 70%+ | ✅ Good coverage |
 
 ## Continuous Integration
 
@@ -1282,3 +1282,85 @@ The LLIR test suite covers Low-Level IR representation and monomorphization (~75
 - Function order preservation
 - Unit return types
 - String type handling (pointers)
+
+### WebAssembly Binary Encoding Tests (`test/Crisp/Codegen/WasmBinarySpec.hs`)
+
+The WebAssembly binary encoding test suite covers Wasm binary format generation (~80 tests):
+
+**Module Header Tests (~3 tests)**
+- Magic number verification (`\0asm`)
+- Version number (1)
+- Header byte count (8 bytes)
+
+**LEB128 Encoding Tests (~16 tests)**
+- ULEB128: 0, small integers (<128), 128, 255, 256, 624485 (spec example), large integers
+- SLEB128: 0, small positive, 64, -1, -64, -65, -123456 (spec example), large negative
+
+**Value Type Encoding Tests (~4 tests)**
+- i32 (0x7F), i64 (0x7E), f32 (0x7D), f64 (0x7C)
+
+**Type Section Tests (~6 tests)**
+- Section ID (1)
+- Empty type section
+- Single function type `() -> i32`
+- Function type `(i32, i32) -> i32`
+- Function type `() -> ()`
+- Multiple function types
+
+**Import Section Tests (~5 tests)**
+- Section ID (2)
+- Empty import section
+- Function import encoding
+- Module and field name encoding
+- Memory import encoding
+
+**Function Section Tests (~4 tests)**
+- Section ID (3)
+- Empty function section
+- Single function with type index 0
+- Multiple functions
+
+**Memory Section Tests (~4 tests)**
+- Section ID (5)
+- Memory with only minimum pages
+- Memory with minimum and maximum
+- Larger memory sizes
+
+**Export Section Tests (~5 tests)**
+- Section ID (7)
+- Empty export section
+- Function export encoding
+- Memory export encoding
+- Multiple exports
+
+**Code Section Tests (~5 tests)**
+- Section ID (10)
+- Empty code section
+- Function with no locals and return
+- Function with locals
+- Add function body
+
+**Instruction Encoding Tests (~25 tests)**
+- Constants: i32.const, i64.const, f64.const
+- Local operations: local.get, local.set
+- Global operations: global.get, global.set
+- Control flow: return, unreachable, call, call_indirect, br, br_if
+- Arithmetic: i32.add/sub/mul/eq/lt, i64.add/sub, f64.add/sub/mul
+- Misc: drop
+- Structured control: block, loop, if-then-else
+
+**Complete Module Encoding Tests (~5 tests)**
+- Empty module encoding
+- Minimal module with one function
+- Module with memory
+- Module with exports
+- Section ordering verification
+
+**Edge Cases (~7 tests)**
+- Large LEB128 values
+- Maximum i32 value
+- Minimum i32 value
+- Deeply nested blocks
+- Function with many locals
+- Empty function body
+- Long export names

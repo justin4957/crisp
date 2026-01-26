@@ -57,6 +57,7 @@ library
         Crisp.IR.Monomorphize
         Crisp.IR.Layout
         Crisp.Codegen.Wasm
+        Crisp.Codegen.WasmBinary
 
     other-modules:
         Crisp.Lexer.Layout
@@ -143,6 +144,7 @@ test-suite crisp-test
         Crisp.Types.DependentSpec
         Crisp.Types.GADTSpec
         Crisp.Types.PropSpec
+        Crisp.Codegen.WasmBinarySpec
 
     build-depends:
         base >= 4.14 && < 5,
@@ -151,7 +153,8 @@ test-suite crisp-test
         hspec-megaparsec >= 2.2 && < 3,
         text >= 1.2 && < 3,
         containers >= 0.6 && < 1,
-        QuickCheck >= 2.14 && < 3
+        QuickCheck >= 2.14 && < 3,
+        bytestring >= 0.10 && < 1
 
     hs-source-dirs:   test
     default-language: GHC2021

@@ -17,6 +17,10 @@ module Crisp.Codegen.Wasm
   , WasmType(..)
   , WasmImport(..)
   , WasmExport(..)
+    -- * Value Types and Instructions
+  , WasmValType(..)
+  , WasmInstr(..)
+  , WasmExportKind(..)
   ) where
 
 import Crisp.IR.ENIR
