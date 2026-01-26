@@ -1129,3 +1129,67 @@ The GADT typing test suite covers GADT support with index refinement (~40 tests)
 - Deeply nested type indices
 - Multiple type parameters in GADT
 - Binding order preservation
+
+### Prop Universe Tests (`test/Crisp/Types/PropSpec.hs`)
+
+The Prop universe test suite covers computationally irrelevant proofs and proof erasure (~55 tests):
+
+**Prop Kind Tests (~7 tests)**
+- TyProp has kind Prop
+- Distinguishes Prop from Type kinds
+- Prop is not equal to Type (kind incompatibility)
+- Prop equals Prop (reflexivity)
+- Recognizes Prop type
+- Recognizes Prop kind
+- Equality type (Eq) has Prop kind
+
+**Proof Irrelevance Tests (~7 tests)**
+- Identifies proof-irrelevant function argument
+- Filters proof arguments from parameter list
+- Computes proof positions in parameter list
+- Keeps all arguments when no proofs
+- Returns empty when all proofs
+- Identifies constructor with proof arguments
+- Constructor without proofs has no proof arguments
+
+**Proof Erasure Tests (~8 tests)**
+- Erases proof variable to unit
+- Preserves non-proof variable
+- Erases proof in let binding (with de Bruijn index adjustment)
+- Preserves non-proof let binding
+- Erases proof arguments in constructor
+- Erases proof arguments in function application
+- Erases proof in lambda parameter
+- Fully erases term with all proof bindings
+
+**Relevance Boundary Tests (~6 tests)**
+- Rejects Type depending on Prop value
+- Allows Prop depending on Type value
+- Detects proof escaping to computation
+- Allows proofs in type refinement
+- Rejects proof inspection in match body
+- Allows wildcard match on proof (no inspection)
+
+**Proof Type Tests (~4 tests)**
+- Eq is a proof type
+- Recognizes standard proof type names (Eq, Lt, Le, Gt, Ge, And, Or, Not, True, False)
+- Non-proof types are not proof type names
+- Refl constructor has Prop result
+
+**Prop in Dependent Types Tests (~6 tests)**
+- Identifies proof-irrelevant Pi parameter
+- Identifies relevant Pi parameter
+- Extracts proof parameters from nested Pi
+- Sigma with Prop second component
+- Sigma without Prop components
+- Forall with Prop body
+
+**Edge Cases (~8 tests)**
+- Handles nested proof types
+- Handles empty parameter list
+- Handles single proof parameter
+- Handles single non-proof parameter
+- Preserves type structure after erasure
+- Handles proof in type constructor arguments
+- Handles deeply nested proofs
+- Erases proof from match case

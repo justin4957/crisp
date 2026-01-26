@@ -45,6 +45,7 @@ library
         Crisp.Types.Constructor
         Crisp.Types.Dependent
         Crisp.Types.GADT
+        Crisp.Types.Prop
         Crisp.Effects.Row
         Crisp.Effects.Typing
         Crisp.Effects.Polymorphism
@@ -137,6 +138,7 @@ test-suite crisp-test
         Crisp.IR.CPSSpec
         Crisp.Types.DependentSpec
         Crisp.Types.GADTSpec
+        Crisp.Types.PropSpec
 
     build-depends:
         base >= 4.14 && < 5,
