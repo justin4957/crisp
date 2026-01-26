@@ -165,9 +165,53 @@ The lexer error test suite covers error recovery and reporting:
 
 ### Parser Tests (`test/Crisp/Parser/ParserSpec.hs`)
 
-- Expression parsing (literals, applications, let, if, lambda, etc.)
-- Type parsing (simple, function, application, forall, effectful)
-- Module parsing (minimal, with authority)
+The parser test suite covers (~155 passing tests, ~27 pending for known limitations):
+
+**Expression Tests (~80 tests)**
+- Literals: integers, floats, strings (with escapes, unicode), characters, unit
+- Variables and constructors: lowercase/uppercase, with underscores/primes/numbers
+- Function application: single/multiple args, nested, with literals
+- Let expressions: simple, with type annotation, nested, with patterns
+- If expressions: simple, complex conditions, nested branches
+- Match expressions: keyword and subject (arms pending due to parser limitation)
+- Lambda expressions: backslash/unicode, single param, with application body
+- Do notation: simple result expression (statements pending)
+- Effect operations: perform with Effect.op syntax
+- Lazy/force: both keywords with simple and complex expressions
+- Pipeline operator: simple, chained, with application
+
+**Pattern Tests (~15 tests)**
+- Wildcard patterns in let
+- Variable patterns in let
+- Constructor patterns in let
+- Tuple patterns: pairs, triples, nested
+- (Match patterns pending due to parser limitation)
+
+**Type Tests (~25 tests)**
+- Simple types: variables, constructors
+- Function types: simple, multi-argument, right-associativity, with parens
+- Type applications: single, multiple, nested
+- Forall types: simple, with kind annotation, nested
+- Effect types: single effect, multiple effects, with authority
+- Special types: Lazy, ref, ref mut, parenthesized
+
+**Declaration Tests (~20 tests)**
+- Function definitions: with/without params, type params, effects, return types
+- Type definitions: simple, with parameters, with kind annotation
+- Effect definitions: with operations
+- Handler definitions: with return clause, with introduced effects
+
+**Module Tests (~10 tests)**
+- Minimal module, dotted path, authority
+- Requires (effects, types), provides (type, fn)
+- Multiple definitions
+
+**Known Parser Limitations (documented via pending tests)**
+- Match arms don't parse correctly due to greedy pExpr
+- Do statements with binds/let don't work due to greedy expression parsing
+- With handler expression has same issue
+- Type constructors require layout (colon interpreted as kind annotation)
+- Multi-param lambdas don't parse due to greedy type parsing
 
 ### Type Checker Tests (`test/Crisp/Types/CheckerSpec.hs`)
 
