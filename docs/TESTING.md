@@ -992,3 +992,81 @@ stack test --test-arguments "--seed 12345"
 # Run single test
 stack test --test-arguments "--match \"exact test name\""
 ```
+
+### Dependent Type Tests (`test/Crisp/Types/DependentSpec.hs`)
+
+The dependent type test suite covers Pi types (dependent function types) and Sigma types (dependent pairs) (~45 tests):
+
+**Pi Type Formation (~4 tests)**
+- Simple Pi type creation
+- Pi type component extraction (param name, param type, return type)
+- Non-dependent function as special case of Pi (underscore param)
+- Nested Pi types
+
+**Pi Type Checking (~3 tests)**
+- Well-formedness check for valid Pi types
+- Rejection of Pi with unbound variable in return type
+- Domain type kind checking
+
+**Dependent Application (~3 tests)**
+- Type substitution in return type on application
+- Complex expression substitution
+- Nested substitution handling
+
+**Type-Level Evaluation (~5 tests)**
+- Nat addition evaluation: `2 + 3 = 5`
+- Nested addition evaluation
+- Variable preservation in partial evaluation
+- Type constructor application evaluation
+- Zero addition identity
+
+**Purity Enforcement (~5 tests)**
+- Rejection of effectful expressions in types
+- Acceptance of pure type-level expressions
+- Type variables as pure
+- Type constructors as pure
+- Rejection of nested effectful expressions
+
+**Sigma Types (Dependent Pairs) (~4 tests)**
+- Sigma type creation
+- Sigma type component extraction
+- Well-formedness checking
+- Rejection of Sigma with unbound variable
+
+**Sigma Type Operations (~2 tests)**
+- First component type projection
+- Second component type with substitution
+
+**Pi Type Unification (~4 tests)**
+- Identical Pi type unification
+- Alpha-equivalent body unification
+- Domain type mismatch failure
+- Return type mismatch failure
+
+**Sigma Type Unification (~2 tests)**
+- Identical Sigma type unification
+- First type mismatch failure
+
+**Implicit Pi (forall) Desugaring (~2 tests)**
+- Forall desugars to Pi with erased domain
+- Kind annotation preservation
+
+**Dependent Pattern Matching (~2 tests)**
+- Type refinement in pattern branch (Vec length decrement)
+- Wildcard pattern handling (no refinement)
+
+**Type Normalization (~3 tests)**
+- Weak head normal form normalization
+- Type application normalization
+- Full normalization of subterms
+
+**Type Equality with Evaluation (~3 tests)**
+- Equivalence of types normalizing to same form
+- Nested equal type equivalence
+- Distinction of different types
+
+**Edge Cases (~4 tests)**
+- Empty Sigma type
+- Pi type with universe domain
+- Deeply nested dependent types
+- Type-level computation termination

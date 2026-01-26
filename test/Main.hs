@@ -18,6 +18,7 @@ import qualified Crisp.Effects.HandlerSpec
 import qualified Crisp.Types.ConstructorSpec
 import qualified Crisp.Core.PatternSpec
 import qualified Crisp.IR.CPSSpec
+import qualified Crisp.Types.DependentSpec
 
 main :: IO ()
 main = hspec $ do
@@ -34,3 +35,4 @@ main = hspec $ do
   describe "Crisp.Types.Constructor" Crisp.Types.ConstructorSpec.spec
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec
   describe "Crisp.IR.CPS" Crisp.IR.CPSSpec.spec
+  describe "Crisp.Types.Dependent" Crisp.Types.DependentSpec.spec
