@@ -221,6 +221,52 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Lambda checking
 - (More tests pending)
 
+### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
+
+The pattern compiler test suite covers pattern match elaboration (~40 tests):
+
+**Simple Pattern Tests (~7 tests)**
+- Variable patterns: binding, preserving names, different bodies
+- Wildcard patterns: single, multiple in sequence
+
+**Constructor Pattern Tests (~13 tests)**
+- Nullary constructors: `None`, `True`, `False`
+- Unary constructors: `Some(x)`, `Just(y)` with binding
+- Binary constructors: `Cons(h, t)`, `Pair(a, b)`
+- Nested constructors: `Some(Some(x))`, `Cons(Some(y), xs)`
+- Mixed subpatterns: `Pair(x, _)`, `Some(_)`
+
+**Tuple Pattern Tests (~5 tests)**
+- Pair patterns: `(a, b)`
+- Triple patterns: `(a, b, c)`
+- Nested tuples: `((a, b), c)`
+- Constructor in tuple: `(Some(x), y)`
+
+**Literal Pattern Tests (~2 tests)**
+- Integer literals: `0`, `1`
+- Multiple alternatives
+
+**Guard Tests (~3 tests)**
+- Simple guards: `y if y > 0`
+- Guards with constructor patterns
+- Guard compilation to conditionals
+
+**Multiple Clause Tests (~4 tests)**
+- Two clauses: `Some(x) -> x, None -> 0`
+- Clause order preservation
+- Mixed pattern types
+
+**Pattern Variable Scoping Tests (~3 tests)**
+- Variables scoped to branches
+- Nested patterns binding all variables
+- Duplicate names in different branches
+
+**Edge Cases (~5 tests)**
+- Empty match arms
+- Single variable optimization
+- Deeply nested structures
+- Many variables in pattern
+
 ## Writing Tests
 
 ### Test Naming Convention
