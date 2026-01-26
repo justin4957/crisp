@@ -14,6 +14,7 @@ import qualified Crisp.Types.KindSpec
 import qualified Crisp.Types.ExhaustiveSpec
 import qualified Crisp.Effects.TypingSpec
 import qualified Crisp.Effects.PolymorphismSpec
+import qualified Crisp.Effects.HandlerSpec
 import qualified Crisp.Types.ConstructorSpec
 import qualified Crisp.Core.PatternSpec
 

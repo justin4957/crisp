@@ -626,6 +626,65 @@ The constructor typing test suite covers algebraic data type constructors (~43 t
 - Type with both type and value params
 - Constructor order preservation
 
+### Handler Typing Tests (`test/Crisp/Effects/HandlerSpec.hs`)
+
+The handler typing test suite covers effect handler typing rules (~40 tests):
+
+**Handler Declaration Tests (~4 tests)**
+- Basic handler declaration validation
+- Handler with correct operations
+- Handler effect lookup
+- Handler type parameters
+
+**Operation Clause Tests (~6 tests)**
+- Checking clause with wildcard pattern
+- Checking clause with variable pattern
+- Unknown operation rejection
+- Missing operations detection
+- Duplicate operation detection
+- Extra operation rejection
+
+**Return Clause Tests (~3 tests)**
+- Return clause basic check
+- Return clause with pattern
+- Return pattern type checking
+
+**Resume Type Tests (~4 tests)**
+- Resume continuation type computation
+- Resume type with parameterized effect
+- Resume type for void operation
+- Resume type matches operation return
+
+**Effect Row Operations (~6 tests)**
+- Removing handled effect from row
+- Effect not present (no-op)
+- Union effect removal
+- Contains effect checking
+- Has effect variable checking
+- Effect row transformation
+
+**Handler Type Computation (~5 tests)**
+- Compute full handler type
+- Handler input effects (effect added)
+- Handler output effects (effect removed)
+- Build handler info from declaration
+- Handler with rest effects variable
+
+**Parameterized Effects (~4 tests)**
+- Handler for State(S) effect
+- Type argument substitution in params
+- Type argument in resume type
+- Multiple type parameters
+
+**Edge Cases (~8 tests)**
+- Empty handler (no operations) for empty effect
+- Handler for effect with many operations
+- Nested effect handling
+- Complex operation parameter types
+- Operation with multiple parameters
+- Effect row with variables
+- Union effect rows
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
