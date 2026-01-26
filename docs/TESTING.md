@@ -364,6 +364,84 @@ The kind checker test suite covers kind checking for types (~60 tests):
 - TyForallDep types
 - Mixed forall and function types
 
+### Pattern Exhaustiveness Tests (`test/Crisp/Types/ExhaustiveSpec.hs`)
+
+The pattern exhaustiveness test suite covers exhaustiveness checking (~52 tests):
+
+**Boolean Exhaustive Tests (~6 tests)**
+- Exhaustive boolean match (True, False)
+- Order independence (False, True)
+- Wildcard covers boolean
+- Variable covers boolean
+- Rejects single True pattern
+- Rejects single False pattern
+
+**Option Exhaustive Tests (~6 tests)**
+- Exhaustive option match (Some, None)
+- Order independence (None, Some)
+- Some with wildcard subpattern
+- Wildcard covers option
+- Rejects single Some pattern
+- Rejects single None pattern
+
+**List Exhaustive Tests (~5 tests)**
+- Exhaustive list match (Cons, Nil)
+- Order independence
+- Wildcard covers list
+- Rejects single Cons pattern
+- Rejects single Nil pattern
+
+**Result Exhaustive Tests (~4 tests)**
+- Exhaustive result match (Ok, Err)
+- Order independence
+- Rejects single Ok pattern
+- Rejects single Err pattern
+
+**Non-Exhaustive Tests (~3 tests)**
+- Empty pattern list
+- Missing constructor in triple option
+- Two missing constructors
+
+**Wildcard Pattern Tests (~4 tests)**
+- Wildcard covers all constructors
+- Wildcard covers complex types
+- Wildcard after specific patterns
+- Wildcard in middle makes exhaustive
+
+**Variable Pattern Tests (~3 tests)**
+- Variable covers all constructors
+- Variable in subpattern
+- Multiple variables in pattern
+
+**Nested Pattern Tests (~4 tests)**
+- Some with any subpattern is exhaustive
+- Cons with nested wildcard
+- List with variable subpatterns
+- Wildcards in subpatterns ensure coverage
+
+**Redundant Pattern Tests (~5 tests)**
+- Detects redundant after wildcard
+- Detects redundant after variable
+- No redundancy in complete match
+- No redundancy with specific then wildcard
+- Detects duplicate constructor patterns
+
+**Missing Pattern Reporting (~7 tests)**
+- Reports missing True
+- Reports missing False
+- Reports missing None
+- Reports missing Some with placeholder
+- Reports multiple missing constructors
+- Reports all constructors for empty patterns
+- No missing when exhaustive
+
+**Edge Cases (~5 tests)**
+- Single-constructor types
+- Empty patterns for single-constructor
+- Multiple wildcards redundant but exhaustive
+- Complex patterns with wildcards
+- Order doesn't affect exhaustiveness
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
