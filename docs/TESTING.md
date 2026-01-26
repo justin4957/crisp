@@ -1070,3 +1070,62 @@ The dependent type test suite covers Pi types (dependent function types) and Sig
 - Pi type with universe domain
 - Deeply nested dependent types
 - Type-level computation termination
+
+### GADT Typing Tests (`test/Crisp/Types/GADTSpec.hs`)
+
+The GADT typing test suite covers GADT support with index refinement (~40 tests):
+
+**GADT Declaration (~8 tests)**
+- Expr GADT validation with refined return types
+- GADT return type recording (IntLit, BoolLit)
+- Vec GADT validation with index types
+- VNil/VCons return type recording
+- Type equality witness validation (Refl)
+- Invalid GADT return type rejection
+- Default return type acceptance (non-GADT)
+
+**GADT Refinement (~7 tests)**
+- Type variable refinement to Int in IntLit branch
+- Type variable refinement to Bool in BoolLit branch
+- Type variable preservation in If branch
+- Vec length refinement in VCons branch
+- Concrete scrutinee type refinement
+- Wildcard pattern handling (no refinement)
+- Variable pattern handling
+
+**Impossible Branch Detection (~7 tests)**
+- Detection of impossible BoolLit branch for Expr(Int)
+- Detection of impossible IntLit branch for Expr(Bool)
+- Allowing IntLit branch for Expr(Int)
+- Allowing any branch for polymorphic Expr(A)
+- Detection of impossible VCons branch for Vec(A, 0)
+- Allowing VNil branch for Vec(A, 0)
+- Detection of impossible VNil branch for Vec(A, S(n))
+
+**Existential Types (~3 tests)**
+- Existential type in GADT constructor handling
+- Fresh existential type variables in pattern match
+- Existential constraint recording
+
+**Nested GADT Matching (~3 tests)**
+- Refinement accumulation from nested patterns
+- Constraint propagation through nested patterns
+- Nested Vec pattern handling
+
+**Type Equality Witness (~2 tests)**
+- Refl constructor type equation (A = B)
+- Equality proof for type casting
+
+**GADT Unification (~4 tests)**
+- Constructor return type unification with scrutinee
+- Incompatible index type failure
+- Vec length index unification
+- Type-level arithmetic in unification
+
+**Edge Cases (~6 tests)**
+- Empty constructor list
+- Single-constructor GADT
+- Constructor with no params but refined return
+- Deeply nested type indices
+- Multiple type parameters in GADT
+- Binding order preservation

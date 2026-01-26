@@ -107,6 +107,18 @@ applySubst subst = go
       TyProp ->
         TyProp
 
+      TySigma name fstTy sndTy ->
+        TySigma name (go fstTy) (go sndTy)
+
+      TyNatLit n ->
+        TyNatLit n
+
+      TyAdd t1 t2 ->
+        TyAdd (go t1) (go t2)
+
+      TyEffect name inner ->
+        TyEffect name (go inner)
+
 -- | Apply a substitution to an effect row
 applySubstEffects :: Substitution -> EffectRow -> EffectRow
 applySubstEffects subst = go
