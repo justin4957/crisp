@@ -31,11 +31,10 @@ module Crisp.IR.Layout
   ) where
 
 import Crisp.IR.LLIR
-import Crisp.Core.Term (Type(..), Kind(..), EffectRow(..))
+import Crisp.Core.Term (Type(..), Kind(..))
 
 import Data.Text (Text)
-import qualified Data.Text as T
-import Data.List (foldl', scanl')
+import Data.List (foldl')
 
 --------------------------------------------------------------------------------
 -- Layout Types
@@ -187,13 +186,14 @@ closureSize closure =
   in ptrSize + captureSize
 
 -- | Generate instructions to allocate a closure
+-- Uses the runtime allocator (function at allocFuncIndex)
 generateClosureAlloc :: ClosureRep -> [LlirInstr]
 generateClosureAlloc closure =
   let size = closureSize closure
-      -- Allocate memory
-      allocInstrs =
+      -- Allocate memory using runtime allocator
+      allocateInstrs =
         [ LlirConst (LlirValI32 size)
-        , LlirCall "alloc" 1  -- Call allocation function
+        , LlirCall "_crisp_alloc" 1  -- Call runtime allocator
         ]
       -- Store function pointer at offset 0
       storeFuncPtr =
@@ -205,9 +205,9 @@ generateClosureAlloc closure =
         ]
       -- Store captured variables
       storeCaptures = concatMap (storeCapture 4) (zip [0..] (closureCaptures closure))
-  in allocInstrs ++ storeFuncPtr ++ storeCaptures
+  in allocateInstrs ++ storeFuncPtr ++ storeCaptures
   where
-    storeCapture baseOffset (idx, (name, ty)) =
+    storeCapture baseOffset (idx, (_name, ty)) =
       let offset = baseOffset + idx * 4  -- Simplified: all 4 bytes
       in [ LlirLocalGet 0  -- Get closure pointer
          , LlirConst (LlirValI32 offset)
