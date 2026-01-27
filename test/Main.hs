@@ -42,6 +42,7 @@ import qualified Crisp.Formatter.FormatSpec
 import qualified Crisp.Prelude.PreludeSpec
 import qualified Crisp.Prelude.NumericSpec
 import qualified Crisp.LSP.ServerSpec
+import qualified Crisp.Doc.GenerateSpec
 
 main :: IO ()
 main = hspec $ do
@@ -83,3 +84,4 @@ main = hspec $ do
   describe "Crisp.Prelude" Crisp.Prelude.PreludeSpec.spec
   describe "Crisp.Prelude.Numeric" Crisp.Prelude.NumericSpec.spec
   describe "Crisp.LSP.Server" Crisp.LSP.ServerSpec.spec
+  describe "Crisp.Doc.Generate" Crisp.Doc.GenerateSpec.spec

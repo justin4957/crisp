@@ -81,6 +81,7 @@ library
         Crisp.Prelude.Numeric
         Crisp.FFI.Time
         Crisp.LSP.Server
+        Crisp.Doc.Generate
 
     other-modules:
         Crisp.Lexer.Layout
@@ -188,6 +189,7 @@ test-suite crisp-test
         Crisp.Prelude.PreludeSpec
         Crisp.Prelude.NumericSpec
         Crisp.LSP.ServerSpec
+        Crisp.Doc.GenerateSpec
 
     build-depends:
         base >= 4.14 && < 5,
