@@ -168,6 +168,7 @@ add : (Int, Int) -> Int
 
 ## Documentation
 
+- [**Tutorial**](docs/TUTORIAL.md) - Comprehensive introduction with two domain examples
 - [Language Specification](docs/SPECIFICATION.md) - Complete language reference
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) - Compiler architecture and roadmap
 - [Testing Guide](docs/TESTING.md) - How to run and write tests
