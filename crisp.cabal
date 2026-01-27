@@ -161,6 +161,7 @@ test-suite crisp-test
         Crisp.Types.PropSpec
         Crisp.Codegen.WasmBinarySpec
         Crisp.Codegen.CompileSpec
+        Crisp.Codegen.WasmSpec
         Crisp.Manifest.ManifestSpec
         Crisp.Module.ModuleSpec
         Crisp.Types.LinearSpec
