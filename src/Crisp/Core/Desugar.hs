@@ -23,6 +23,7 @@ import Control.Monad.Reader
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import qualified Data.Text as T
 
 -- | Desugaring errors
 data DesugarError
@@ -231,6 +232,51 @@ desugarExpr = \case
     -- Qualified names become simple variables after resolution
     idx <- lookupTerm name
     pure $ C.TmVar name idx
+
+  S.EExternal extRef args _ -> do
+    -- External function calls
+    args' <- mapM desugarExpr args
+    let extBinding = C.ExternalBinding
+          (S.externalModule extRef)
+          (S.externalFunction extRef)
+          (C.TyVar "_infer" 0)  -- Type will be inferred
+    pure $ C.TmExternal extBinding args'
+
+  S.EFieldAccess expr field _ -> do
+    -- Field access desugars to a function call: field_accessor expr
+    expr' <- desugarExpr expr
+    let accessorName = field  -- The field name acts as a function
+    pure $ C.TmApp (C.TmVar accessorName 0) expr'
+
+  S.EBinOp op left right _ -> do
+    -- Binary operators desugar to function applications
+    left' <- desugarExpr left
+    right' <- desugarExpr right
+    let opName = binOpToName op
+    -- op left right  ->  (op left) right
+    pure $ C.TmApp (C.TmApp (C.TmVar opName 0) left') right'
+
+  S.ERecord conName fields _ -> do
+    -- Record construction desugars to constructor application
+    fields' <- mapM (\(_, e) -> desugarExpr e) fields
+    pure $ C.TmCon conName [] fields'
+
+-- | Convert binary operator to function name
+binOpToName :: S.BinOp -> T.Text
+binOpToName = \case
+  S.OpAdd -> "add"
+  S.OpSub -> "sub"
+  S.OpMul -> "mul"
+  S.OpDiv -> "div"
+  S.OpMod -> "mod"
+  S.OpAnd -> "and"
+  S.OpOr  -> "or"
+  S.OpLT  -> "lt"
+  S.OpLE  -> "le"
+  S.OpGT  -> "gt"
+  S.OpGE  -> "ge"
+  S.OpEQ  -> "eq"
+  S.OpNE  -> "ne"
 
 -- | Desugar a statement
 desugarStmt :: S.Statement -> C.Term -> Desugar C.Term

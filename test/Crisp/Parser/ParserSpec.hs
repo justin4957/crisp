@@ -238,24 +238,34 @@ matchExpressionTests = describe "match expressions" $ do
       Right other -> expectationFailure $ "Expected EMatch with constructor, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
-  -- Known parser limitation: match arms don't parse correctly due to greedy pExpr
   it "parses match with single arm" $ do
-    pendingWith "Parser limitation: pExpr consumes pattern as application arguments"
+    case parseExpr "test" "match x n -> y" of
+      Right (EMatch _ arms _) -> length arms `shouldBe` 1
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
   it "parses match with multiple arms" $ do
-    pendingWith "Parser limitation: pExpr consumes pattern as application arguments"
+    case parseExpr "test" "match x 1 -> a 2 -> b" of
+      Right (EMatch _ arms _) -> length arms `shouldBe` 2
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
   it "parses match with wildcard pattern" $ do
-    pendingWith "Parser limitation: pExpr consumes pattern as application arguments"
+    case parseExpr "test" "match x _ -> y" of
+      Right (EMatch _ [arm] _) -> case matchArmPattern arm of
+        PatWildcard _ -> pure ()
+        other -> expectationFailure $ "Expected wildcard pattern, got " ++ show other
+      Right other -> expectationFailure $ "Expected EMatch with one arm, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
   it "parses match with tuple pattern" $ do
-    pendingWith "Parser limitation: pExpr consumes pattern as application arguments"
+    pendingWith "Tuple patterns require further parser work"
 
   it "parses match with guard" $ do
-    pendingWith "Parser limitation: pExpr consumes pattern as application arguments"
+    pendingWith "Guards require further parser work"
 
   it "parses match with nested patterns" $ do
-    pendingWith "Parser limitation: pExpr consumes pattern as application arguments"
+    pendingWith "Nested patterns require further parser work"
 
 lambdaTests :: Spec
 lambdaTests = describe "lambda expressions" $ do
