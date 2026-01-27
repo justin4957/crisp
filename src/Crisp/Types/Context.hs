@@ -41,6 +41,11 @@ module Crisp.Types.Context
   , lookupImpl
   , lookupImplsForTrait
   , lookupImplsForType
+    -- * External functions (FFI)
+  , ExternalInfo(..)
+  , registerExternal
+  , lookupExternal
+  , allExternals
     -- * Authority
   , setAuthority
   , getAuthority
@@ -114,6 +119,14 @@ data ImplInfo = ImplInfo
   , implInfoMethods :: ![(Text, Type)]            -- ^ Method implementations (name, type)
   } deriving stock (Eq, Show)
 
+-- | Information about an external (FFI) function
+data ExternalInfo = ExternalInfo
+  { externalInfoName     :: !Text                 -- ^ Crisp function name
+  , externalInfoModule   :: !Text                 -- ^ External module (e.g., "postgres", "console")
+  , externalInfoFunction :: !Text                 -- ^ External function name
+  , externalInfoType     :: !Type                 -- ^ Function type signature
+  } deriving stock (Eq, Show)
+
 -- | The typing context
 data Context = Context
   { contextBindings  :: ![Binding]              -- ^ Stack of bindings (innermost first)
@@ -121,6 +134,7 @@ data Context = Context
   , contextEffects   :: !(Map Text EffectInfo)  -- ^ Registered effect definitions
   , contextTraits    :: !(Map Text TraitInfo)   -- ^ Registered trait definitions
   , contextImpls     :: ![ImplInfo]             -- ^ Registered trait implementations
+  , contextExternals :: !(Map Text ExternalInfo) -- ^ Registered external (FFI) functions
   , contextAuthority :: !(Maybe Text)           -- ^ Current module authority
   } deriving stock (Eq, Show)
 
@@ -132,6 +146,7 @@ emptyContext = Context
   , contextEffects = Map.empty
   , contextTraits = Map.empty
   , contextImpls = []
+  , contextExternals = Map.empty
   , contextAuthority = Nothing
   }
 
@@ -403,3 +418,16 @@ lookupImplsForType ty ctx =
     typesMatch (TyCon n1 args1) (TyCon n2 args2) =
       n1 == n2 && length args1 == length args2 && all (uncurry typesMatch) (zip args1 args2)
     typesMatch t1 t2 = t1 == t2
+
+-- | Register an external (FFI) function
+registerExternal :: ExternalInfo -> Context -> Context
+registerExternal info ctx = ctx
+  { contextExternals = Map.insert (externalInfoName info) info (contextExternals ctx) }
+
+-- | Look up an external function by name
+lookupExternal :: Text -> Context -> Maybe ExternalInfo
+lookupExternal name ctx = Map.lookup name (contextExternals ctx)
+
+-- | Get all registered external functions
+allExternals :: Context -> [ExternalInfo]
+allExternals ctx = Map.elems (contextExternals ctx)

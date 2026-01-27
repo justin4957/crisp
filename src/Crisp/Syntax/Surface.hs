@@ -36,6 +36,9 @@ module Crisp.Syntax.Surface
   , ImplDef(..)
   , TraitConstraint(..)
   , DerivingClause(..)
+    -- * FFI
+  , ExternalRef(..)
+  , ExternalFnDef(..)
     -- * Types
   , Type(..)
     -- * Expressions
@@ -87,6 +90,7 @@ data Definition
   | DefFn !FunctionDef
   | DefTrait !TraitDef
   | DefImpl !ImplDef
+  | DefExternal !ExternalFnDef
   deriving stock (Eq, Show, Generic)
 
 -- | Type definition (ADT, GADT, record, linear type)
@@ -240,6 +244,24 @@ data DerivingClause = DerivingClause
   , derivingSpan   :: !Span
   } deriving stock (Eq, Show, Generic)
 
+-- | External function reference for FFI
+-- Example: @external("postgres", "query")
+data ExternalRef = ExternalRef
+  { externalModule   :: !Text           -- ^ Module/namespace (e.g., "postgres", "console")
+  , externalFunction :: !Text           -- ^ Function name in external module
+  , externalSpan     :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | External function definition (FFI binding)
+-- Example: external fn query(sql: String) -> String = ("postgres", "query")
+data ExternalFnDef = ExternalFnDef
+  { extFnDefName       :: !Text
+  , extFnDefParams     :: ![Param]
+  , extFnDefReturnType :: !Type
+  , extFnDefExternal   :: !ExternalRef   -- ^ The external binding
+  , extFnDefSpan       :: !Span
+  } deriving stock (Eq, Show, Generic)
+
 -- | Type expressions
 data Type
   = TyName !Text !Span                              -- ^ Type variable or constructor
@@ -276,6 +298,7 @@ data Expr
   | EAnnot !Expr !Type !Span                            -- ^ Type annotation
   | EBlock ![Statement] !Expr !Span                     -- ^ Block expression
   | EQualified ![Text] !Text !Span                      -- ^ Qualified name
+  | EExternal !ExternalRef ![Expr] !Span                -- ^ External function call
   deriving stock (Eq, Show, Generic)
 
 -- | A statement in a block

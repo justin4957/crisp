@@ -42,6 +42,7 @@ module Crisp.IR.LLIR
   , llirInstrIsStore
   , llirInstrIsCall
   , llirInstrIsCallIndirect
+  , llirInstrIsCallExternal
   , llirInstrIsIf
   , llirInstrIsBlock
   , llirInstrIsLoop
@@ -221,6 +222,7 @@ data LlirInstr
   | LlirStore !LlirType !Int       -- ^ Store to memory with offset
   | LlirCall !Text !Int            -- ^ Call function with arity
   | LlirCallIndirect !LlirFuncType -- ^ Indirect call through function table
+  | LlirCallExternal !Text !Text !Int -- ^ Call external (FFI) function: module, name, arity
   | LlirDrop                       -- ^ Drop top of stack
   | LlirSelect                     -- ^ Select between two values
   | LlirBinOp !LlirBinOp           -- ^ Binary operation
@@ -271,6 +273,10 @@ llirInstrIsCall _ = False
 llirInstrIsCallIndirect :: LlirInstr -> Bool
 llirInstrIsCallIndirect (LlirCallIndirect _) = True
 llirInstrIsCallIndirect _ = False
+
+llirInstrIsCallExternal :: LlirInstr -> Bool
+llirInstrIsCallExternal (LlirCallExternal _ _ _) = True
+llirInstrIsCallExternal _ = False
 
 llirInstrIsIf :: LlirInstr -> Bool
 llirInstrIsIf (LlirIf _ _ _) = True
