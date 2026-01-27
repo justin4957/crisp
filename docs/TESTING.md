@@ -1442,3 +1442,76 @@ The compilation test suite covers LLIR to WebAssembly code generation (~93 tests
 - Many parameters (10)
 - Null constant
 - Type conversions
+
+### Manifest Generation Tests (`test/Crisp/Manifest/ManifestSpec.hs`)
+
+The manifest generation test suite covers compilation artifact manifests (~67 tests):
+
+**Content Hashing Tests (~11 tests)**
+- SHA-256 hash of empty string, "hello", "hello world"
+- 64-character hex string output
+- Lowercase hex characters only
+- ByteString hashing (wasm magic bytes)
+- Deterministic hashing (same input = same output)
+- Hash formatting with sha256: prefix
+- Hash parsing and validation
+
+**Manifest Structure Tests (~10 tests)**
+- Version field (1.0)
+- Module name
+- Wasm hash and TIR hash fields
+- Compiler info (name, version)
+- Capabilities list (empty by default)
+- Authorities map (empty by default)
+- Dependencies list (empty by default)
+- Build time (when generated with time)
+
+**Capability Tests (~7 tests)**
+- Single and multiple capabilities
+- Capability order preservation
+- Duplicate capabilities
+- Extraction from effects (effect:operation format)
+- Effect name normalization (lowercase)
+- Effects with no operations
+
+**Authority Mapping Tests (~5 tests)**
+- Single effect to authority mapping
+- Multiple effects to authorities
+- Authority creation from effect declaration
+- Building authority map from effect list
+- Missing authority handling
+
+**Dependency Tests (~6 tests)**
+- Single and multiple dependencies
+- Dependency order preservation
+- Dependency name and hash fields
+- Creating dependency with content hash
+
+**JSON Serialization Tests (~10 tests)**
+- Encode manifest to JSON
+- Decode manifest from JSON
+- All fields present in JSON output
+- Valid JSON output
+
+**Round-Trip Tests (~6 tests)**
+- Empty manifest round-trip
+- Manifest with hashes round-trip
+- Manifest with capabilities round-trip
+- Manifest with authorities round-trip
+- Manifest with dependencies round-trip
+- Full manifest round-trip
+
+**Build Metadata Tests (~4 tests)**
+- Current time as build time
+- ISO 8601 time format
+- Compiler name and version
+
+**Edge Cases (~8 tests)**
+- Empty module name
+- Special characters in module name
+- Unicode in module name
+- Very long capability list (100 items)
+- Empty hash handling
+- Hash with special characters
+- Deterministic manifest generation
+- Null build time in JSON
