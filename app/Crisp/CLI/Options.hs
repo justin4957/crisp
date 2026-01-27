@@ -13,6 +13,8 @@ module Crisp.CLI.Options
   , CompileOptions(..)
   , CheckOptions(..)
   , FormatOptions(..)
+  , DocOptions(..)
+  , DocOutputFormat(..)
   , parseOptions
   ) where
 
@@ -32,6 +34,7 @@ data Command
   = CmdCompile !CompileOptions
   | CmdCheck !CheckOptions
   | CmdFormat !FormatOptions
+  | CmdDoc !DocOptions
   | CmdRepl
   | CmdVersion
   deriving stock (Eq, Show)
@@ -52,6 +55,19 @@ data CheckOptions = CheckOptions
 data FormatOptions = FormatOptions
   { foInputFiles :: ![FilePath]
   , foInPlace    :: !Bool
+  } deriving stock (Eq, Show)
+
+-- | Output format for documentation
+data DocOutputFormat
+  = DocMarkdown   -- ^ GitHub-flavored Markdown
+  | DocHtml       -- ^ Standalone HTML with styling
+  deriving stock (Eq, Show)
+
+-- | Options for the doc command
+data DocOptions = DocOptions
+  { doInputPath  :: !FilePath           -- ^ Source directory or file
+  , doOutputPath :: !(Maybe FilePath)   -- ^ Output directory (default: ./docs)
+  , doFormat     :: !DocOutputFormat    -- ^ Output format (markdown or html)
   } deriving stock (Eq, Show)
 
 -- | Parse command-line options
@@ -75,11 +91,12 @@ optionsParser = Options
 
 commandParser :: Parser Command
 commandParser = subparser
-  ( command "compile" (info compileParser (progDesc "Compile a Crisp source file"))
- <> command "check" (info checkParser (progDesc "Type-check a Crisp source file"))
- <> command "format" (info formatParser (progDesc "Format Crisp source files"))
- <> command "repl" (info (pure CmdRepl) (progDesc "Start an interactive REPL"))
- <> command "version" (info (pure CmdVersion) (progDesc "Print version information"))
+  ( command "compile" (info (compileParser <**> helper) (progDesc "Compile a Crisp source file"))
+ <> command "check" (info (checkParser <**> helper) (progDesc "Type-check a Crisp source file"))
+ <> command "format" (info (formatParser <**> helper) (progDesc "Format Crisp source files"))
+ <> command "doc" (info (docParser <**> helper) (progDesc "Generate documentation"))
+ <> command "repl" (info (pure CmdRepl <**> helper) (progDesc "Start an interactive REPL"))
+ <> command "version" (info (pure CmdVersion <**> helper) (progDesc "Print version information"))
   )
 
 compileParser :: Parser Command
@@ -117,3 +134,35 @@ formatParser = CmdFormat <$> (FormatOptions
      <> short 'i'
      <> help "Format files in place"
       ))
+
+docParser :: Parser Command
+docParser = CmdDoc <$> (DocOptions
+  <$> argument str
+      ( metavar "PATH"
+     <> help "Source directory or file"
+      )
+  <*> optional (strOption
+      ( long "output"
+     <> short 'o'
+     <> metavar "DIR"
+     <> help "Output directory (default: ./docs)"
+      ))
+  <*> option (eitherReader parseDocFormat)
+      ( long "format"
+     <> short 'f'
+     <> value DocMarkdown
+     <> metavar "FORMAT"
+     <> help "Output format: markdown (default) or html"
+      ))
+
+-- | Parse documentation format from string
+parseDocFormat :: String -> Either String DocOutputFormat
+parseDocFormat s = case map toLower s of
+  "markdown" -> Right DocMarkdown
+  "md"       -> Right DocMarkdown
+  "html"     -> Right DocHtml
+  _          -> Left $ "Unknown format '" ++ s ++ "'. Use 'markdown' or 'html'."
+  where
+    toLower c
+      | c >= 'A' && c <= 'Z' = toEnum (fromEnum c + 32)
+      | otherwise = c

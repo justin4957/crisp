@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- |
 -- Module      : Crisp.CLI.Commands
@@ -17,12 +18,15 @@ import Crisp.Core.Desugar (desugarModule)
 import Crisp.IR.TypedIR (newModule, encodeModule)
 import Crisp.Codegen.Wasm (compileToWasm)
 import qualified Crisp.Formatter.Format as Fmt
+import qualified Crisp.Doc.Generate as Doc
 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import System.FilePath (replaceExtension)
+import System.FilePath (replaceExtension, (</>), (<.>), takeBaseName)
 import System.IO (hPutStrLn, stderr)
+import System.Directory (createDirectoryIfMissing, doesFileExist, doesDirectoryExist)
+import Control.Monad (forM_)
 
 -- | Run a CLI command
 runCommand :: Options -> IO (Either String String)
@@ -30,6 +34,7 @@ runCommand opts = case optCommand opts of
   CmdCompile copts -> runCompile (optVerbose opts) copts
   CmdCheck copts -> runCheck (optVerbose opts) copts
   CmdFormat fopts -> runFormat (optVerbose opts) fopts
+  CmdDoc dopts -> runDoc (optVerbose opts) dopts
   CmdRepl -> runRepl (optVerbose opts)
   CmdVersion -> pure $ Right versionString
 
@@ -150,6 +155,61 @@ formatOneFile verbose inPlace filePath = do
           -- Print to stdout
           TIO.putStr formatted
           pure $ Right filePath
+
+-- | Run the doc command
+runDoc :: Bool -> DocOptions -> IO (Either String String)
+runDoc verbose DocOptions{..} = do
+  when verbose $ putStrLn "Generating documentation..."
+
+  let docFormat = toDocFormat doFormat
+      outDir = maybe "docs" id doOutputPath
+      ext = case doFormat of
+        DocMarkdown -> "md"
+        DocHtml -> "html"
+
+  -- Check if input is file or directory
+  isFile <- doesFileExist doInputPath
+  isDir <- doesDirectoryExist doInputPath
+
+  if not isFile && not isDir
+    then pure $ Left $ "Path not found: " ++ doInputPath
+    else do
+      -- Generate documentation
+      result <- if isFile
+        then generateSingleFile docFormat doInputPath
+        else Doc.generateDocs docFormat doInputPath
+
+      case result of
+        Left err -> pure $ Left $ "Documentation error: " ++ T.unpack err
+
+        Right docs -> do
+          -- Create output directory
+          createDirectoryIfMissing True outDir
+
+          -- Write each module's documentation
+          forM_ docs $ \modDoc -> do
+            let modName = T.unpack (Doc.modDocName modDoc)
+                -- Replace dots with dashes for filename
+                safeName = map (\c -> if c == '.' then '-' else c) modName
+                filename = outDir </> safeName <.> ext
+            when verbose $ putStrLn $ "  - " ++ modName
+            TIO.writeFile filename (Doc.renderModuleDoc docFormat modDoc)
+
+          pure $ Right $ "Generated " ++ show (length docs) ++
+                        " module doc(s) in " ++ outDir ++ "/"
+
+-- | Generate docs for a single file
+generateSingleFile :: Doc.DocFormat -> FilePath -> IO (Either T.Text [Doc.ModuleDoc])
+generateSingleFile docFormat filePath = do
+  content <- TIO.readFile filePath
+  case Doc.generateModuleDocs docFormat (T.pack filePath) content of
+    Left err -> pure $ Left err
+    Right doc -> pure $ Right [doc]
+
+-- | Convert CLI format to Doc format
+toDocFormat :: DocOutputFormat -> Doc.DocFormat
+toDocFormat DocMarkdown = Doc.Markdown
+toDocFormat DocHtml = Doc.HTML
 
 -- | Partition results into errors and successes
 partitionResults :: [Either String String] -> ([String], [String])
