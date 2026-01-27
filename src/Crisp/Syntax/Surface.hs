@@ -86,8 +86,8 @@ data Require
 
 -- | Module provision declaration
 data Provide
-  = ProvideType !Text !Span
-  | ProvideFn !Text !Type !Span
+  = ProvideType !Text !Span                 -- ^ Export a type: provides type Name
+  | ProvideFn !Text !(Maybe Type) !Span     -- ^ Export a function: provides fn name or provides fn name: Type
   deriving stock (Eq, Show, Generic)
 
 -- | Top-level definition

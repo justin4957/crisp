@@ -816,9 +816,36 @@ moduleTests = describe "modules" $ do
     let src = "module Main provides type MyType"
     shouldParse $ parseModule "test" src
 
-  it "parses module with provides fn" $ do
+  it "parses module with provides fn with type" $ do
     let src = "module Main provides fn myFn: Int -> Int"
     shouldParse $ parseModule "test" src
+
+  it "parses module with provides fn without type" $ do
+    let src = "module Main provides fn myFn"
+    shouldParse $ parseModule "test" src
+
+  it "parses module with multiple provides" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "provides type MyType"
+          , "provides fn myFn"
+          , "provides fn otherFn: Int -> Bool"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "extracts provides with optional type" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "provides fn noType"
+          , "provides fn withType: Int"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 2
+        case moduleProvides m of
+          [ProvideFn "noType" Nothing _, ProvideFn "withType" (Just _) _] -> pure ()
+          _ -> expectationFailure "Expected two ProvideFn with correct type presence"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
   it "parses module with multiple definitions" $ do
     -- Note: type definitions with constructors have parsing limitations
