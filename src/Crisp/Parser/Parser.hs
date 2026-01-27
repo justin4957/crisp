@@ -172,6 +172,7 @@ pDefinition = choice
   , DefHandler <$> pHandlerDef
   , DefTrait <$> pTraitDef
   , DefImpl <$> pImplDef
+  , DefExternal <$> pExternalFnDef
   , DefFn <$> pFunctionDef
   ]
 
@@ -413,6 +414,43 @@ pImplDef = do
 pImplMethod :: Parser FunctionDef
 pImplMethod = pFunctionDef
 
+-- * External function (FFI) parsing
+
+-- | Parse an external function reference
+-- Example: external("postgres", "query")
+pExternalRef :: Parser ExternalRef
+pExternalRef = do
+  start <- getPos
+  keyword "external"
+  symbol "("
+  modName <- lexeme $ char '"' *> manyTill L.charLiteral (char '"')
+  symbol ","
+  fnName <- lexeme $ char '"' *> manyTill L.charLiteral (char '"')
+  symbol ")"
+  span' <- spanFrom start
+  pure $ ExternalRef (T.pack modName) (T.pack fnName) span'
+
+-- | Parse an external function definition
+-- Example: external fn query(sql: String) -> String = ("postgres", "query")
+pExternalFnDef :: Parser ExternalFnDef
+pExternalFnDef = do
+  start <- getPos
+  keyword "external"
+  keyword "fn"
+  name <- lowerIdent
+  params <- option [] (between (symbol "(") (symbol ")") (pParam `sepBy` symbol ","))
+  symbol "->"
+  retTy <- pType
+  symbol "="
+  symbol "("
+  modName <- lexeme $ char '"' *> manyTill L.charLiteral (char '"')
+  symbol ","
+  fnName <- lexeme $ char '"' *> manyTill L.charLiteral (char '"')
+  symbol ")"
+  span' <- spanFrom start
+  let extRef = ExternalRef (T.pack modName) (T.pack fnName) span'
+  pure $ ExternalFnDef name params retTy extRef span'
+
 pFunctionDef :: Parser FunctionDef
 pFunctionDef = do
   start <- getPos
@@ -576,6 +614,7 @@ pAtom = choice
   , pWith
   , pLambda
   , pPerform
+  , pExternalCall
   , pLazy
   , pForce
   , pLiteral
@@ -707,6 +746,17 @@ pPerform = do
   args <- many pAtom
   span' <- spanFrom start
   pure $ EPerform effect op args span'
+
+-- | Parse an external function call expression
+-- Example: external("console", "log") "Hello"
+--          external("postgres", "query") sql_string
+pExternalCall :: Parser Expr
+pExternalCall = do
+  start <- getPos
+  extRef <- pExternalRef
+  args <- many pAtom
+  span' <- spanFrom start
+  pure $ EExternal extRef args span'
 
 pLazy :: Parser Expr
 pLazy = do

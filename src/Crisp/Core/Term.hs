@@ -25,6 +25,8 @@ module Crisp.Core.Term
   , Handler(..)
   , OpHandler(..)
   , ReturnHandler(..)
+    -- * FFI
+  , ExternalBinding(..)
     -- * Smart constructors
   , simpleFnType
   , pureFnType
@@ -54,6 +56,7 @@ data Term
   | TmLazy !Term                              -- ^ Lazy (deferred computation)
   | TmForce !Term                             -- ^ Force (evaluate deferred computation)
   | TmAnnot !Term !Type                       -- ^ Type annotation
+  | TmExternal !ExternalBinding ![Term]       -- ^ External function call (FFI)
   deriving stock (Eq, Show, Generic)
 
 -- | Core types
@@ -130,6 +133,14 @@ data OpHandler = OpHandler
 data ReturnHandler = ReturnHandler
   { returnHandlerPattern :: !Pattern
   , returnHandlerBody    :: !Term
+  } deriving stock (Eq, Show, Generic)
+
+-- | External function binding for FFI
+-- Represents a call to an external (host) function
+data ExternalBinding = ExternalBinding
+  { extBindModule   :: !Text              -- ^ Module/namespace (e.g., "postgres", "console", "wasi")
+  , extBindFunction :: !Text              -- ^ Function name in external module
+  , extBindType     :: !Type              -- ^ Function type for type checking
   } deriving stock (Eq, Show, Generic)
 
 -- * Smart constructors

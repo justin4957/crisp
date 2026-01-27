@@ -28,6 +28,7 @@ import qualified Crisp.Manifest.ManifestSpec
 import qualified Crisp.Module.ModuleSpec
 import qualified Crisp.Types.LinearSpec
 import qualified Crisp.Types.TraitSpec
+import qualified Crisp.FFI.ExternalSpec
 import qualified Crisp.REPL.ReplSpec
 
 main :: IO ()
@@ -56,4 +57,5 @@ main = hspec $ do
   describe "Crisp.Module" Crisp.Module.ModuleSpec.spec
   describe "Crisp.Types.Linear" Crisp.Types.LinearSpec.spec
   describe "Crisp.Types.Trait" Crisp.Types.TraitSpec.spec
+  describe "Crisp.FFI.External" Crisp.FFI.ExternalSpec.spec
   describe "Crisp.REPL" Crisp.REPL.ReplSpec.spec
