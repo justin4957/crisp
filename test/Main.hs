@@ -36,6 +36,7 @@ import qualified Crisp.Types.RefinementSpec
 import qualified Crisp.Types.BoundedPolySpec
 import qualified Crisp.Types.TypeAliasSpec
 import qualified Crisp.Types.DeriveSpec
+import qualified Crisp.Runtime.AllocatorSpec
 
 main :: IO ()
 main = hspec $ do
@@ -71,3 +72,4 @@ main = hspec $ do
   describe "Crisp.Types.BoundedPoly" Crisp.Types.BoundedPolySpec.spec
   describe "Crisp.Types.TypeAlias" Crisp.Types.TypeAliasSpec.spec
   describe "Crisp.Types.Derive" Crisp.Types.DeriveSpec.spec
+  describe "Crisp.Runtime.Allocator" Crisp.Runtime.AllocatorSpec.spec

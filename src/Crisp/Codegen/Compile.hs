@@ -54,11 +54,10 @@ module Crisp.Codegen.Compile
 
 import Crisp.IR.LLIR
 import Crisp.Codegen.Wasm (WasmInstr(..), WasmValType(..))
+import Crisp.Runtime.Allocator (allocInstrs)
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import Control.Monad (forM)
 
 --------------------------------------------------------------------------------
@@ -435,11 +434,10 @@ compileConstructor _typeName _constrName fields tagInfo =
   let -- Calculate total size: 4 (tag) + payload
       totalSize = 4 + tagPayloadSize tagInfo
 
-      -- Allocate memory (size on stack, call alloc)
-      allocInstrs =
+      -- Allocate memory using the runtime allocator
+      allocateInstrs =
         [ WI32Const totalSize
-        , WCall 0  -- Assume alloc is at index 0
-        ]
+        ] ++ allocInstrs  -- Use allocator from Runtime.Allocator
 
       -- Store tag at offset 0
       storeTagInstrs =
@@ -455,7 +453,7 @@ compileConstructor _typeName _constrName fields tagInfo =
       -- Return the pointer
       returnPtr = [WLocalGet 0]
 
-  in allocInstrs ++ storeTagInstrs ++ storeFieldInstrs ++ returnPtr
+  in allocateInstrs ++ storeTagInstrs ++ storeFieldInstrs ++ returnPtr
   where
     storeField (idx, fieldTy) =
       let offset = 4 + idx * 4  -- Simplified: all fields are 4 bytes
@@ -548,11 +546,10 @@ compileClosureAlloc closure =
       captureSize = sum [typeSize ty | (_, ty) <- closureCaptures closure]
       totalSize = 4 + captureSize
 
-      -- Allocate
-      allocInstrs =
+      -- Allocate using the runtime allocator
+      allocateInstrs =
         [ WI32Const totalSize
-        , WCall 0  -- alloc function
-        ]
+        ] ++ allocInstrs  -- Use allocator from Runtime.Allocator
 
       -- Store function pointer at offset 0
       storeFuncPtr =
@@ -565,7 +562,7 @@ compileClosureAlloc closure =
       -- Captured values should already be on the stack
       storeCaptures = []  -- Would need capture values
 
-  in allocInstrs ++ storeFuncPtr ++ storeCaptures ++ [WLocalGet 0]
+  in allocateInstrs ++ storeFuncPtr ++ storeCaptures ++ [WLocalGet 0]
   where
     typeSize LlirI32 = 4
     typeSize LlirI64 = 8
