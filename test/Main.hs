@@ -38,6 +38,7 @@ import qualified Crisp.Types.TypeAliasSpec
 import qualified Crisp.Types.DeriveSpec
 import qualified Crisp.Runtime.AllocatorSpec
 import qualified Crisp.Formatter.FormatSpec
+import qualified Crisp.Prelude.PreludeSpec
 
 main :: IO ()
 main = hspec $ do
@@ -75,3 +76,4 @@ main = hspec $ do
   describe "Crisp.Types.Derive" Crisp.Types.DeriveSpec.spec
   describe "Crisp.Runtime.Allocator" Crisp.Runtime.AllocatorSpec.spec
   describe "Crisp.Formatter" Crisp.Formatter.FormatSpec.spec
+  describe "Crisp.Prelude" Crisp.Prelude.PreludeSpec.spec
