@@ -78,6 +78,7 @@ library
         Crisp.Prelude.Functions
         Crisp.Prelude.Effects
         Crisp.Prelude.Core
+        Crisp.Prelude.Numeric
         Crisp.FFI.Time
 
     other-modules:
@@ -184,6 +185,7 @@ test-suite crisp-test
         Crisp.Runtime.AllocatorSpec
         Crisp.Formatter.FormatSpec
         Crisp.Prelude.PreludeSpec
+        Crisp.Prelude.NumericSpec
 
     build-depends:
         base >= 4.14 && < 5,
