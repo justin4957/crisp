@@ -28,13 +28,15 @@ These aren't arbitrary examples. They reveal Crisp's central thesis:
 
 ### Why WASM?
 
-Crisp compiles to **WebAssembly** — not because it's "fast" or "the future," but because WASM provides:
+Crisp compiles to **WebAssembly** — not because it's "fast" or "the future," but because WASM provides **constraint**, **explicitness**, and **inspectability**:
 
 - **Capability boundaries**: No ambient authority; all effects are explicit imports
 - **Semantic choke points**: Effects *must* surface at module boundaries
-- **Sandboxed execution**: The runtime cannot cheat (unlike certain contractors)
+- **Constrained execution**: The runtime is limited to declared imports (unlike certain contractors)
 - **Portable artifacts**: Same binary runs in browser, server, or policy engine
 - **Typed IR preservation**: Audit artifacts alongside binaries
+
+**Note:** WASM is not inherently "secure" — it is *constrained* and *explicit*. Crisp leverages these properties to make guarantees inspectable, not to claim the binary is magically safe.
 
 ### Who Is Crisp For?
 
@@ -47,11 +49,43 @@ Crisp is **not** a general-purpose language. It is designed for:
 
 Crisp expects expert users. It trades approachability for precision. If you wanted easy, you'd have picked Python and mass-emailed compliance when things broke.
 
+> **What Crisp is not:**
+> - A scripting language
+> - A rapid-prototyping tool
+> - A general-purpose replacement for Haskell or Rust
+> - Forgiving of type errors
+>
+> If your goal is "ship by Friday," Crisp is not your friend. If your goal is "defend this decision in court three years from now," keep reading.
+
 ---
 
 ## Part 1: Foundations
 
 Before diving into the domains, let's establish Crisp's core features.
+
+### 1.0 A Minimal Example (No Jokes)
+
+Before the bureaucratic humor begins, here is a simple, clean example showing Crisp's core idea — authority as a required value:
+
+```crisp
+-- A document that can be Draft or Published
+type DocState:
+  Draft
+  Published
+
+type Document(s: DocState):
+  title:   String
+  content: String
+
+-- Authority to publish
+type CanPublish = Authority(Publish)
+
+-- Publishing requires authority — no authority, no compilation
+fn publish(doc: Document(Draft), auth: CanPublish) -> Document(Published):
+  Document { title = doc.title, content = doc.content }
+```
+
+If you call `publish` without a `CanPublish` value, the code does not compile. Not "fails at runtime" — does not compile.
 
 ### 1.1 Basic Types and Functions
 
@@ -306,6 +340,8 @@ Approval requires three things:
 2. Authority to approve
 3. **Proof** that evidence satisfies policy (not "I looked at it")
 
+**A note on "proofs":** In many institutional domains, proofs are not mathematical derivations in the Curry–Howard sense but *certified decision procedures* — functions that check properties and return evidence of the check. Crisp treats both uniformly: proof terms, checked propositions, and decidable policy predicates all inhabit the `Prop` universe and are erased at runtime after compile-time verification. The distinction is explicit in the type system.
+
 ```crisp
 -- Propositions live in Prop (erased at runtime, required at compile time)
 type prop SatisfiesPolicy(evidence: EvidenceSet, policy: Policy):
@@ -370,6 +406,32 @@ fn approve(
 ```
 
 **The invalid program cannot be written.** Not "shouldn't be written." Cannot.
+
+### 2.6.1 What a Compile Error Actually Looks Like
+
+When you try to bypass Crisp's requirements, you don't get a runtime exception — you get a compile error. Here's a real example:
+
+```
+Error at line 47, column 3:
+
+  Cannot construct Decision(Approved)
+
+  Missing required parameters:
+    - auth:  CanApprove
+             You must provide authority to approve. Authority is a value,
+             not a runtime check.
+    - proof: SatisfiesPolicy(d.evidence, StandardPolicy)
+             You must provide proof that evidence satisfies policy.
+             Proof cannot be fabricated; it must be constructed from
+             actual evidence evaluation.
+
+  Hint: Approval requires explicit authority and proof. If you don't have
+        these values, you cannot call this function. This is intentional.
+
+  See: https://crisp-lang.org/docs/authority-as-value
+```
+
+This isn't a warning. The program will not compile until you provide the required values.
 
 ### 2.7 Denial Path
 
@@ -619,6 +681,8 @@ Philosophy deals with:
 - Interpretive authority (who gets to say what Hegel meant)
 
 These map directly to Crisp's type system. This is **not metaphorical** — it is logic-as-data with authority constraints. Wittgenstein would have opinions about this.
+
+**Important clarification:** Crisp does not claim to mechanize philosophy or determine metaphysical truth. What it models is **constraints on interpretation**: who has the authority to synthesize, what rules are legitimate within which traditions, and how contradictions must be formally resolved. Crisp encodes *legitimacy and authority in discourse*, not correctness of philosophical claims. The type system tracks who may say what, not what is true.
 
 ### 4.2 Propositions as Types
 
