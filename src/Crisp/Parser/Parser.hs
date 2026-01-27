@@ -199,7 +199,12 @@ pDefinition = choice
              deriv <- optional pDerivingClause
              cons <- optional (symbol ":" *> pConstructors)
              span' <- spanFrom start
-             pure $ DefType $ TypeDef name params constraints mKind (maybe [] id cons) mods deriv span'
+             -- Fix up record constructor names (replace empty name with type name)
+             let fixedCons = case cons of
+                   Just [RecordConstructor "" fields s] ->
+                     [RecordConstructor name fields s]
+                   _ -> maybe [] id cons
+             pure $ DefType $ TypeDef name params constraints mKind fixedCons mods deriv span'
         ]
 
     -- Type parameter that doesn't consume = sign
@@ -272,22 +277,56 @@ pTypeModifiers = do
   isLinear <- option False (True <$ keyword "linear")
   pure $ TypeModifiers isProp isLinear
 
+-- | Parse constructors, handling both regular constructors and record fields
+-- Record fields look like: field: Type (lowercase name followed by colon)
+-- Regular constructors look like: ConstructorName args (uppercase name)
 pConstructors :: Parser [Constructor]
-pConstructors = many pConstructor
+pConstructors = choice
+  [ -- Try parsing as record fields (for record-style types)
+    -- Record fields start with lowercase identifier followed by colon
+    try $ do
+      start <- getPos
+      fields <- some pField
+      span' <- spanFrom start
+      -- Create a single record constructor with the fields
+      -- The name "" will be replaced with the type name by the caller
+      pure [RecordConstructor "" fields span']
+  , -- Regular constructors (uppercase names)
+    many pConstructor
+  ]
 
 pConstructor :: Parser Constructor
 pConstructor = do
   start <- getPos
   name <- upperIdent
   choice
-    [ do symbol ":"
+    [ -- GADT constructor: Cons : Type
+      do symbol ":"
          ty <- pType
          span' <- spanFrom start
          pure $ GadtConstructor name ty span'
-    , do args <- many pTypeAtom
+    , -- Record constructor: { field: Type, ... }
+      try $ do
+        symbol "{"
+        fields <- pField `sepBy1` symbol ","
+        symbol "}"
+        span' <- spanFrom start
+        pure $ RecordConstructor name fields span'
+    , -- Simple positional constructor: Cons Type1 Type2
+      do args <- many pTypeAtom
          span' <- spanFrom start
          pure $ SimpleConstructor name args span'
     ]
+
+-- | Parse a record field: name: Type
+pField :: Parser Field
+pField = do
+  start <- getPos
+  name <- lowerIdent
+  symbol ":"
+  ty <- pType
+  span' <- spanFrom start
+  pure $ Field name ty span'
 
 pTypeParam :: Parser TypeParam
 pTypeParam = choice
@@ -880,34 +919,120 @@ pRefinementParenExpr = do
 -- * Expression parsing
 
 pExpr :: Parser Expr
-pExpr = makeExprParser pApp
-  [ [InfixL pPipe] ]
+pExpr = makeExprParser pCompare
+  [ -- Lowest precedence: logical OR
+    [InfixL pOr]
+  , -- Logical AND
+    [InfixL pAnd]
+  , -- Pipeline
+    [InfixL pPipe]
+  ]
   where
     pPipe = do
       start <- getPos
       symbol "|>"
       span' <- spanFrom start
       pure $ \left right -> EPipe left right span'
+    pAnd = do
+      start <- getPos
+      symbol "&&"
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp OpAnd left right span'
+    pOr = do
+      start <- getPos
+      symbol "||"
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp OpOr left right span'
+
+-- | Parse comparison expressions
+pCompare :: Parser Expr
+pCompare = makeExprParser pAddSub
+  [ [InfixN pLe, InfixN pLt, InfixN pGe, InfixN pGt, InfixN pEq, InfixN pNe] ]
+  where
+    pLe = mkBinOp "<=" OpLE
+    pLt = mkBinOp "<" OpLT
+    pGe = mkBinOp ">=" OpGE
+    pGt = mkBinOp ">" OpGT
+    pEq = mkBinOp "==" OpEQ
+    pNe = mkBinOp "/=" OpNE
+
+-- | Parse additive expressions
+pAddSub :: Parser Expr
+pAddSub = makeExprParser pMulDiv
+  [ [InfixL pAdd, InfixL pSub] ]
+  where
+    pAdd = mkBinOp "+" OpAdd
+    -- Subtraction operator must not be followed by '>' (to avoid matching '->')
+    pSub = do
+      start <- getPos
+      void $ try (symbol "-" <* notFollowedBy (char '>'))
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp OpSub left right span'
+
+-- | Parse multiplicative expressions
+pMulDiv :: Parser Expr
+pMulDiv = makeExprParser pApp
+  [ [InfixL pMul, InfixL pDiv, InfixL pMod] ]
+  where
+    pMul = mkBinOp "*" OpMul
+    pDiv = mkBinOp "/" OpDiv
+    pMod = mkBinOp "%" OpMod
+
+-- | Helper to create binary operator parser
+mkBinOp :: Text -> BinOp -> Parser (Expr -> Expr -> Expr)
+mkBinOp sym op = do
+  start <- getPos
+  void $ symbol sym
+  span' <- spanFrom start
+  pure $ \left right -> EBinOp op left right span'
 
 pApp :: Parser Expr
-pApp = do
-  start <- getPos
-  func <- pAtom
-  args <- many pAtom
-  span' <- spanFrom start
-  case args of
-    [] -> pure func
-    _  -> pure $ EApp func args span'
-
-pAtom :: Parser Expr
-pAtom = choice
-  [ pLet
+pApp = choice
+  [ -- Complex expressions that shouldn't take arguments
+    pLet
   , pMatch
   , pIf
   , pDo
   , pWith
   , pLambda
-  , pPerform
+  , -- Application of simpler expressions
+    pAppSimple
+  ]
+
+-- | Parse simple function application
+pAppSimple :: Parser Expr
+pAppSimple = do
+  start <- getPos
+  func <- pPostfix
+  args <- many pPostfix
+  span' <- spanFrom start
+  case args of
+    [] -> pure func
+    _  -> pure $ EApp func args span'
+
+-- | Parse postfix expressions (field access)
+pPostfix :: Parser Expr
+pPostfix = do
+  start <- getPos
+  base <- pAtom
+  accesses <- many pFieldAccess
+  span' <- spanFrom start
+  pure $ foldl (\e (field, s) -> EFieldAccess e field s) base accesses
+  where
+    pFieldAccess = do
+      s <- getPos
+      symbol "."
+      -- Must be followed by lowercase identifier (field name), not uppercase (qualified name)
+      notFollowedBy upperIdent
+      field <- lowerIdent
+      span' <- spanFrom s
+      pure (field, span')
+
+-- | Parse simple atoms (variables, literals, parenthesized expressions)
+-- These can be targets of function application
+pAtom :: Parser Expr
+pAtom = choice
+  [ pPerform
   , pExternalCall
   , pLazy
   , pForce
@@ -953,10 +1078,17 @@ pMatch :: Parser Expr
 pMatch = do
   start <- getPos
   keyword "match"
-  subject <- pExpr
-  arms <- many pMatchArm
+  -- Match subject must be a simple expression (no binary ops or complex expressions)
+  -- to avoid ambiguity with match arms that use ->
+  subject <- pMatchSubject
+  arms <- many pMatchArm  -- Zero or more arms allowed
   span' <- spanFrom start
   pure $ EMatch subject arms span'
+
+-- | Parse a match subject - restricted to avoid ambiguity with arms
+-- Only allows a single postfix expression (no application consuming multiple tokens)
+pMatchSubject :: Parser Expr
+pMatchSubject = pPostfix
 
 pMatchArm :: Parser MatchArm
 pMatchArm = do
@@ -964,9 +1096,15 @@ pMatchArm = do
   pat <- pPattern
   guard' <- optional (symbol "|" *> pExpr)
   symbol "->"
-  body <- pExpr
+  body <- pMatchArmBody  -- Restricted body to avoid consuming subsequent arms
   span' <- spanFrom start
   pure $ MatchArm pat guard' body span'
+
+-- | Parse match arm body - a simple expression that doesn't consume too much
+-- Uses a single postfix expression, not application (which would consume literals
+-- from subsequent match arms as arguments)
+pMatchArmBody :: Parser Expr
+pMatchArmBody = pPostfix
 
 pIf :: Parser Expr
 pIf = do
@@ -1149,11 +1287,13 @@ pPatternCon = do
 
 pPatternAtom :: Parser Pattern
 pPatternAtom = choice
-  [ do start <- getPos
+  [ -- Wildcard pattern
+    do start <- getPos
        symbol "_"
        span' <- spanFrom start
        pure $ PatWildcard span'
-  , do start <- getPos
+  , -- Tuple or parenthesized pattern
+    do start <- getPos
        symbol "("
        pats <- pPattern `sepBy` symbol ","
        symbol ")"
@@ -1161,7 +1301,14 @@ pPatternAtom = choice
        case pats of
          [p] -> pure p
          _   -> pure $ PatTuple pats span'
-  , do start <- getPos
+  , -- Literal patterns (integers, strings, etc.)
+    try $ do
+       start <- getPos
+       lit <- pLiteral
+       span' <- spanFrom start
+       pure $ PatLit lit span'
+  , -- Variable pattern
+    do start <- getPos
        name <- lowerIdent
        span' <- spanFrom start
        pure $ PatVar name span'

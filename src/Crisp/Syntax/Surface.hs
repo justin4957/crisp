@@ -49,6 +49,7 @@ module Crisp.Syntax.Surface
   , Type(..)
     -- * Expressions
   , Expr(..)
+  , BinOp(..)
   , Statement(..)
   , DoStatement(..)
   , MatchArm(..)
@@ -354,6 +355,26 @@ data Expr
   | EBlock ![Statement] !Expr !Span                     -- ^ Block expression
   | EQualified ![Text] !Text !Span                      -- ^ Qualified name
   | EExternal !ExternalRef ![Expr] !Span                -- ^ External function call
+  | EFieldAccess !Expr !Text !Span                      -- ^ Field access: expr.field
+  | EBinOp !BinOp !Expr !Expr !Span                     -- ^ Binary operator: expr op expr
+  | ERecord !Text ![(Text, Expr)] !Span                 -- ^ Record construction: Type { field = expr, ... }
+  deriving stock (Eq, Show, Generic)
+
+-- | Binary operators
+data BinOp
+  = OpAdd         -- ^ +
+  | OpSub         -- ^ -
+  | OpMul         -- ^ *
+  | OpDiv         -- ^ /
+  | OpMod         -- ^ %
+  | OpAnd         -- ^ &&
+  | OpOr          -- ^ ||
+  | OpLT          -- ^ <
+  | OpLE          -- ^ <=
+  | OpGT          -- ^ >
+  | OpGE          -- ^ >=
+  | OpEQ          -- ^ ==
+  | OpNE          -- ^ /=
   deriving stock (Eq, Show, Generic)
 
 -- | A statement in a block
