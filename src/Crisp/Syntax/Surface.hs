@@ -39,6 +39,9 @@ module Crisp.Syntax.Surface
     -- * FFI
   , ExternalRef(..)
   , ExternalFnDef(..)
+    -- * Refinement Types
+  , RefinementPredicate(..)
+  , ComparisonOp(..)
     -- * Types
   , Type(..)
     -- * Expressions
@@ -262,6 +265,31 @@ data ExternalFnDef = ExternalFnDef
   , extFnDefSpan       :: !Span
   } deriving stock (Eq, Show, Generic)
 
+-- | Comparison operators for refinement predicates
+data ComparisonOp
+  = OpLt           -- ^ <
+  | OpLe           -- ^ <=
+  | OpGt           -- ^ >
+  | OpGe           -- ^ >=
+  | OpEq           -- ^ ==
+  | OpNe           -- ^ /=
+  deriving stock (Eq, Show, Generic)
+
+-- | A predicate in a refinement type
+-- Example: 1 <= self, self <= 12, self > 0
+data RefinementPredicate
+  = RefinementComparison !Expr !ComparisonOp !Expr !Span
+    -- ^ Comparison: left op right (e.g., 1 <= self)
+  | RefinementAnd !RefinementPredicate !RefinementPredicate !Span
+    -- ^ Conjunction: pred1 && pred2
+  | RefinementOr !RefinementPredicate !RefinementPredicate !Span
+    -- ^ Disjunction: pred1 || pred2
+  | RefinementNot !RefinementPredicate !Span
+    -- ^ Negation: !pred
+  | RefinementExpr !Expr !Span
+    -- ^ Arbitrary boolean expression
+  deriving stock (Eq, Show, Generic)
+
 -- | Type expressions
 data Type
   = TyName !Text !Span                              -- ^ Type variable or constructor
@@ -272,6 +300,7 @@ data Type
   | TyLazy !Type !Span                              -- ^ Lazy T
   | TyRef !Type !Bool !Span                         -- ^ ref T or ref mut T
   | TyParen !Type !Span                             -- ^ Parenthesized type
+  | TyRefinement !Type ![RefinementPredicate] !Span -- ^ Refinement type: T { predicate }
   deriving stock (Eq, Show, Generic)
 
 -- | Expressions

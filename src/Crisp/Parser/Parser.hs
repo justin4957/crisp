@@ -552,7 +552,17 @@ pTypeApp = do
       ]
 
 pTypeAtom :: Parser Type
-pTypeAtom = choice
+pTypeAtom = do
+  baseType <- pTypeAtomBase
+  -- Check for refinement type syntax: T { predicate }
+  mRefinement <- optional pRefinementBlock
+  case mRefinement of
+    Nothing -> pure baseType
+    Just (preds, span') -> pure $ TyRefinement baseType preds span'
+
+-- | Parse the base type atom (without refinement)
+pTypeAtomBase :: Parser Type
+pTypeAtomBase = choice
   [ do start <- getPos
        symbol "("
        ty <- pType
@@ -582,6 +592,145 @@ pTypeAtom = choice
        span' <- spanFrom start
        pure $ TyName name span'
   ]
+
+-- * Refinement type parsing
+
+-- | Parse a refinement block: { predicate }
+pRefinementBlock :: Parser ([RefinementPredicate], Span)
+pRefinementBlock = do
+  start <- getPos
+  symbol "{"
+  preds <- pRefinementPredicate `sepBy1` symbol ","
+  symbol "}"
+  span' <- spanFrom start
+  pure (preds, span')
+
+-- | Parse a refinement predicate (with && and || connectives)
+pRefinementPredicate :: Parser RefinementPredicate
+pRefinementPredicate = makeExprParser pRefinementAtom
+  [ [InfixL pAnd]
+  , [InfixL pOr]
+  ]
+  where
+    pAnd = do
+      start <- getPos
+      symbol "&&"
+      span' <- spanFrom start
+      pure $ \left right -> RefinementAnd left right span'
+    pOr = do
+      start <- getPos
+      symbol "||"
+      span' <- spanFrom start
+      pure $ \left right -> RefinementOr left right span'
+
+-- | Parse an atomic refinement predicate
+pRefinementAtom :: Parser RefinementPredicate
+pRefinementAtom = choice
+  [ pRefinementNot
+  , pRefinementParens
+  , try pRefinementComparison
+  , pRefinementExpr
+  ]
+
+-- | Parse negation: !pred
+pRefinementNot :: Parser RefinementPredicate
+pRefinementNot = do
+  start <- getPos
+  symbol "!"
+  pred' <- pRefinementAtom
+  span' <- spanFrom start
+  pure $ RefinementNot pred' span'
+
+-- | Parse parenthesized predicate
+pRefinementParens :: Parser RefinementPredicate
+pRefinementParens = do
+  symbol "("
+  pred' <- pRefinementPredicate
+  symbol ")"
+  pure pred'
+
+-- | Parse a comparison predicate: expr op expr
+-- Supports chained comparisons like: 1 <= self <= 12
+pRefinementComparison :: Parser RefinementPredicate
+pRefinementComparison = do
+  start <- getPos
+  left <- pRefinementExprAtom
+  op <- pComparisonOp
+  right <- pRefinementExprAtom
+  -- Check for chained comparison (e.g., 1 <= self <= 12)
+  mChain <- optional $ do
+    op2 <- pComparisonOp
+    right2 <- pRefinementExprAtom
+    pure (op2, right2)
+  span' <- spanFrom start
+  case mChain of
+    Nothing -> pure $ RefinementComparison left op right span'
+    Just (op2, right2) ->
+      -- Convert "a op1 b op2 c" to "(a op1 b) && (b op2 c)"
+      let pred1 = RefinementComparison left op right span'
+          pred2 = RefinementComparison right op2 right2 span'
+      in pure $ RefinementAnd pred1 pred2 span'
+
+-- | Parse a comparison operator
+pComparisonOp :: Parser ComparisonOp
+pComparisonOp = choice
+  [ OpLe <$ symbol "<="
+  , OpLt <$ symbol "<"
+  , OpGe <$ symbol ">="
+  , OpGt <$ symbol ">"
+  , OpEq <$ symbol "=="
+  , OpNe <$ symbol "/="
+  ]
+
+-- | Parse an expression for use in refinement predicates
+pRefinementExpr :: Parser RefinementPredicate
+pRefinementExpr = do
+  start <- getPos
+  expr <- pRefinementExprAtom
+  span' <- spanFrom start
+  pure $ RefinementExpr expr span'
+
+-- | Parse an atomic expression in a refinement context
+-- This is a simplified expression parser for refinements
+pRefinementExprAtom :: Parser Expr
+pRefinementExprAtom = choice
+  [ pRefinementInt
+  , pRefinementSelf
+  , pRefinementVar
+  , pRefinementParenExpr
+  ]
+
+-- | Parse an integer literal in a refinement
+pRefinementInt :: Parser Expr
+pRefinementInt = do
+  start <- getPos
+  n <- lexeme L.decimal
+  span' <- spanFrom start
+  pure $ EIntLit n span'
+
+-- | Parse 'self' - the special variable referring to values of the type
+pRefinementSelf :: Parser Expr
+pRefinementSelf = do
+  start <- getPos
+  keyword "self"
+  span' <- spanFrom start
+  pure $ EVar "self" span'
+
+-- | Parse a variable in a refinement
+pRefinementVar :: Parser Expr
+pRefinementVar = do
+  start <- getPos
+  name <- lowerIdent
+  span' <- spanFrom start
+  pure $ EVar name span'
+
+-- | Parse a parenthesized expression in a refinement
+pRefinementParenExpr :: Parser Expr
+pRefinementParenExpr = do
+  symbol "("
+  e <- pRefinementExprAtom
+  symbol ")"
+  pure e
 
 -- * Expression parsing
 

@@ -73,6 +73,7 @@ data TokenKind
   | KwFor
   | KwDeriving
   | KwExternal
+  | KwSelf
 
   -- Operators and Punctuation
   | Arrow          -- ->
@@ -179,6 +180,7 @@ isKeyword = \case
   KwFor -> True
   KwDeriving -> True
   KwExternal -> True
+  KwSelf -> True
   _ -> False
 
 -- | Check if a token is a layout token
@@ -239,6 +241,7 @@ keywordMap = Map.fromList
   , ("for", KwFor)
   , ("deriving", KwDeriving)
   , ("external", KwExternal)
+  , ("self", KwSelf)
   ]
 
 -- | Look up a keyword from its text representation
