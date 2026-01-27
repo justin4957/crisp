@@ -150,22 +150,34 @@ pRequire = do
          pure $ RequireModule modPath span'
     ]
 
+-- | Parse provides declarations
+-- Supports both inline format:
+--   provides type Name
+--   provides fn name: Type
+-- And block format:
+--   provides
+--     type Name
+--     fn name
 pProvide :: Parser Provide
 pProvide = do
   start <- getPos
   keyword "provides"
-  choice
-    [ do keyword "type"
-         name <- upperIdent
-         span' <- spanFrom start
-         pure $ ProvideType name span'
-    , do keyword "fn"
-         name <- lowerIdent
-         symbol ":"
-         ty <- pType
-         span' <- spanFrom start
-         pure $ ProvideFn name ty span'
-    ]
+  pProvideItem start
+
+-- | Parse a single provide item (after the "provides" keyword)
+pProvideItem :: Position -> Parser Provide
+pProvideItem start = choice
+  [ do keyword "type"
+       name <- upperIdent
+       span' <- spanFrom start
+       pure $ ProvideType name span'
+  , do keyword "fn"
+       name <- lowerIdent
+       -- Type annotation is optional
+       mTy <- optional (symbol ":" *> pType)
+       span' <- spanFrom start
+       pure $ ProvideFn name mTy span'
+  ]
 
 -- * Definition parsing
 

@@ -142,7 +142,9 @@ prettyProvides _opts [] = ""
 prettyProvides opts provs = T.intercalate "\n" (map prettyProv provs)
   where
     prettyProv (ProvideType name _) = "provides type " <> name
-    prettyProv (ProvideFn name ty _) = "provides fn " <> name <> ": " <> prettyType opts 0 ty
+    prettyProv (ProvideFn name mTy _) = case mTy of
+      Just ty -> "provides fn " <> name <> ": " <> prettyType opts 0 ty
+      Nothing -> "provides fn " <> name
 
 --------------------------------------------------------------------------------
 -- Pretty Printing - Definitions
