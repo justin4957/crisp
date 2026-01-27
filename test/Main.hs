@@ -31,6 +31,7 @@ import qualified Crisp.Module.ModuleSpec
 import qualified Crisp.Types.LinearSpec
 import qualified Crisp.Types.TraitSpec
 import qualified Crisp.FFI.ExternalSpec
+import qualified Crisp.FFI.TimeSpec
 import qualified Crisp.REPL.ReplSpec
 import qualified Crisp.Types.RefinementSpec
 import qualified Crisp.Types.BoundedPolySpec
@@ -69,6 +70,7 @@ main = hspec $ do
   describe "Crisp.Types.Linear" Crisp.Types.LinearSpec.spec
   describe "Crisp.Types.Trait" Crisp.Types.TraitSpec.spec
   describe "Crisp.FFI.External" Crisp.FFI.ExternalSpec.spec
+  describe "Crisp.FFI.Time" Crisp.FFI.TimeSpec.spec
   describe "Crisp.REPL" Crisp.REPL.ReplSpec.spec
   describe "Crisp.Types.Refinement" Crisp.Types.RefinementSpec.spec
   describe "Crisp.Types.BoundedPoly" Crisp.Types.BoundedPolySpec.spec

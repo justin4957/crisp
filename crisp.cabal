@@ -78,6 +78,7 @@ library
         Crisp.Prelude.Functions
         Crisp.Prelude.Effects
         Crisp.Prelude.Core
+        Crisp.FFI.Time
 
     other-modules:
         Crisp.Lexer.Layout
@@ -175,6 +176,7 @@ test-suite crisp-test
         Crisp.REPL.ReplSpec
         Crisp.Types.TraitSpec
         Crisp.FFI.ExternalSpec
+        Crisp.FFI.TimeSpec
         Crisp.Types.RefinementSpec
         Crisp.Types.BoundedPolySpec
         Crisp.Types.TypeAliasSpec
