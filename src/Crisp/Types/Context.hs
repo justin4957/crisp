@@ -51,6 +51,10 @@ module Crisp.Types.Context
   , registerRefinement
   , lookupRefinement
   , lookupRefinementsForType
+    -- * Bounded polymorphism (trait constraints)
+  , satisfiesConstraint
+  , satisfiesAllConstraints
+  , checkTypeParamConstraints
     -- * Authority
   , setAuthority
   , getAuthority
@@ -465,3 +469,27 @@ lookupRefinementsForType baseType ctx =
     typesMatch (TyCon n1 args1) (TyCon n2 args2) =
       n1 == n2 && length args1 == length args2 && all (uncurry typesMatch) (zip args1 args2)
     typesMatch t1 t2 = t1 == t2
+
+-- | Check if a type satisfies a single trait constraint
+-- Returns True if there's an implementation of the trait for the type
+satisfiesConstraint :: Type -> Text -> Context -> Bool
+satisfiesConstraint ty traitName ctx =
+  case lookupImpl traitName ty ctx of
+    Just _  -> True
+    Nothing -> False
+
+-- | Check if a type satisfies all trait constraints
+-- Returns list of unsatisfied constraints (empty list means all satisfied)
+satisfiesAllConstraints :: Type -> [Text] -> Context -> [Text]
+satisfiesAllConstraints ty traits ctx =
+  filter (\t -> not (satisfiesConstraint ty t ctx)) traits
+
+-- | Check that type arguments satisfy the constraints of their type parameters
+-- Takes a list of (type argument, constraint trait names) pairs
+-- Returns list of (type, unsatisfied trait) pairs for violations
+checkTypeParamConstraints :: [(Type, [Text])] -> Context -> [(Type, Text)]
+checkTypeParamConstraints typeArgConstraints ctx =
+  concatMap checkOne typeArgConstraints
+  where
+    checkOne (ty, traits) =
+      map (\t -> (ty, t)) (satisfiesAllConstraints ty traits ctx)

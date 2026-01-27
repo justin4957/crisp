@@ -167,6 +167,7 @@ test-suite crisp-test
         Crisp.Types.TraitSpec
         Crisp.FFI.ExternalSpec
         Crisp.Types.RefinementSpec
+        Crisp.Types.BoundedPolySpec
 
     build-depends:
         base >= 4.14 && < 5,

@@ -183,11 +183,26 @@ pTypeDef = do
   mods <- pTypeModifiers
   name <- upperIdent
   params <- many pTypeParam
-  mKind <- optional (symbol ":" *> pKind)
+  constraints <- option [] pTypeDefConstraints
+  -- Kind annotation must be followed by a valid kind keyword, not a constructor
+  mKind <- optional (try pTypeDefKind)
   deriv <- optional pDerivingClause
   cons <- optional (symbol ":" *> pConstructors)
   span' <- spanFrom start
-  pure $ TypeDef name params mKind (maybe [] id cons) mods deriv span'
+  pure $ TypeDef name params constraints mKind (maybe [] id cons) mods deriv span'
+  where
+    -- Parse kind annotation for type definition: : Type or : Type -> Type
+    -- Uses try to backtrack if what follows : isn't a valid kind
+    pTypeDefKind = do
+      symbol ":"
+      pKind
+
+-- | Parse where clause constraints for type definitions
+-- Example: where A: Action, B: Serializable
+pTypeDefConstraints :: Parser [TraitConstraint]
+pTypeDefConstraints = do
+  keyword "where"
+  pTraitConstraint `sepBy1` symbol ","
 
 pDerivingClause :: Parser DerivingClause
 pDerivingClause = do
@@ -225,7 +240,8 @@ pConstructor = do
 
 pTypeParam :: Parser TypeParam
 pTypeParam = choice
-  [ try $ do
+  [ -- Dependent parameter: (n: Nat)
+    try $ do
       start <- getPos
       symbol "("
       name <- lowerIdent
@@ -234,12 +250,64 @@ pTypeParam = choice
       symbol ")"
       span' <- spanFrom start
       pure $ DepParam name ty span'
-  , do start <- getPos
+  , -- Bounded type parameter with kind and constraints: (A: Type: Trait1 + Trait2)
+    -- or just constraints: (A: Trait1 + Trait2)
+    try $ do
+      start <- getPos
+      symbol "("
+      name <- upperIdent
+      symbol ":"
+      -- Parse either a kind followed by optional constraints, or just trait constraints
+      (mKind, traits) <- pBoundedTypeParamBody
+      symbol ")"
+      span' <- spanFrom start
+      if null traits
+        then pure $ TypeVar name mKind span'
+        else pure $ BoundedTypeVar name mKind traits span'
+  , -- Simple type parameter with optional kind: A or A: Type
+    -- Only parse kind if followed by a kind keyword, not a constructor
+    do start <- getPos
        name <- upperIdent
-       mKind <- optional (symbol ":" *> pKind)
+       mKind <- optional (try (symbol ":" *> pKind))
        span' <- spanFrom start
        pure $ TypeVar name mKind span'
   ]
+
+-- | Parse the body of a bounded type parameter
+-- Can be: Kind: Trait1 + Trait2, Kind, or Trait1 + Trait2
+-- Kinds are: Type, Prop, Linear, or arrow kinds (Type -> Type)
+-- Traits are uppercase identifiers that aren't kind keywords
+pBoundedTypeParamBody :: Parser (Maybe Kind, [Text])
+pBoundedTypeParamBody = choice
+  [ -- Try kind followed by constraints: Type: Trait1 + Trait2
+    try $ do
+      kind <- pKind
+      symbol ":"
+      traits <- pTraitBounds
+      pure (Just kind, traits)
+  , -- Try just kind: Type or Type -> Type
+    -- Only matches if followed by ) or :
+    try $ do
+      kind <- pKind
+      -- Must be followed by ) to be a valid kind-only param
+      lookAhead (symbol ")")
+      pure (Just kind, [])
+  , -- Just trait bounds: Trait1 + Trait2
+    do traits <- pTraitBounds
+       pure (Nothing, traits)
+  ]
+
+-- | Parse trait bounds: Trait1 + Trait2 + ...
+-- These are uppercase identifiers that are NOT kind keywords
+pTraitBounds :: Parser [Text]
+pTraitBounds = pTraitName `sepBy1` symbol "+"
+  where
+    pTraitName = try $ do
+      name <- upperIdent
+      -- Ensure it's not a kind keyword
+      if name `elem` ["Type", "Prop", "Linear"]
+        then fail $ "Expected trait name, got kind keyword: " ++ T.unpack name
+        else pure name
 
 pKind :: Parser Kind
 pKind = do
