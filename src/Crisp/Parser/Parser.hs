@@ -144,6 +144,10 @@ pRequire = do
          tys <- upperIdent `sepBy1` symbol ","
          span' <- spanFrom start
          pure $ RequireTypes tys span'
+    , do -- Module import: requires ModulePath
+         modPath <- pModulePath
+         span' <- spanFrom start
+         pure $ RequireModule modPath span'
     ]
 
 pProvide :: Parser Provide

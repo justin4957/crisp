@@ -128,8 +128,13 @@ prettyRequires :: FormatOptions -> [Require] -> Text
 prettyRequires _opts [] = ""
 prettyRequires _opts reqs = T.intercalate "\n" (map prettyReq reqs)
   where
+    prettyReq (RequireModule modPath _) = "requires " <> prettyModulePath modPath
     prettyReq (RequireEffects effs _) = "requires effects: " <> T.intercalate ", " effs
     prettyReq (RequireTypes tys _) = "requires types: " <> T.intercalate ", " tys
+
+-- | Pretty print a module path
+prettyModulePath :: ModulePath -> Text
+prettyModulePath (ModulePath segs _) = T.intercalate "." segs
 
 -- | Pretty print provides declarations
 prettyProvides :: FormatOptions -> [Provide] -> Text
