@@ -156,6 +156,7 @@ test-suite crisp-test
         Crisp.Core.PatternSpec
         Crisp.IR.CPSSpec
         Crisp.IR.LLIRSpec
+        Crisp.IR.ENIRSpec
         Crisp.Types.DependentSpec
         Crisp.Types.GADTSpec
         Crisp.Types.PropSpec

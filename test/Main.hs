@@ -19,6 +19,7 @@ import qualified Crisp.Types.ConstructorSpec
 import qualified Crisp.Core.PatternSpec
 import qualified Crisp.IR.CPSSpec
 import qualified Crisp.IR.LLIRSpec
+import qualified Crisp.IR.ENIRSpec
 import qualified Crisp.Types.DependentSpec
 import qualified Crisp.Types.GADTSpec
 import qualified Crisp.Types.PropSpec
@@ -53,6 +54,7 @@ main = hspec $ do
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec
   describe "Crisp.IR.CPS" Crisp.IR.CPSSpec.spec
   describe "Crisp.IR.LLIR" Crisp.IR.LLIRSpec.spec
+  describe "Crisp.IR.ENIR" Crisp.IR.ENIRSpec.spec
   describe "Crisp.Types.Dependent" Crisp.Types.DependentSpec.spec
   describe "Crisp.Types.GADT" Crisp.Types.GADTSpec.spec
   describe "Crisp.Types.Prop" Crisp.Types.PropSpec.spec

@@ -12,13 +12,19 @@ module Crisp.IR.ENIR
     ENIRTerm(..)
   , ENIRType(..)
   , ENIRValue(..)
+    -- * Handlers
+  , ENIRHandler(..)
+  , ENIROpHandler(..)
+  , ENIRReturnHandler(..)
     -- * Continuation
   , Continuation(..)
     -- * Transformation
   , toENIR
+  , transformHandler
+  , transformOpHandler
   ) where
 
-import Crisp.Core.Term (Term(..), Type(..), Kind(..), EffectRow(..), Effect(..), Pattern(..), Case(..), Handler(..))
+import Crisp.Core.Term (Term(..), Type(..), Kind(..), EffectRow(..), Effect(..), Pattern(..), Case(..), Handler(..), OpHandler(..), ReturnHandler(..))
 import qualified Crisp.Core.Term as Core
 
 import Data.Text (Text)
@@ -32,6 +38,7 @@ data ENIRTerm
   | ENIRCon !Text ![ENIRValue]
   | ENIRMatch !ENIRValue ![(Pattern, ENIRTerm)]
   | ENIRCall !Text !Text !ENIRValue !Continuation  -- ^ Effect call with continuation
+  | ENIRHandle !ENIRHandler !ENIRTerm              -- ^ Effect handler around a body
   | ENIRReturn !ENIRValue
   deriving stock (Eq, Show)
 
@@ -53,6 +60,32 @@ data ENIRType
 data Continuation = Continuation
   { contParam :: !Text
   , contBody  :: !ENIRTerm
+  } deriving stock (Eq, Show)
+
+-- | An effect handler in ENIR
+-- Handlers intercept effect operations and provide implementations
+data ENIRHandler = ENIRHandler
+  { enirHandlerEffect     :: !Text                -- ^ Effect being handled (e.g., "State")
+  , enirHandlerOps        :: ![ENIROpHandler]     -- ^ Operation handlers
+  , enirHandlerReturn     :: !ENIRReturnHandler   -- ^ Return clause
+  } deriving stock (Eq, Show)
+
+-- | Handler for a single effect operation
+-- The resumption is represented as a continuation parameter
+data ENIROpHandler = ENIROpHandler
+  { enirOpName      :: !Text        -- ^ Operation name (e.g., "get", "put")
+  , enirOpParam     :: !Text        -- ^ Parameter name for operation argument
+  , enirOpParamType :: !ENIRType    -- ^ Type of the operation argument
+  , enirOpResume    :: !Text        -- ^ Name of the resumption continuation
+  , enirOpBody      :: !ENIRTerm    -- ^ Handler body (can call resume)
+  } deriving stock (Eq, Show)
+
+-- | Handler for the return value
+-- Transforms the final result of the handled computation
+data ENIRReturnHandler = ENIRReturnHandler
+  { enirReturnParam     :: !Text      -- ^ Parameter name for return value
+  , enirReturnParamType :: !ENIRType  -- ^ Type of the return value
+  , enirReturnBody      :: !ENIRTerm  -- ^ Transformation of the return value
   } deriving stock (Eq, Show)
 
 -- | Transform Core terms to ENIR (placeholder implementation)
@@ -94,9 +127,9 @@ transformTerm term = case term of
     -- Transform to CPS-style effect call
     ENIRCall effect op (transformToValue arg) (Continuation "result" (ENIRReturn (ENIRVVar "result" 0)))
 
-  TmHandle _handler body ->
-    -- Handler transformation is complex - placeholder
-    transformTerm body
+  TmHandle handler body ->
+    -- Transform handler and wrap the body
+    ENIRHandle (transformHandler handler) (transformTerm body)
 
   TmLazy body ->
     -- Lazy becomes a lambda
@@ -136,3 +169,41 @@ transformCase (Case pat body) = (pat, transformTerm body)
 extractLam :: ENIRTerm -> ENIRTerm
 extractLam (ENIRReturn (ENIRVLam name ty body)) = ENIRLam name ty body
 extractLam other = other
+
+-- | Transform a Core handler to ENIR representation
+-- Converts operation handlers to CPS-style with explicit resumption continuations
+transformHandler :: Handler -> ENIRHandler
+transformHandler handler = ENIRHandler
+  { enirHandlerEffect = handlerEffect handler
+  , enirHandlerOps    = map transformOpHandler (handlerOperations handler)
+  , enirHandlerReturn = transformReturnHandler (handlerReturn handler)
+  }
+
+-- | Transform an operation handler
+-- The resumption becomes an explicit continuation parameter
+transformOpHandler :: OpHandler -> ENIROpHandler
+transformOpHandler opHandler = ENIROpHandler
+  { enirOpName      = opHandlerOperation opHandler
+  , enirOpParam     = patternToName (opHandlerPattern opHandler)
+  , enirOpParamType = patternToType (opHandlerPattern opHandler)
+  , enirOpResume    = opHandlerResume opHandler
+  , enirOpBody      = transformTerm (opHandlerBody opHandler)
+  }
+
+-- | Transform a return handler
+transformReturnHandler :: ReturnHandler -> ENIRReturnHandler
+transformReturnHandler retHandler = ENIRReturnHandler
+  { enirReturnParam     = patternToName (returnHandlerPattern retHandler)
+  , enirReturnParamType = patternToType (returnHandlerPattern retHandler)
+  , enirReturnBody      = transformTerm (returnHandlerBody retHandler)
+  }
+
+-- | Extract a name from a pattern (for simple variable patterns)
+patternToName :: Pattern -> Text
+patternToName (PatVar name) = name
+patternToName PatWild = "_"
+patternToName (PatCon _ _) = "_arg"  -- Constructor patterns get generic name
+
+-- | Extract a type from a pattern (placeholder - patterns don't carry types)
+patternToType :: Pattern -> ENIRType
+patternToType _ = ENIRTyCon "Any" []  -- Placeholder type, would be inferred
