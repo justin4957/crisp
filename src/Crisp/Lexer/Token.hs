@@ -68,6 +68,10 @@ data TokenKind
   | KwTotal
   | KwMut
   | KwRef
+  | KwTrait
+  | KwImpl
+  | KwFor
+  | KwDeriving
 
   -- Operators and Punctuation
   | Arrow          -- ->
@@ -169,6 +173,10 @@ isKeyword = \case
   KwTotal -> True
   KwMut -> True
   KwRef -> True
+  KwTrait -> True
+  KwImpl -> True
+  KwFor -> True
+  KwDeriving -> True
   _ -> False
 
 -- | Check if a token is a layout token
@@ -224,6 +232,10 @@ keywordMap = Map.fromList
   , ("total", KwTotal)
   , ("mut", KwMut)
   , ("ref", KwRef)
+  , ("trait", KwTrait)
+  , ("impl", KwImpl)
+  , ("for", KwFor)
+  , ("deriving", KwDeriving)
   ]
 
 -- | Look up a keyword from its text representation

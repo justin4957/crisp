@@ -31,6 +31,16 @@ module Crisp.Types.Context
   , registerEffect
   , lookupEffect
   , lookupOperation
+    -- * Trait definitions
+  , TraitInfo(..)
+  , TraitMethodInfo(..)
+  , ImplInfo(..)
+  , registerTrait
+  , lookupTrait
+  , registerImpl
+  , lookupImpl
+  , lookupImplsForTrait
+  , lookupImplsForType
     -- * Authority
   , setAuthority
   , getAuthority
@@ -82,11 +92,35 @@ data OperationInfo = OperationInfo
   , operationInfoOutputType :: !Type
   } deriving stock (Eq, Show)
 
+-- | Information about a trait definition
+data TraitInfo = TraitInfo
+  { traitInfoName      :: !Text                   -- ^ Trait name (e.g., "Ord")
+  , traitInfoParam     :: !(Text, Kind)           -- ^ Type parameter and its kind
+  , traitInfoSupers    :: ![Text]                 -- ^ Supertrait names
+  , traitInfoMethods   :: ![TraitMethodInfo]      -- ^ Method signatures
+  } deriving stock (Eq, Show)
+
+-- | Information about a trait method
+data TraitMethodInfo = TraitMethodInfo
+  { traitMethodInfoName    :: !Text               -- ^ Method name (e.g., "compare")
+  , traitMethodInfoType    :: !Type               -- ^ Method type
+  , traitMethodInfoDefault :: !(Maybe Type)       -- ^ Default implementation type (placeholder)
+  } deriving stock (Eq, Show)
+
+-- | Information about a trait implementation
+data ImplInfo = ImplInfo
+  { implInfoTrait   :: !Text                      -- ^ Trait being implemented
+  , implInfoType    :: !Type                      -- ^ Type implementing the trait
+  , implInfoMethods :: ![(Text, Type)]            -- ^ Method implementations (name, type)
+  } deriving stock (Eq, Show)
+
 -- | The typing context
 data Context = Context
   { contextBindings  :: ![Binding]              -- ^ Stack of bindings (innermost first)
   , contextTypes     :: !(Map Text TypeInfo)    -- ^ Registered type definitions
   , contextEffects   :: !(Map Text EffectInfo)  -- ^ Registered effect definitions
+  , contextTraits    :: !(Map Text TraitInfo)   -- ^ Registered trait definitions
+  , contextImpls     :: ![ImplInfo]             -- ^ Registered trait implementations
   , contextAuthority :: !(Maybe Text)           -- ^ Current module authority
   } deriving stock (Eq, Show)
 
@@ -96,13 +130,18 @@ emptyContext = Context
   { contextBindings = []
   , contextTypes = Map.empty
   , contextEffects = Map.empty
+  , contextTraits = Map.empty
+  , contextImpls = []
   , contextAuthority = Nothing
   }
 
 -- | Create a context with standard prelude types
 withPrelude :: Context
-withPrelude = foldr registerType emptyContext preludeTypes
+withPrelude = registerPreludeImpls $ registerPreludeTraits preludeTypesContext
   where
+    -- Register prelude types
+    preludeTypesContext = foldr registerType emptyContext preludeTypes
+
     preludeTypes =
       [ TypeInfo "Unit" [] (KiType 0)
           [ConstructorInfo "Unit" [] (simpleType "Unit")]
@@ -117,6 +156,13 @@ withPrelude = foldr registerType emptyContext preludeTypes
       , TypeInfo "Float" [] (KiType 0) [] False False
       , TypeInfo "String" [] (KiType 0) [] False False
       , TypeInfo "Char" [] (KiType 0) [] False False
+        -- Ordering type for comparison results
+      , TypeInfo "Ordering" [] (KiType 0)
+          [ ConstructorInfo "Less" [] (simpleType "Ordering")
+          , ConstructorInfo "Equal" [] (simpleType "Ordering")
+          , ConstructorInfo "Greater" [] (simpleType "Ordering")
+          ]
+          False False
         -- Vec type for dependent type testing
         -- Vec(A, n) is a length-indexed vector
       , TypeInfo "Vec" [("A", KiType 0), ("n", KiType 0)] (KiType 0)
@@ -126,6 +172,93 @@ withPrelude = foldr registerType emptyContext preludeTypes
               (TyCon "Vec" [TyVar "A" 0, TyAdd (TyVar "n" 0) (TyNatLit 1)])
           ]
           False False
+      ]
+
+    -- Register prelude traits (Eq and Ord)
+    registerPreludeTraits ctx = foldr registerTrait ctx preludeTraits
+
+    preludeTraits =
+      [ -- Eq trait: equality comparison
+        TraitInfo "Eq" ("A", KiType 0) []
+          [ TraitMethodInfo "eq"
+              (TyPi "a" (TyVar "A" 0) EffEmpty
+                (TyPi "b" (TyVar "A" 0) EffEmpty (simpleType "Bool")))
+              Nothing
+          , TraitMethodInfo "ne"
+              (TyPi "a" (TyVar "A" 0) EffEmpty
+                (TyPi "b" (TyVar "A" 0) EffEmpty (simpleType "Bool")))
+              Nothing  -- Default: not (eq a b)
+          ]
+        -- Ord trait: ordering comparison (requires Eq)
+      , TraitInfo "Ord" ("A", KiType 0) ["Eq"]
+          [ TraitMethodInfo "compare"
+              (TyPi "a" (TyVar "A" 0) EffEmpty
+                (TyPi "b" (TyVar "A" 0) EffEmpty (simpleType "Ordering")))
+              Nothing
+          , TraitMethodInfo "lt"
+              (TyPi "a" (TyVar "A" 0) EffEmpty
+                (TyPi "b" (TyVar "A" 0) EffEmpty (simpleType "Bool")))
+              Nothing  -- Default: compare a b == Less
+          , TraitMethodInfo "le"
+              (TyPi "a" (TyVar "A" 0) EffEmpty
+                (TyPi "b" (TyVar "A" 0) EffEmpty (simpleType "Bool")))
+              Nothing  -- Default: compare a b /= Greater
+          , TraitMethodInfo "gt"
+              (TyPi "a" (TyVar "A" 0) EffEmpty
+                (TyPi "b" (TyVar "A" 0) EffEmpty (simpleType "Bool")))
+              Nothing  -- Default: compare a b == Greater
+          , TraitMethodInfo "ge"
+              (TyPi "a" (TyVar "A" 0) EffEmpty
+                (TyPi "b" (TyVar "A" 0) EffEmpty (simpleType "Bool")))
+              Nothing  -- Default: compare a b /= Less
+          ]
+      ]
+
+    -- Register prelude trait implementations for primitive types
+    registerPreludeImpls ctx = foldr registerImpl ctx preludeImpls
+
+    -- Helper to create Eq impl for a type
+    eqImplFor :: Text -> ImplInfo
+    eqImplFor typeName = ImplInfo "Eq" (simpleType typeName)
+      [ ("eq", TyPi "a" (simpleType typeName) EffEmpty
+                (TyPi "b" (simpleType typeName) EffEmpty (simpleType "Bool")))
+      , ("ne", TyPi "a" (simpleType typeName) EffEmpty
+                (TyPi "b" (simpleType typeName) EffEmpty (simpleType "Bool")))
+      ]
+
+    -- Helper to create Ord impl for a type
+    ordImplFor :: Text -> ImplInfo
+    ordImplFor typeName = ImplInfo "Ord" (simpleType typeName)
+      [ ("compare", TyPi "a" (simpleType typeName) EffEmpty
+                     (TyPi "b" (simpleType typeName) EffEmpty (simpleType "Ordering")))
+      , ("lt", TyPi "a" (simpleType typeName) EffEmpty
+                (TyPi "b" (simpleType typeName) EffEmpty (simpleType "Bool")))
+      , ("le", TyPi "a" (simpleType typeName) EffEmpty
+                (TyPi "b" (simpleType typeName) EffEmpty (simpleType "Bool")))
+      , ("gt", TyPi "a" (simpleType typeName) EffEmpty
+                (TyPi "b" (simpleType typeName) EffEmpty (simpleType "Bool")))
+      , ("ge", TyPi "a" (simpleType typeName) EffEmpty
+                (TyPi "b" (simpleType typeName) EffEmpty (simpleType "Bool")))
+      ]
+
+    preludeImpls =
+      -- Eq implementations for primitives
+      [ eqImplFor "Int"
+      , eqImplFor "Float"
+      , eqImplFor "String"
+      , eqImplFor "Char"
+      , eqImplFor "Bool"
+      , eqImplFor "Nat"
+      , eqImplFor "Unit"
+      , eqImplFor "Ordering"
+        -- Ord implementations for primitives
+      , ordImplFor "Int"
+      , ordImplFor "Float"
+      , ordImplFor "String"
+      , ordImplFor "Char"
+      , ordImplFor "Bool"
+      , ordImplFor "Nat"
+      , ordImplFor "Ordering"
       ]
 
 -- | Extend the context with a term binding
@@ -228,3 +361,45 @@ typeDepth ctx = length $ filter isType (contextBindings ctx)
   where
     isType (TypeBinding _ _) = True
     isType _ = False
+
+-- | Register a trait definition
+registerTrait :: TraitInfo -> Context -> Context
+registerTrait info ctx = ctx
+  { contextTraits = Map.insert (traitInfoName info) info (contextTraits ctx) }
+
+-- | Look up a trait definition
+lookupTrait :: Text -> Context -> Maybe TraitInfo
+lookupTrait name ctx = Map.lookup name (contextTraits ctx)
+
+-- | Register a trait implementation
+registerImpl :: ImplInfo -> Context -> Context
+registerImpl info ctx = ctx
+  { contextImpls = info : contextImpls ctx }
+
+-- | Look up an implementation for a specific trait and type
+lookupImpl :: Text -> Type -> Context -> Maybe ImplInfo
+lookupImpl traitName ty ctx = go (contextImpls ctx)
+  where
+    go [] = Nothing
+    go (impl : rest)
+      | implInfoTrait impl == traitName && typesMatch (implInfoType impl) ty = Just impl
+      | otherwise = go rest
+
+    -- Simple type matching (can be extended for more complex matching)
+    typesMatch (TyCon n1 args1) (TyCon n2 args2) =
+      n1 == n2 && length args1 == length args2 && all (uncurry typesMatch) (zip args1 args2)
+    typesMatch t1 t2 = t1 == t2
+
+-- | Look up all implementations for a trait
+lookupImplsForTrait :: Text -> Context -> [ImplInfo]
+lookupImplsForTrait traitName ctx =
+  filter (\impl -> implInfoTrait impl == traitName) (contextImpls ctx)
+
+-- | Look up all implementations for a type
+lookupImplsForType :: Type -> Context -> [ImplInfo]
+lookupImplsForType ty ctx =
+  filter (\impl -> typesMatch (implInfoType impl) ty) (contextImpls ctx)
+  where
+    typesMatch (TyCon n1 args1) (TyCon n2 args2) =
+      n1 == n2 && length args1 == length args2 && all (uncurry typesMatch) (zip args1 args2)
+    typesMatch t1 t2 = t1 == t2

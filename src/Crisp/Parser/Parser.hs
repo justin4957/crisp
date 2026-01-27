@@ -170,6 +170,8 @@ pDefinition = choice
   [ DefType <$> pTypeDef
   , DefEffect <$> pEffectDef
   , DefHandler <$> pHandlerDef
+  , DefTrait <$> pTraitDef
+  , DefImpl <$> pImplDef
   , DefFn <$> pFunctionDef
   ]
 
@@ -181,9 +183,21 @@ pTypeDef = do
   name <- upperIdent
   params <- many pTypeParam
   mKind <- optional (symbol ":" *> pKind)
+  deriv <- optional pDerivingClause
   cons <- optional (symbol ":" *> pConstructors)
   span' <- spanFrom start
-  pure $ TypeDef name params mKind (maybe [] id cons) mods span'
+  pure $ TypeDef name params mKind (maybe [] id cons) mods deriv span'
+
+pDerivingClause :: Parser DerivingClause
+pDerivingClause = do
+  start <- getPos
+  keyword "deriving"
+  traits <- choice
+    [ between (symbol "(") (symbol ")") (upperIdent `sepBy1` symbol ",")
+    , (: []) <$> upperIdent  -- Single trait without parens
+    ]
+  span' <- spanFrom start
+  pure $ DerivingClause traits span'
 
 pTypeModifiers :: Parser TypeModifiers
 pTypeModifiers = do
@@ -320,6 +334,85 @@ pHandlerClause = choice
        pure $ OpClause name pats "resume" body span'
   ]
 
+-- * Trait and implementation parsing
+
+-- | Parse a trait definition
+-- Example: trait Ord A:
+--            compare: (A, A) -> Ordering
+-- Or with kind: trait Functor (F: Type -> Type):
+pTraitDef :: Parser TraitDef
+pTraitDef = do
+  start <- getPos
+  keyword "trait"
+  name <- upperIdent
+  (param, paramKind) <- pTraitParam
+  supers <- option [] pSupertraits
+  symbol ":"
+  methods <- many pTraitMethod
+  span' <- spanFrom start
+  pure $ TraitDef name param paramKind supers methods span'
+  where
+    -- Parse trait parameter with optional kind annotation in parens
+    pTraitParam = choice
+      [ try $ do
+          symbol "("
+          p <- upperIdent
+          symbol ":"
+          k <- pKind
+          symbol ")"
+          pure (p, Just k)
+      , do
+          p <- upperIdent
+          pure (p, Nothing)
+      ]
+
+-- | Parse supertrait constraints
+-- Example: where A: Eq
+pSupertraits :: Parser [TraitConstraint]
+pSupertraits = do
+  keyword "where"
+  pTraitConstraint `sepBy1` symbol ","
+
+-- | Parse a single trait constraint
+pTraitConstraint :: Parser TraitConstraint
+pTraitConstraint = do
+  start <- getPos
+  ty <- pTypeAtom
+  symbol ":"
+  traitName <- upperIdent
+  span' <- spanFrom start
+  pure $ TraitConstraint traitName ty span'
+
+-- | Parse a trait method signature
+pTraitMethod :: Parser TraitMethod
+pTraitMethod = try $ do
+  start <- getPos
+  name <- lowerIdent
+  symbol ":"
+  ty <- pType
+  mDefault <- optional (symbol "=" *> pExpr)
+  span' <- spanFrom start
+  pure $ TraitMethod name ty mDefault span'
+
+-- | Parse an implementation definition
+-- Example: impl Ord for Int:
+--            fn compare(a: Int, b: Int) -> Ordering: int_compare(a, b)
+pImplDef :: Parser ImplDef
+pImplDef = do
+  start <- getPos
+  keyword "impl"
+  traitName <- upperIdent
+  keyword "for"
+  ty <- pTypeApp
+  symbol ":"
+  methods <- many pImplMethod
+  span' <- spanFrom start
+  pure $ ImplDef traitName ty methods span'
+
+-- | Parse a method implementation within an impl block
+pImplMethod :: Parser FunctionDef
+pImplMethod = pFunctionDef
+
 pFunctionDef :: Parser FunctionDef
 pFunctionDef = do
   start <- getPos
@@ -386,11 +479,39 @@ pTypeApp :: Parser Type
 pTypeApp = do
   start <- getPos
   con <- pTypeAtom
-  args <- many pTypeAtom
+  -- Only consume uppercase type atoms as arguments (not lowercase which could be declarations)
+  args <- many pTypeArgAtom
   span' <- spanFrom start
   case args of
     [] -> pure con
     _  -> pure $ TyApp con args span'
+  where
+    -- Type argument atoms are more restricted - don't greedily consume lowercase identifiers
+    -- that might be method/field declarations
+    pTypeArgAtom = choice
+      [ do start' <- getPos
+           symbol "("
+           ty <- pType
+           symbol ")"
+           span' <- spanFrom start'
+           pure $ TyParen ty span'
+      , do start' <- getPos
+           keyword "Lazy"
+           ty <- pTypeAtom
+           span' <- spanFrom start'
+           pure $ TyLazy ty span'
+      , do start' <- getPos
+           keyword "ref"
+           mut <- option False (True <$ keyword "mut")
+           ty <- pTypeAtom
+           span' <- spanFrom start'
+           pure $ TyRef ty mut span'
+      , do start' <- getPos
+           -- Only consume uppercase identifiers as type arguments
+           name <- upperIdent
+           span' <- spanFrom start'
+           pure $ TyName name span'
+      ]
 
 pTypeAtom :: Parser Type
 pTypeAtom = choice
