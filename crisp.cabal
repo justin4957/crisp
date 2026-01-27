@@ -67,6 +67,10 @@ library
         Crisp.Module.Types
         Crisp.Module.Import
         Crisp.Module.Interface
+        Crisp.REPL.Types
+        Crisp.REPL.Input
+        Crisp.REPL.Eval
+        Crisp.REPL.Commands
 
     other-modules:
         Crisp.Lexer.Layout
@@ -159,6 +163,7 @@ test-suite crisp-test
         Crisp.Manifest.ManifestSpec
         Crisp.Module.ModuleSpec
         Crisp.Types.LinearSpec
+        Crisp.REPL.ReplSpec
 
     build-depends:
         base >= 4.14 && < 5,

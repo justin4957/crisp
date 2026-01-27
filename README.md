@@ -89,6 +89,83 @@ crisp compile main.crisp --emit-tir
 crisp repl
 ```
 
+## REPL
+
+The interactive REPL lets you explore Crisp's features:
+
+```bash
+# Start the REPL
+crisp repl
+```
+
+### Basic Expressions
+
+```
+crisp> 1 + 2
+3
+
+crisp> 6 * 7
+42
+
+crisp> 1 < 2
+true
+```
+
+### Defining Values and Functions
+
+```
+crisp> let x = 42
+x : Int = 42
+
+crisp> let greeting = "Hello, Crisp!"
+greeting : String = "Hello, Crisp!"
+
+crisp> fn double(n: Int) -> Int = n * 2
+double : (Int) -> Int
+
+crisp> double(21)
+42
+
+crisp> fn inc(x: Int) -> Int = x + 1
+inc : (Int) -> Int
+
+crisp> inc(inc(5))
+7
+```
+
+### Type Definitions
+
+```
+crisp> type Option(A) = Some(A) | None
+type Option : Type -> Type
+
+crisp> type Pair(A, B) = MkPair(A, B)
+type Pair : Type -> Type -> Type
+```
+
+### REPL Commands
+
+```
+crisp> :help              -- Show available commands
+crisp> :type 1 + 2        -- Show type of expression (Int)
+crisp> :kind List         -- Show kind of type (Type -> Type)
+crisp> :load file.crisp   -- Load definitions from file
+crisp> :reset             -- Clear all definitions
+crisp> :quit              -- Exit the REPL
+```
+
+### Multi-line Input
+
+Expressions with unclosed parentheses continue on the next line:
+
+```
+crisp> fn add(
+...      x: Int,
+...      y: Int
+...    ) -> Int = x + y
+add : (Int, Int) -> Int
+```
+
 ## Documentation
 
 - [Language Specification](docs/SPECIFICATION.md) - Complete language reference

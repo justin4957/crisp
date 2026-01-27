@@ -1590,6 +1590,70 @@ The module system test suite covers import parsing, resolution, visibility, and 
 - Empty module (no exports, no imports)
 - Case sensitivity in names and paths
 
+### REPL Tests (`test/Crisp/REPL/ReplSpec.hs`)
+
+The REPL test suite covers input parsing, command handling, expression evaluation, and state persistence (~75 tests):
+
+**Input Parsing Tests (~12 tests)**
+- Expression input: simple numbers, arithmetic, function application, complex expressions
+- Definition input: let bindings, function definitions, type definitions
+- Whitespace handling: leading/trailing whitespace, empty input, whitespace-only
+
+**Command Parsing Tests (~20 tests)**
+- Help command: `:help`, `:h`, `:?`
+- Quit command: `:quit`, `:q`, `:exit`
+- Type command: `:type expr`, `:t expr`
+- Kind command: `:kind Type`, `:k Type`
+- Load command: `:load file`, `:l file`
+- Reload command: `:reload`, `:r`
+- Reset command: `:reset`
+- Browse command: `:browse Module`, `:b Module`
+- Unknown command handling
+
+**Expression Evaluation Tests (~11 tests)**
+- Literals: integer, boolean, string, unit
+- Arithmetic: addition, subtraction, multiplication
+- Comparisons: equality, inequality, less than
+
+**Definition Tests (~6 tests)**
+- Let bindings: adding to state, using bound variables
+- Function definitions: adding to state, calling defined functions
+- Type definitions: adding to state
+
+**Command Execution Tests (~8 tests)**
+- `:type` command: showing types of integers, expressions, functions
+- `:kind` command: showing kinds of type constructors, simple types
+- `:help` command: showing help text
+- `:reset` command: clearing definitions
+
+**State Persistence Tests (~4 tests)**
+- Multiple definitions persisted
+- Redefinition allowed
+- Definition referencing
+- Functions calling other functions
+
+**Error Handling Tests (~5 tests)**
+- Parse errors: reporting, error location
+- Type errors: type mismatch, undefined variable
+- Recovery: continuing after errors
+
+**Multi-line Input Tests (~6 tests)**
+- Continuation marker recognition (`\`)
+- Complete input recognition
+- Unclosed parentheses, braces, brackets
+- Combining continuation lines
+
+**Tab Completion Tests (~5 tests)**
+- Command completion: commands starting with `:`
+- Identifier completion: built-in types, user-defined names
+
+**Edge Cases (~8 tests)**
+- Comment-only input, trailing comments
+- Unicode in strings
+- Large inputs
+- Empty definitions
+- History tracking
+
 ### Linear Type Tests (`test/Crisp/Types/LinearSpec.hs`)
 
 The linear type test suite covers usage counting and linearity checking (~82 tests):

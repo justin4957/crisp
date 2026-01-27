@@ -27,6 +27,7 @@ import qualified Crisp.Codegen.CompileSpec
 import qualified Crisp.Manifest.ManifestSpec
 import qualified Crisp.Module.ModuleSpec
 import qualified Crisp.Types.LinearSpec
+import qualified Crisp.REPL.ReplSpec
 
 main :: IO ()
 main = hspec $ do
@@ -53,3 +54,4 @@ main = hspec $ do
   describe "Crisp.Manifest" Crisp.Manifest.ManifestSpec.spec
   describe "Crisp.Module" Crisp.Module.ModuleSpec.spec
   describe "Crisp.Types.Linear" Crisp.Types.LinearSpec.spec
+  describe "Crisp.REPL" Crisp.REPL.ReplSpec.spec
