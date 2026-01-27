@@ -781,6 +781,37 @@ moduleTests = describe "modules" $ do
     let src = "module Main requires types: Int, String"
     shouldParse $ parseModule "test" src
 
+  it "parses module with requires module path" $ do
+    let src = "module Main requires LexSim.Core.Refined"
+    shouldParse $ parseModule "test" src
+
+  it "parses module with multiple requires module paths" $ do
+    let src = T.unlines
+          [ "module LexSim.Core.Temporal"
+          , "requires LexSim.Core.Refined"
+          , "requires LexSim.Core.Authority"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses module with mixed requires" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "requires effects: IO"
+          , "requires LexSim.Core.Refined"
+          , "requires types: Int"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "extracts required module path" $ do
+    let src = "module Main requires LexSim.Core.Refined"
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleRequires m) `shouldBe` 1
+        case head (moduleRequires m) of
+          RequireModule path _ -> modulePathSegments path `shouldBe` ["LexSim", "Core", "Refined"]
+          _ -> expectationFailure "Expected RequireModule"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses module with provides type" $ do
     let src = "module Main provides type MyType"
     shouldParse $ parseModule "test" src

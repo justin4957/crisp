@@ -79,8 +79,9 @@ data ModulePath = ModulePath
 
 -- | Module requirement declaration
 data Require
-  = RequireEffects ![Text] !Span
-  | RequireTypes ![Text] !Span
+  = RequireModule !ModulePath !Span       -- ^ Module import: requires LexSim.Core.Refined
+  | RequireEffects ![Text] !Span          -- ^ Effect requirements: requires effects: E1, E2
+  | RequireTypes ![Text] !Span            -- ^ Type requirements: requires types: T1, T2
   deriving stock (Eq, Show, Generic)
 
 -- | Module provision declaration
