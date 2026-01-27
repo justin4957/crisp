@@ -21,6 +21,7 @@ import Crisp.Codegen.Wasm (WasmValType(..), WasmInstr(..))
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
 import Data.Bits ((.&.), (.|.), shiftL)
+import Control.Monad (forM_)
 
 spec :: Spec
 spec = do
@@ -35,6 +36,7 @@ spec = do
     exportSectionTests
     codeSectionTests
     instructionTests
+    ieee754Tests
     moduleEncodingTests
     edgeCaseTests
 
@@ -414,6 +416,176 @@ instructionTests = describe "instruction encoding" $ do
       head bytes `shouldBe` 0x04  -- if opcode
       bytes `shouldSatisfy` (elem 0x05)  -- else opcode
       last bytes `shouldBe` 0x0B  -- end
+
+--------------------------------------------------------------------------------
+-- IEEE 754 Float Encoding Tests
+--------------------------------------------------------------------------------
+
+ieee754Tests :: Spec
+ieee754Tests = describe "IEEE 754 float encoding" $ do
+  describe "f32 encoding" $ do
+    it "encodes f32.const instruction correctly" $ do
+      let bytes = encodeInstr (WF32Const 0.0)
+      head bytes `shouldBe` 0x43  -- f32.const opcode
+      length bytes `shouldBe` 5   -- opcode + 4 bytes
+
+    it "encodes 0.0 as all zeros" $ do
+      floatToWord32 0.0 `shouldBe` 0x00000000
+
+    it "encodes -0.0 with sign bit set" $ do
+      floatToWord32 (-0.0) `shouldBe` 0x80000000
+
+    it "encodes 1.0 correctly" $ do
+      -- IEEE 754 single: sign=0, exp=127 (0x7F), mantissa=0
+      -- Binary: 0 01111111 00000000000000000000000
+      -- Hex: 0x3F800000
+      floatToWord32 1.0 `shouldBe` 0x3F800000
+
+    it "encodes -1.0 correctly" $ do
+      -- Same as 1.0 but with sign bit set
+      floatToWord32 (-1.0) `shouldBe` 0xBF800000
+
+    it "encodes 2.0 correctly" $ do
+      -- IEEE 754 single: sign=0, exp=128 (0x80), mantissa=0
+      -- Hex: 0x40000000
+      floatToWord32 2.0 `shouldBe` 0x40000000
+
+    it "encodes 0.5 correctly" $ do
+      -- IEEE 754 single: sign=0, exp=126 (0x7E), mantissa=0
+      -- Hex: 0x3F000000
+      floatToWord32 0.5 `shouldBe` 0x3F000000
+
+    it "encodes positive infinity correctly" $ do
+      -- IEEE 754 single: exp=255 (all 1s), mantissa=0
+      -- Hex: 0x7F800000
+      let posInf = 1.0 / 0.0 :: Float
+      floatToWord32 posInf `shouldBe` 0x7F800000
+
+    it "encodes negative infinity correctly" $ do
+      -- IEEE 754 single: sign=1, exp=255, mantissa=0
+      -- Hex: 0xFF800000
+      let negInf = (-1.0) / 0.0 :: Float
+      floatToWord32 negInf `shouldBe` 0xFF800000
+
+    it "encodes NaN with correct exponent" $ do
+      -- IEEE 754 NaN: exp=255, mantissa!=0
+      let nan = 0.0 / 0.0 :: Float
+      let bits = floatToWord32 nan
+      -- Check exponent is all 1s (bits 23-30)
+      (bits .&. 0x7F800000) `shouldBe` 0x7F800000
+      -- Check mantissa is non-zero
+      (bits .&. 0x007FFFFF) `shouldSatisfy` (/= 0)
+
+    it "produces little-endian bytes for 1.0" $ do
+      let bytes = encodeF32 1.0
+      -- 0x3F800000 in little-endian: 0x00, 0x00, 0x80, 0x3F
+      bytes `shouldBe` [0x00, 0x00, 0x80, 0x3F]
+
+  describe "f64 encoding" $ do
+    it "encodes f64.const instruction correctly" $ do
+      let bytes = encodeInstr (WF64Const 0.0)
+      head bytes `shouldBe` 0x44  -- f64.const opcode
+      length bytes `shouldBe` 9   -- opcode + 8 bytes
+
+    it "encodes 0.0 as all zeros" $ do
+      doubleToWord64 0.0 `shouldBe` 0x0000000000000000
+
+    it "encodes -0.0 with sign bit set" $ do
+      doubleToWord64 (-0.0) `shouldBe` 0x8000000000000000
+
+    it "encodes 1.0 correctly" $ do
+      -- IEEE 754 double: sign=0, exp=1023 (0x3FF), mantissa=0
+      -- Hex: 0x3FF0000000000000
+      doubleToWord64 1.0 `shouldBe` 0x3FF0000000000000
+
+    it "encodes -1.0 correctly" $ do
+      -- Same as 1.0 but with sign bit set
+      doubleToWord64 (-1.0) `shouldBe` 0xBFF0000000000000
+
+    it "encodes 2.0 correctly" $ do
+      -- IEEE 754 double: sign=0, exp=1024 (0x400), mantissa=0
+      -- Hex: 0x4000000000000000
+      doubleToWord64 2.0 `shouldBe` 0x4000000000000000
+
+    it "encodes 0.5 correctly" $ do
+      -- IEEE 754 double: sign=0, exp=1022 (0x3FE), mantissa=0
+      -- Hex: 0x3FE0000000000000
+      doubleToWord64 0.5 `shouldBe` 0x3FE0000000000000
+
+    it "encodes 3.14159265358979 correctly" $ do
+      -- Pi approximation
+      let pi' = 3.14159265358979 :: Double
+      let bits = doubleToWord64 pi'
+      -- Should be close to 0x400921FB54442D18 (actual IEEE 754 for pi)
+      bits `shouldSatisfy` (\b -> b >= 0x400921FB54400000 && b <= 0x400921FB54500000)
+
+    it "encodes positive infinity correctly" $ do
+      -- IEEE 754 double: exp=2047 (all 1s), mantissa=0
+      -- Hex: 0x7FF0000000000000
+      let posInf = 1.0 / 0.0 :: Double
+      doubleToWord64 posInf `shouldBe` 0x7FF0000000000000
+
+    it "encodes negative infinity correctly" $ do
+      -- IEEE 754 double: sign=1, exp=2047, mantissa=0
+      -- Hex: 0xFFF0000000000000
+      let negInf = (-1.0) / 0.0 :: Double
+      doubleToWord64 negInf `shouldBe` 0xFFF0000000000000
+
+    it "encodes NaN with correct exponent" $ do
+      -- IEEE 754 NaN: exp=2047, mantissa!=0
+      let nan = 0.0 / 0.0 :: Double
+      let bits = doubleToWord64 nan
+      -- Check exponent is all 1s (bits 52-62)
+      (bits .&. 0x7FF0000000000000) `shouldBe` 0x7FF0000000000000
+      -- Check mantissa is non-zero
+      (bits .&. 0x000FFFFFFFFFFFFF) `shouldSatisfy` (/= 0)
+
+    it "produces little-endian bytes for 1.0" $ do
+      let bytes = encodeF64 1.0
+      -- 0x3FF0000000000000 in little-endian:
+      -- 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F
+      bytes `shouldBe` [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F]
+
+    it "produces little-endian bytes for -1.0" $ do
+      let bytes = encodeF64 (-1.0)
+      -- 0xBFF0000000000000 in little-endian:
+      -- 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xBF
+      bytes `shouldBe` [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xBF]
+
+  describe "round-trip verification" $ do
+    it "encodes and decodes various f32 values" $ do
+      -- Test several values to ensure encoding is correct
+      let testValues :: [Float]
+          testValues = [0.0, 1.0, -1.0, 0.5, 2.0, 100.0, -100.0, 0.125, 1.5]
+      forM_ testValues $ \v -> do
+        let encoded = encodeF32 v
+        length encoded `shouldBe` 4
+
+    it "encodes and decodes various f64 values" $ do
+      let testValues :: [Double]
+          testValues = [0.0, 1.0, -1.0, 0.5, 2.0, 100.0, -100.0, 0.125, 1.5, 1e10, 1e-10]
+      forM_ testValues $ \v -> do
+        let encoded = encodeF64 v
+        length encoded `shouldBe` 8
+
+  describe "subnormal numbers" $ do
+    it "encodes f32 subnormal correctly" $ do
+      -- Smallest positive subnormal: 2^(-149)
+      let subnormal = 1.4e-45 :: Float  -- approximately 2^(-149)
+      let bits = floatToWord32 subnormal
+      -- Exponent should be 0 for subnormals
+      (bits .&. 0x7F800000) `shouldBe` 0x00000000
+      -- Mantissa should be non-zero
+      (bits .&. 0x007FFFFF) `shouldSatisfy` (/= 0)
+
+    it "encodes f64 subnormal correctly" $ do
+      -- Smallest positive subnormal: 2^(-1074)
+      let subnormal = 5e-324 :: Double  -- approximately 2^(-1074)
+      let bits = doubleToWord64 subnormal
+      -- Exponent should be 0 for subnormals
+      (bits .&. 0x7FF0000000000000) `shouldBe` 0x0000000000000000
+      -- Mantissa should be non-zero
+      (bits .&. 0x000FFFFFFFFFFFFF) `shouldSatisfy` (/= 0)
 
 --------------------------------------------------------------------------------
 -- Complete Module Encoding Tests
