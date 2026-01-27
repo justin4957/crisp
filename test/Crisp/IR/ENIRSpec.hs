@@ -15,14 +15,17 @@ import Crisp.IR.ENIR
 import Crisp.Core.Term
 
 import Data.Text (Text)
+import qualified Data.Text as T
 
 spec :: Spec
 spec = do
   basicTransformTests
+  complexTermTests
   handlerTransformTests
   operationHandlerTests
   returnHandlerTests
   integrationTests
+  anfTransformTests
 
 -- =============================================================================
 -- Basic Transformation Tests
@@ -71,6 +74,99 @@ basicTransformTests = describe "basic toENIR transformation" $ do
     case toENIR term of
       ENIRReturn (ENIRVVar "f" 0) -> pure ()
       other -> expectationFailure $ "Expected erased type app, got: " ++ show other
+
+-- =============================================================================
+-- Complex Term Transformation Tests
+-- =============================================================================
+
+complexTermTests :: Spec
+complexTermTests = describe "complex term transformation" $ do
+  it "transforms application in value context to thunk" $ do
+    -- When an application appears where a value is needed, it becomes a thunk
+    let term = TmCon "Just" [simpleType "Int"]
+          [TmApp (TmVar "f" 0) (TmVar "x" 1)]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Just" [ENIRVLam "_thunk" _ _]) -> pure ()
+      other -> expectationFailure $ "Expected thunk in constructor, got: " ++ show other
+
+  it "transforms let in value context to thunk" $ do
+    let innerLet = TmLet "y" (simpleType "Int") (TmVar "z" 0) (TmVar "y" 0)
+    let term = TmCon "Box" [simpleType "Int"] [innerLet]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Box" [ENIRVLam "_thunk" _ (ENIRLet "y" _ _ _)]) -> pure ()
+      other -> expectationFailure $ "Expected let thunk, got: " ++ show other
+
+  it "transforms match in value context to thunk" $ do
+    let matchTerm = TmMatch (TmVar "x" 0) (simpleType "Int")
+          [Case (PatVar "a") (TmVar "a" 0)]
+    let term = TmCon "Wrap" [simpleType "Int"] [matchTerm]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Wrap" [ENIRVLam "_thunk" _ (ENIRMatch _ _)]) -> pure ()
+      other -> expectationFailure $ "Expected match thunk, got: " ++ show other
+
+  it "transforms perform in value context to thunk" $ do
+    let performTerm = TmPerform "IO" "read" (TmCon "Unit" [] [])
+    let term = TmCon "Result" [simpleType "String"] [performTerm]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Result" [ENIRVLam "_thunk" _ (ENIRCall "IO" "read" _ _)]) -> pure ()
+      other -> expectationFailure $ "Expected effect thunk, got: " ++ show other
+
+  it "transforms handle in value context to thunk" $ do
+    let handler = mkSimpleHandler "State" [("get", "x", TmVar "x" 0)]
+    let handleTerm = TmHandle handler (TmVar "body" 0)
+    let term = TmCon "Computation" [] [handleTerm]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Computation" [ENIRVLam "_thunk" _ (ENIRHandle _ _)]) -> pure ()
+      other -> expectationFailure $ "Expected handle thunk, got: " ++ show other
+
+  it "transforms force in value context to thunk" $ do
+    let forceTerm = TmForce (TmVar "lazy" 0)
+    let term = TmCon "Forced" [simpleType "Int"] [forceTerm]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Forced" [ENIRVLam "_thunk" _ (ENIRApp _ _)]) -> pure ()
+      other -> expectationFailure $ "Expected force thunk, got: " ++ show other
+
+  it "erases type annotation in value context" $ do
+    let annotated = TmAnnot (TmVar "x" 0) (simpleType "Int")
+    let term = TmCon "Identity" [simpleType "Int"] [annotated]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Identity" [ENIRVVar "x" 0]) -> pure ()
+      other -> expectationFailure $ "Expected erased annotation, got: " ++ show other
+
+  it "erases type abstraction in value context" $ do
+    let polyVal = TmTyAbs "A" (KiType 0) (TmVar "x" 0)
+    let term = TmCon "Poly" [simpleType "Int"] [polyVal]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Poly" [ENIRVVar "x" 0]) -> pure ()
+      other -> expectationFailure $ "Expected erased type abs, got: " ++ show other
+
+  it "erases type application in value context" $ do
+    let tyApp = TmTyApp (TmVar "f" 0) (simpleType "Int")
+    let term = TmCon "Applied" [simpleType "Int"] [tyApp]
+    case toENIR term of
+      ENIRReturn (ENIRVCon "Applied" [ENIRVVar "f" 0]) -> pure ()
+      other -> expectationFailure $ "Expected erased type app, got: " ++ show other
+
+  it "transforms external call" $ do
+    let binding = ExternalBinding "console" "log" (simpleType "Unit")
+    let term = TmExternal binding [TmVar "msg" 0]
+    case toENIR term of
+      ENIRCall "FFI" "console.log" _ _ -> pure ()
+      other -> expectationFailure $ "Expected FFI call, got: " ++ show other
+
+  it "transforms external call with multiple arguments" $ do
+    let binding = ExternalBinding "math" "add" (simpleType "Int")
+    let term = TmExternal binding [TmVar "x" 0, TmVar "y" 1]
+    case toENIR term of
+      ENIRCall "FFI" "math.add" (ENIRVCon "_Args" [ENIRVVar "x" 0, ENIRVVar "y" 1]) _ -> pure ()
+      other -> expectationFailure $ "Expected FFI call with args, got: " ++ show other
+
+  it "transforms external call with no arguments" $ do
+    let binding = ExternalBinding "random" "next" (simpleType "Int")
+    let term = TmExternal binding []
+    case toENIR term of
+      ENIRCall "FFI" "random.next" (ENIRVCon "Unit" []) _ -> pure ()
+      other -> expectationFailure $ "Expected FFI call with unit, got: " ++ show other
 
 -- =============================================================================
 -- Handler Transformation Tests
@@ -289,3 +385,87 @@ mkOpHandler opName param resume body = OpHandler
   , opHandlerResume = resume
   , opHandlerBody = body
   }
+
+-- =============================================================================
+-- ANF Transformation Tests
+-- =============================================================================
+
+anfTransformTests :: Spec
+anfTransformTests = describe "ANF transformation" $ do
+  it "normalizes simple variable to value" $ do
+    case normalizeToValue (TmVar "x" 0) of
+      NormValue (ENIRVVar "x" 0) -> pure ()
+      other -> expectationFailure $ "Expected NormValue, got: " ++ show other
+
+  it "normalizes constructor with simple args to value" $ do
+    case normalizeToValue (TmCon "Pair" [] [TmVar "x" 0, TmVar "y" 1]) of
+      NormValue (ENIRVCon "Pair" [ENIRVVar "x" 0, ENIRVVar "y" 1]) -> pure ()
+      other -> expectationFailure $ "Expected NormValue, got: " ++ show other
+
+  it "normalizes lambda to value" $ do
+    case normalizeToValue (TmLam "x" (simpleType "Int") (TmVar "x" 0)) of
+      NormValue (ENIRVLam "x" _ _) -> pure ()
+      other -> expectationFailure $ "Expected NormValue, got: " ++ show other
+
+  it "identifies application as complex" $ do
+    case normalizeToValue (TmApp (TmVar "f" 0) (TmVar "x" 1)) of
+      NormComplex _ _ -> pure ()
+      other -> expectationFailure $ "Expected NormComplex, got: " ++ show other
+
+  it "identifies let as complex" $ do
+    case normalizeToValue (TmLet "x" (simpleType "Int") (TmVar "y" 0) (TmVar "x" 0)) of
+      NormComplex _ _ -> pure ()
+      other -> expectationFailure $ "Expected NormComplex, got: " ++ show other
+
+  it "identifies match as complex" $ do
+    let matchTerm = TmMatch (TmVar "x" 0) (simpleType "Int")
+          [Case (PatVar "a") (TmVar "a" 0)]
+    case normalizeToValue matchTerm of
+      NormComplex _ _ -> pure ()
+      other -> expectationFailure $ "Expected NormComplex, got: " ++ show other
+
+  it "identifies perform as complex" $ do
+    case normalizeToValue (TmPerform "IO" "read" (TmCon "Unit" [] [])) of
+      NormComplex _ _ -> pure ()
+      other -> expectationFailure $ "Expected NormComplex, got: " ++ show other
+
+  it "erases type annotation during normalization" $ do
+    case normalizeToValue (TmAnnot (TmVar "x" 0) (simpleType "Int")) of
+      NormValue (ENIRVVar "x" 0) -> pure ()
+      other -> expectationFailure $ "Expected NormValue after erasure, got: " ++ show other
+
+  it "erases type abstraction during normalization" $ do
+    case normalizeToValue (TmTyAbs "A" (KiType 0) (TmVar "x" 0)) of
+      NormValue (ENIRVVar "x" 0) -> pure ()
+      other -> expectationFailure $ "Expected NormValue after erasure, got: " ++ show other
+
+  it "erases type application during normalization" $ do
+    case normalizeToValue (TmTyApp (TmVar "f" 0) (simpleType "Int")) of
+      NormValue (ENIRVVar "f" 0) -> pure ()
+      other -> expectationFailure $ "Expected NormValue after erasure, got: " ++ show other
+
+  it "handles nested constructor with complex args" $ do
+    let inner = TmApp (TmVar "f" 0) (TmVar "x" 1)
+    case normalizeToValue (TmCon "Just" [] [inner]) of
+      NormComplex _ term ->
+        -- Should introduce a let binding for the complex arg
+        case term of
+          ENIRLet _ _ _ (ENIRReturn (ENIRVCon "Just" _)) -> pure ()
+          _ -> expectationFailure $ "Expected let-wrapped constructor, got: " ++ show term
+      other -> expectationFailure $ "Expected NormComplex, got: " ++ show other
+
+  it "normalizes lazy to value (thunk)" $ do
+    case normalizeToValue (TmLazy (TmVar "x" 0)) of
+      NormValue (ENIRVLam "_" _ _) -> pure ()
+      other -> expectationFailure $ "Expected thunk value, got: " ++ show other
+
+  it "identifies force as complex" $ do
+    case normalizeToValue (TmForce (TmVar "lazy" 0)) of
+      NormComplex _ _ -> pure ()
+      other -> expectationFailure $ "Expected NormComplex, got: " ++ show other
+
+  it "identifies external call as complex" $ do
+    let binding = ExternalBinding "console" "log" (simpleType "Unit")
+    case normalizeToValue (TmExternal binding [TmVar "msg" 0]) of
+      NormComplex _ _ -> pure ()
+      other -> expectationFailure $ "Expected NormComplex, got: " ++ show other
