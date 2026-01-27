@@ -100,6 +100,7 @@ data Definition
 data TypeDef = TypeDef
   { typeDefName         :: !Text
   , typeDefParams       :: ![TypeParam]
+  , typeDefConstraints  :: ![TraitConstraint]    -- ^ Where clause constraints
   , typeDefKind         :: !(Maybe Kind)
   , typeDefConstructors :: ![Constructor]
   , typeDefModifiers    :: !TypeModifiers
@@ -117,6 +118,9 @@ data TypeModifiers = TypeModifiers
 data TypeParam
   = TypeVar !Text !(Maybe Kind) !Span       -- ^ Simple type variable: T
   | DepParam !Text !Type !Span              -- ^ Dependent parameter: (n: Nat)
+  | BoundedTypeVar !Text !(Maybe Kind) ![Text] !Span
+    -- ^ Bounded type variable with trait constraints: (A: Trait1 + Trait2)
+    -- The list of Text contains trait names that the type must implement
   deriving stock (Eq, Show, Generic)
 
 -- | A data constructor
