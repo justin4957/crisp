@@ -33,6 +33,7 @@ import qualified Crisp.REPL.ReplSpec
 import qualified Crisp.Types.RefinementSpec
 import qualified Crisp.Types.BoundedPolySpec
 import qualified Crisp.Types.TypeAliasSpec
+import qualified Crisp.Types.DeriveSpec
 
 main :: IO ()
 main = hspec $ do
@@ -65,3 +66,4 @@ main = hspec $ do
   describe "Crisp.Types.Refinement" Crisp.Types.RefinementSpec.spec
   describe "Crisp.Types.BoundedPoly" Crisp.Types.BoundedPolySpec.spec
   describe "Crisp.Types.TypeAlias" Crisp.Types.TypeAliasSpec.spec
+  describe "Crisp.Types.Derive" Crisp.Types.DeriveSpec.spec

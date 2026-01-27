@@ -48,6 +48,7 @@ library
         Crisp.Types.Prop
         Crisp.Types.Usage
         Crisp.Types.Linear
+        Crisp.Types.Derive
         Crisp.Effects.Row
         Crisp.Effects.Typing
         Crisp.Effects.Polymorphism
@@ -169,6 +170,7 @@ test-suite crisp-test
         Crisp.Types.RefinementSpec
         Crisp.Types.BoundedPolySpec
         Crisp.Types.TypeAliasSpec
+        Crisp.Types.DeriveSpec
 
     build-depends:
         base >= 4.14 && < 5,
