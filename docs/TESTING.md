@@ -1589,3 +1589,92 @@ The module system test suite covers import parsing, resolution, visibility, and 
 - Underscore and prime handling in names
 - Empty module (no exports, no imports)
 - Case sensitivity in names and paths
+
+### Linear Type Tests (`test/Crisp/Types/LinearSpec.hs`)
+
+The linear type test suite covers usage counting and linearity checking (~82 tests):
+
+**Usage Type Tests (~12 tests)**
+- Usage values: Zero, One, Many
+- Usage comparison and equality
+- Usage predicates: isZero, isOne, isMany
+
+**Usage Combination Tests (~12 tests)**
+- Sequential usage (addUsage): Zero+Zero=Zero, One+One=Many, etc.
+- Alternative usage (altUsage): for conditional branches
+- Usage scaling: Zero*n=Zero, One*1=One, One*2=Many
+
+**Linear Environment Tests (~12 tests)**
+- Empty environment creation
+- Environment extension with bindings
+- Variable shadowing
+- Usage tracking: marking variables as used
+- Linearity modes: Unique, Borrowed, Shared, Unrestricted
+
+**Single Use Tests (~4 tests)**
+- Accepts single use of unique variable
+- Accepts unique value passed to function
+- Accepts unique value in constructor
+- Accepts unique value returned directly
+
+**Multiple Use Tests (Errors) (~3 tests)**
+- Rejects double use of unique value
+- Rejects triple use of unique value
+- Rejects use in both arguments
+
+**Unused Value Tests (Errors) (~3 tests)**
+- Rejects unused unique value
+- Rejects unique value shadowed without use
+- Rejects unique value in dead code
+
+**Borrow Tests (~4 tests)**
+- Allows multiple uses of borrowed reference
+- Borrow semantics with borrowed mode
+- Allows unused borrowed reference
+- Allows borrowed in multiple branches
+
+**Shared Reference Tests (~3 tests)**
+- Allows multiple readers of shared reference
+- Allows unused shared reference
+- Shared reference can be passed multiple times
+
+**Conditional Tests (~5 tests)**
+- Allows use in both branches
+- Rejects use only in then branch
+- Rejects use only in else branch
+- Allows use in all match branches
+- Rejects use in only some match branches
+
+**Pattern Matching Tests (~3 tests)**
+- Transfers ownership through pattern match
+- Binds linear values in pattern
+- Rejects unused pattern binding
+
+**Let Binding Tests (~4 tests)**
+- Accepts linear value used in body
+- Rejects unused linear let binding
+- Allows unrestricted let bindings to be unused
+- Tracks usage through nested lets
+
+**Function Call Tests (~3 tests)**
+- Consumes unique argument
+- Allows borrowed argument without consuming
+- Tracks usage through multiple function calls
+
+**Closure Tests (~2 tests)**
+- Captures unique value for single use
+- Rejects closure that captures unique but doesn't use
+
+**Nested Scope Tests (~2 tests)**
+- Handles unique value in nested function
+- Tracks usage across nested scopes
+
+**Edge Cases (~10 tests)**
+- Empty environment handling
+- Literal with no bindings
+- Variable shadowing with unique values
+- Type abstraction handling
+- Type application handling
+- Effect operations (perform)
+- Handler handling
+- Lazy and force handling
