@@ -58,6 +58,7 @@ library
         Crisp.IR.Layout
         Crisp.Codegen.Wasm
         Crisp.Codegen.WasmBinary
+        Crisp.Codegen.Compile
 
     other-modules:
         Crisp.Lexer.Layout
@@ -145,6 +146,7 @@ test-suite crisp-test
         Crisp.Types.GADTSpec
         Crisp.Types.PropSpec
         Crisp.Codegen.WasmBinarySpec
+        Crisp.Codegen.CompileSpec
 
     build-depends:
         base >= 4.14 && < 5,

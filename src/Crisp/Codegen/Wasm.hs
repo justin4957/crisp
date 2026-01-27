@@ -91,35 +91,99 @@ data WasmExportKind
   | ExportTable
   deriving stock (Eq, Show)
 
--- | Wasm instructions (simplified subset)
+-- | Wasm instructions
 data WasmInstr
+  -- Constants
   = WI32Const !Int
   | WI64Const !Integer
+  | WF32Const !Float
   | WF64Const !Double
+  -- Local variables
   | WLocalGet !Int
   | WLocalSet !Int
+  | WLocalTee !Int
+  -- Global variables
   | WGlobalGet !Int
   | WGlobalSet !Int
+  -- Function calls
   | WCall !Int
   | WCallIndirect !Int
+  -- Control flow
   | WReturn
   | WBlock ![WasmInstr]
   | WLoop ![WasmInstr]
   | WBr !Int
   | WBrIf !Int
+  | WBrTable ![Int] !Int  -- ^ labels, default
   | WIf ![WasmInstr] ![WasmInstr]
+  | WNop
+  | WUnreachable
+  -- i32 arithmetic
   | WI32Add
   | WI32Sub
   | WI32Mul
+  | WI32DivS
+  | WI32DivU
+  | WI32RemS
+  | WI32RemU
+  -- i32 bitwise
+  | WI32And
+  | WI32Or
+  | WI32Xor
+  | WI32Shl
+  | WI32ShrS
+  | WI32ShrU
+  -- i32 comparisons
   | WI32Eq
-  | WI32Lt
+  | WI32Ne
+  | WI32LtS
+  | WI32LtU
+  | WI32GtS
+  | WI32GtU
+  | WI32LeS
+  | WI32LeU
+  | WI32GeS
+  | WI32GeU
+  | WI32Lt  -- ^ Alias for WI32LtS (kept for compatibility)
+  | WI32Eqz
+  -- i64 arithmetic
   | WI64Add
   | WI64Sub
+  | WI64Mul
+  | WI64DivS
+  -- f32 arithmetic
+  | WF32Add
+  | WF32Sub
+  | WF32Mul
+  | WF32Div
+  -- f64 arithmetic
   | WF64Add
   | WF64Sub
   | WF64Mul
+  | WF64Div
+  -- Memory operations
+  | WI32Load !Int    -- ^ offset
+  | WI64Load !Int
+  | WF32Load !Int
+  | WF64Load !Int
+  | WI32Store !Int   -- ^ offset
+  | WI64Store !Int
+  | WF32Store !Int
+  | WF64Store !Int
+  -- Memory management
+  | WMemoryGrow
+  | WMemorySize
+  -- Misc
   | WDrop
-  | WUnreachable
+  | WSelect
+  -- Conversions
+  | WI32WrapI64
+  | WI64ExtendI32S
+  | WI64ExtendI32U
+  | WF32ConvertI32S
+  | WF64ConvertI32S
+  | WI32TruncF32S
+  | WI32TruncF64S
   deriving stock (Eq, Show)
 
 -- | Compile a typed module to Wasm
