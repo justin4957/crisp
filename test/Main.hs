@@ -41,6 +41,7 @@ import qualified Crisp.Runtime.AllocatorSpec
 import qualified Crisp.Formatter.FormatSpec
 import qualified Crisp.Prelude.PreludeSpec
 import qualified Crisp.Prelude.NumericSpec
+import qualified Crisp.LSP.ServerSpec
 
 main :: IO ()
 main = hspec $ do
@@ -81,3 +82,4 @@ main = hspec $ do
   describe "Crisp.Formatter" Crisp.Formatter.FormatSpec.spec
   describe "Crisp.Prelude" Crisp.Prelude.PreludeSpec.spec
   describe "Crisp.Prelude.Numeric" Crisp.Prelude.NumericSpec.spec
+  describe "Crisp.LSP.Server" Crisp.LSP.ServerSpec.spec
