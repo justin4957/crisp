@@ -53,6 +53,11 @@ module Crisp.Codegen.WasmBinary
   , wasmCode
     -- * Instructions
   , encodeInstr
+    -- * IEEE 754 Float Encoding
+  , encodeF32
+  , encodeF64
+  , floatToWord32
+  , doubleToWord64
     -- * Wasm Module Type
   , WasmBinaryModule(..)
   ) where
@@ -61,11 +66,12 @@ import Crisp.Codegen.Wasm (WasmValType(..), WasmInstr(..))
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import Data.Word (Word8)
+import Data.Word (Word8, Word32, Word64)
 import Data.Bits ((.&.), (.|.), shiftR, shiftL, testBit)
 import Data.Int (Int32, Int64)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
+import GHC.Float (castDoubleToWord64, castFloatToWord32)
 
 --------------------------------------------------------------------------------
 -- Module Structure
@@ -436,6 +442,7 @@ encodeInstr = \case
   -- Constants
   WI32Const n -> [0x41] ++ encodeSLEB128 n
   WI64Const n -> [0x42] ++ encodeSLEB128 (fromIntegral n)
+  WF32Const f -> [0x43] ++ encodeF32 f
   WF64Const d -> [0x44] ++ encodeF64 d
 
   -- Local operations
@@ -489,34 +496,40 @@ encodeInstr = \case
   -- Misc
   WDrop -> [0x1A]
 
--- | Encode f64 as little-endian bytes
+--------------------------------------------------------------------------------
+-- IEEE 754 Float Encoding
+--------------------------------------------------------------------------------
+
+-- | Encode f32 (Float) as IEEE 754 single-precision little-endian bytes
+-- Uses GHC's castFloatToWord32 for correct bit representation
+encodeF32 :: Float -> [Word8]
+encodeF32 f = word32ToBytes (floatToWord32 f)
+
+-- | Encode f64 (Double) as IEEE 754 double-precision little-endian bytes
+-- Uses GHC's castDoubleToWord64 for correct bit representation
 encodeF64 :: Double -> [Word8]
-encodeF64 d = BS.unpack $ BS.reverse $ BS.pack bytes
-  where
-    -- This is a simplified encoding; proper implementation would use
-    -- IEEE 754 double-precision format
-    bytes = encodeDoubleLE d
+encodeF64 d = word64ToBytes (doubleToWord64 d)
 
--- | Encode double as little-endian (simplified)
-encodeDoubleLE :: Double -> [Word8]
-encodeDoubleLE d =
-  -- Use the Foreign module for proper encoding
-  -- For now, use a simplified approach for 0.0
-  if d == 0.0
-  then [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-  else
-    -- For other values, we'd need proper IEEE 754 encoding
-    -- This is a placeholder that works for simple cases
-    let bits = doubleToWord64 d
-    in word64ToBytes bits
+-- | Convert Float to Word32 bits using IEEE 754 single-precision format
+-- Correctly handles all special values: NaN, +/-Infinity, -0.0, subnormals
+floatToWord32 :: Float -> Word32
+floatToWord32 = castFloatToWord32
 
--- | Convert double to Word64 bits (placeholder - would use Foreign in real code)
+-- | Convert Double to Word64 bits using IEEE 754 double-precision format
+-- Correctly handles all special values: NaN, +/-Infinity, -0.0, subnormals
 doubleToWord64 :: Double -> Word64
-doubleToWord64 d =
-  -- Simplified: only handles 0.0 correctly
-  if d == 0.0 then 0 else 0x3FF0000000000000  -- 1.0 as placeholder
+doubleToWord64 = castDoubleToWord64
 
--- | Convert Word64 to little-endian bytes
+-- | Convert Word32 to little-endian bytes (4 bytes)
+word32ToBytes :: Word32 -> [Word8]
+word32ToBytes w =
+  [ fromIntegral (w .&. 0xFF)
+  , fromIntegral ((w `shiftR` 8) .&. 0xFF)
+  , fromIntegral ((w `shiftR` 16) .&. 0xFF)
+  , fromIntegral ((w `shiftR` 24) .&. 0xFF)
+  ]
+
+-- | Convert Word64 to little-endian bytes (8 bytes)
 word64ToBytes :: Word64 -> [Word8]
 word64ToBytes w =
   [ fromIntegral (w .&. 0xFF)
@@ -528,6 +541,3 @@ word64ToBytes w =
   , fromIntegral ((w `shiftR` 48) .&. 0xFF)
   , fromIntegral ((w `shiftR` 56) .&. 0xFF)
   ]
-
--- | Word64 type alias
-type Word64 = Integer
