@@ -1364,3 +1364,81 @@ The WebAssembly binary encoding test suite covers Wasm binary format generation 
 - Function with many locals
 - Empty function body
 - Long export names
+
+### LLIR to Wasm Compilation Tests (`test/Crisp/Codegen/CompileSpec.hs`)
+
+The compilation test suite covers LLIR to WebAssembly code generation (~93 tests):
+
+**Arithmetic Operation Tests (~16 tests)**
+- Constants: i32.const, i64.const, f64.const
+- Arithmetic: add, sub, mul, div, rem
+- Bitwise: and, or, xor, shl, shr_s, shr_u
+- Nested arithmetic: (x + 1), ((x + y) * 2)
+
+**Comparison Operation Tests (~11 tests)**
+- Signed comparisons: eq, ne, lt, le, gt, ge
+- Unsigned comparisons: lt_u, le_u, gt_u, ge_u
+- Comparisons with constants: (x == 0)
+
+**Local Variable Tests (~6 tests)**
+- local.get, local.set, local.tee
+- global.get, global.set with context lookup
+
+**Control Flow Tests (~12 tests)**
+- return, unreachable, nop
+- if-then-else, nested if
+- block with label, loop with label
+- br, br_if, br_table
+- select, drop
+
+**Function Call Tests (~4 tests)**
+- Direct calls with function index lookup
+- Calls with no arguments
+- Multiple calls in sequence
+- Indirect calls (call_indirect)
+
+**Data Type Compilation Tests (~8 tests)**
+- Nullary constructor (None): allocate tag only
+- Constructor with payload (Some): allocate tag + payload
+- Pair constructor: allocate tag + two fields
+- List Cons/Nil constructors
+- Field access at specific offsets
+- Tag load for pattern matching
+
+**Pattern Match Compilation Tests (~6 tests)**
+- Match on boolean (two branches)
+- Match on Option type
+- Match with payload extraction
+- Nested match compilation
+- Match with three or more branches (br_table)
+- Wildcard/default pattern
+
+**Closure Compilation Tests (~5 tests)**
+- Closure allocation with no captures
+- Closure allocation with captured variables
+- Closure call (load func ptr, call_indirect)
+- Capture store (store into closure)
+- Capture load (load from closure)
+
+**Memory Operation Tests (~10 tests)**
+- i32/i64/f64 load with offset
+- i32/i64/f64 store with offset
+- memory.grow, memory.size
+
+**Module Compilation Tests (~7 tests)**
+- Empty module
+- Module with one function
+- Function with parameters
+- Function with locals
+- Module with exports
+- Module with memory
+- Module with imports
+
+**Edge Cases (~8 tests)**
+- Empty function body
+- Large/negative constants
+- Deeply nested blocks
+- Many locals (100)
+- Many parameters (10)
+- Null constant
+- Type conversions
