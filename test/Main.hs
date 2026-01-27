@@ -25,6 +25,7 @@ import qualified Crisp.Types.PropSpec
 import qualified Crisp.Codegen.WasmBinarySpec
 import qualified Crisp.Codegen.CompileSpec
 import qualified Crisp.Manifest.ManifestSpec
+import qualified Crisp.Module.ModuleSpec
 
 main :: IO ()
 main = hspec $ do
@@ -49,3 +50,4 @@ main = hspec $ do
   describe "Crisp.Codegen.WasmBinary" Crisp.Codegen.WasmBinarySpec.spec
   describe "Crisp.Codegen.Compile" Crisp.Codegen.CompileSpec.spec
   describe "Crisp.Manifest" Crisp.Manifest.ManifestSpec.spec
+  describe "Crisp.Module" Crisp.Module.ModuleSpec.spec

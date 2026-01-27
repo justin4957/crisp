@@ -61,6 +61,8 @@ data TokenKind
   | KwForall
   | KwAs
   | KwQualified
+  | KwHiding
+  | KwExport
   | KwDo
   | KwProp
   | KwTotal
@@ -160,6 +162,8 @@ isKeyword = \case
   KwForall -> True
   KwAs -> True
   KwQualified -> True
+  KwHiding -> True
+  KwExport -> True
   KwDo -> True
   KwProp -> True
   KwTotal -> True
@@ -213,6 +217,8 @@ keywordMap = Map.fromList
   , ("forall", KwForall)
   , ("as", KwAs)
   , ("qualified", KwQualified)
+  , ("hiding", KwHiding)
+  , ("export", KwExport)
   , ("do", KwDo)
   , ("prop", KwProp)
   , ("total", KwTotal)

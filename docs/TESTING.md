@@ -1515,3 +1515,77 @@ The manifest generation test suite covers compilation artifact manifests (~67 te
 - Hash with special characters
 - Deterministic manifest generation
 - Null build time in JSON
+
+### Module System Tests (`test/Crisp/Module/ModuleSpec.hs`)
+
+The module system test suite covers import parsing, resolution, visibility, and cycle detection (~76 tests):
+
+**Import Parsing Tests (~17 tests)**
+- Module path parsing: simple, dotted, long paths
+- Module path rejection: empty, trailing dot, leading dot, lowercase
+- Import declaration parsing: unqualified, qualified with alias, selective, hiding
+- Selective/hiding with single and multiple items
+- Qualified import with dotted paths
+- Rejection of invalid imports (qualified without alias, import without module)
+
+**Import Form Tests (~9 tests)**
+- Unqualified form description and behavior
+- Qualified form with alias and qualifier requirement
+- Selective form importing only specified names
+- Hiding form importing all except hidden names
+- Empty selection handling
+- Multiple hidden names
+
+**Name Resolution Tests (~9 tests)**
+- Unqualified resolution: imported names, non-imported names, hidden names
+- Qualified resolution: correct qualifier, wrong qualifier, non-existent name
+- Ambiguity detection: ambiguous imports, unambiguous names
+
+**Visibility Tests (~5 tests)**
+- Export list visibility: declared names public, others private
+- ExportAll visibility: everything public
+- Empty export list: everything private
+- Single and multiple exports
+- isExported predicate
+
+**Cycle Detection Tests (~7 tests)**
+- Direct circular import detection (A -> B -> A)
+- Acyclic imports (A -> B -> C)
+- Transitive cycle detection (A -> B -> C -> A)
+- Self-import detection (A -> A)
+- Diamond dependencies (no cycle)
+- Empty dependency graph
+
+**Interface Tests (~9 tests)**
+- Interface generation from module info
+- Export filtering (only exports exported)
+- Type and function information inclusion
+- Interface serialization to JSON
+- Interface deserialization from JSON
+- Round-trip serialization
+
+**Module Path Tests (~9 tests)**
+- Path to file path conversion (Core/Prelude.crisp)
+- Path to interface file path conversion (Core/Prelude.crispi)
+- File path to module path conversion
+- Single segment path handling
+- Module path text rendering (Core.Prelude)
+- Path equality and ordering comparison
+
+**Qualified Name Tests (~6 tests)**
+- Simple qualified name parsing (M.foo)
+- Multi-segment qualifier parsing (Core.Prelude.map)
+- Unqualified name rejection
+- Trailing dot rejection
+- Qualified name construction
+
+**Re-export Tests (~4 tests)**
+- Module re-export parsing (export module M)
+- Selective re-export parsing (export M (foo, bar))
+- Re-exported names resolution (all, selective)
+
+**Edge Cases (~6 tests)**
+- Unicode rejection in module paths (ASCII only)
+- Underscore and prime handling in names
+- Empty module (no exports, no imports)
+- Case sensitivity in names and paths
