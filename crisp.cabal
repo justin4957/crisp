@@ -46,6 +46,8 @@ library
         Crisp.Types.Dependent
         Crisp.Types.GADT
         Crisp.Types.Prop
+        Crisp.Types.Usage
+        Crisp.Types.Linear
         Crisp.Effects.Row
         Crisp.Effects.Typing
         Crisp.Effects.Polymorphism
@@ -156,6 +158,7 @@ test-suite crisp-test
         Crisp.Codegen.CompileSpec
         Crisp.Manifest.ManifestSpec
         Crisp.Module.ModuleSpec
+        Crisp.Types.LinearSpec
 
     build-depends:
         base >= 4.14 && < 5,
