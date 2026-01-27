@@ -30,6 +30,12 @@ module Crisp.Syntax.Surface
   , FunctionDef(..)
   , Param(..)
   , EffectRef(..)
+    -- * Traits
+  , TraitDef(..)
+  , TraitMethod(..)
+  , ImplDef(..)
+  , TraitConstraint(..)
+  , DerivingClause(..)
     -- * Types
   , Type(..)
     -- * Expressions
@@ -79,6 +85,8 @@ data Definition
   | DefEffect !EffectDef
   | DefHandler !HandlerDef
   | DefFn !FunctionDef
+  | DefTrait !TraitDef
+  | DefImpl !ImplDef
   deriving stock (Eq, Show, Generic)
 
 -- | Type definition (ADT, GADT, record, linear type)
@@ -88,6 +96,7 @@ data TypeDef = TypeDef
   , typeDefKind         :: !(Maybe Kind)
   , typeDefConstructors :: ![Constructor]
   , typeDefModifiers    :: !TypeModifiers
+  , typeDefDeriving     :: !(Maybe DerivingClause)
   , typeDefSpan         :: !Span
   } deriving stock (Eq, Show, Generic)
 
@@ -184,6 +193,51 @@ data EffectRef = EffectRef
   { effectRefName      :: !Text
   , effectRefAuthority :: !(Maybe Text)
   , effectRefSpan      :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | Trait definition
+-- Example: trait Ord A:
+--            compare: (A, A) -> Ordering
+data TraitDef = TraitDef
+  { traitDefName       :: !Text
+  , traitDefParam      :: !Text               -- ^ The type parameter (e.g., A in "trait Ord A")
+  , traitDefParamKind  :: !(Maybe Kind)       -- ^ Optional kind annotation
+  , traitDefSupers     :: ![TraitConstraint]  -- ^ Supertraits (e.g., Eq for Ord)
+  , traitDefMethods    :: ![TraitMethod]
+  , traitDefSpan       :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | A method signature within a trait
+data TraitMethod = TraitMethod
+  { traitMethodName      :: !Text
+  , traitMethodType      :: !Type
+  , traitMethodDefault   :: !(Maybe Expr)     -- ^ Optional default implementation
+  , traitMethodSpan      :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | Implementation of a trait for a type
+-- Example: impl Ord for Int:
+--            compare(a, b): int_compare(a, b)
+data ImplDef = ImplDef
+  { implDefTrait     :: !Text                 -- ^ Trait being implemented
+  , implDefType      :: !Type                 -- ^ Type implementing the trait
+  , implDefMethods   :: ![FunctionDef]        -- ^ Method implementations
+  , implDefSpan      :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | A trait constraint (for bounded polymorphism)
+-- Example: T: Ord or (T: Eq, T: Show)
+data TraitConstraint = TraitConstraint
+  { constraintTrait :: !Text
+  , constraintType  :: !Type
+  , constraintSpan  :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | A deriving clause on a type definition
+-- Example: type Date deriving (Eq, Ord)
+data DerivingClause = DerivingClause
+  { derivingTraits :: ![Text]
+  , derivingSpan   :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | Type expressions
