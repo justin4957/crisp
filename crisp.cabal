@@ -80,6 +80,7 @@ library
         Crisp.Prelude.Core
         Crisp.Prelude.Numeric
         Crisp.FFI.Time
+        Crisp.FFI.Http
         Crisp.LSP.Server
         Crisp.Doc.Generate
 
@@ -180,6 +181,7 @@ test-suite crisp-test
         Crisp.Types.TraitSpec
         Crisp.FFI.ExternalSpec
         Crisp.FFI.TimeSpec
+        Crisp.FFI.HttpSpec
         Crisp.Types.RefinementSpec
         Crisp.Types.BoundedPolySpec
         Crisp.Types.TypeAliasSpec
