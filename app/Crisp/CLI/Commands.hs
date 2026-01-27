@@ -12,18 +12,17 @@ module Crisp.CLI.Commands
   ) where
 
 import Crisp.CLI.Options
-import Crisp.Lexer.Lexer (lexFile)
 import Crisp.Parser.Parser (parseModule)
 import Crisp.Core.Desugar (desugarModule)
-import Crisp.Types.Context (withPrelude)
-import Crisp.Types.Checker (synthesize)
 import Crisp.IR.TypedIR (newModule, encodeModule)
 import Crisp.Codegen.Wasm (compileToWasm)
+import qualified Crisp.Formatter.Format as Fmt
 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import System.FilePath (replaceExtension)
+import System.IO (hPutStrLn, stderr)
 
 -- | Run a CLI command
 runCommand :: Options -> IO (Either String String)
@@ -110,11 +109,54 @@ runCheck verbose copts = do
 runFormat :: Bool -> FormatOptions -> IO (Either String String)
 runFormat verbose fopts = do
   let files = foInputFiles fopts
+      inPlace = foInPlace fopts
 
   when verbose $ putStrLn $ "Formatting " ++ show (length files) ++ " file(s)"
 
-  -- Placeholder - actual formatter would parse and pretty-print
-  pure $ Right $ "Formatted " ++ show (length files) ++ " file(s) (not yet implemented)"
+  results <- mapM (formatOneFile verbose inPlace) files
+
+  let (errors, successes) = partitionResults results
+      successCount = length successes
+      errorCount = length errors
+
+  if null errors
+    then pure $ Right $ "Formatted " ++ show successCount ++ " file(s)"
+    else do
+      -- Print errors to stderr
+      mapM_ (hPutStrLn stderr) errors
+      pure $ Left $ "Formatting failed: " ++ show errorCount ++ " error(s), "
+                 ++ show successCount ++ " file(s) formatted"
+
+-- | Format a single file
+formatOneFile :: Bool -> Bool -> FilePath -> IO (Either String String)
+formatOneFile verbose inPlace filePath = do
+  when verbose $ putStrLn $ "  Formatting " ++ filePath
+
+  -- Read the file
+  content <- TIO.readFile filePath
+
+  -- Format the content
+  case Fmt.formatSource Fmt.defaultFormatOptions content of
+    Left err -> pure $ Left $ filePath ++ ": " ++ T.unpack err
+
+    Right formatted -> do
+      if inPlace
+        then do
+          -- Write back to the same file
+          TIO.writeFile filePath formatted
+          when verbose $ putStrLn $ "  Wrote " ++ filePath
+          pure $ Right filePath
+        else do
+          -- Print to stdout
+          TIO.putStr formatted
+          pure $ Right filePath
+
+-- | Partition results into errors and successes
+partitionResults :: [Either String String] -> ([String], [String])
+partitionResults = foldr go ([], [])
+  where
+    go (Left e) (es, ss) = (e:es, ss)
+    go (Right s) (es, ss) = (es, s:ss)
 
 -- | Run the REPL
 runRepl :: Bool -> IO (Either String String)
