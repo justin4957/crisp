@@ -51,6 +51,12 @@ module Crisp.Types.Context
   , registerRefinement
   , lookupRefinement
   , lookupRefinementsForType
+    -- * Type aliases
+  , TypeAliasInfo(..)
+  , FieldConstraintInfo(..)
+  , registerTypeAlias
+  , lookupTypeAlias
+  , expandTypeAlias
     -- * Bounded polymorphism (trait constraints)
   , satisfiesConstraint
   , satisfiesAllConstraints
@@ -145,6 +151,21 @@ data RefinementInfo = RefinementInfo
   , refinementInfoPredicates :: ![Term]           -- ^ Predicate terms that must hold for values
   } deriving stock (Eq, Show)
 
+-- | Information about a type alias with field constraints
+-- Example: type JudicialAuthority = Authority { action: Judicial(_) }
+data TypeAliasInfo = TypeAliasInfo
+  { typeAliasInfoName        :: !Text             -- ^ Alias name (e.g., "JudicialAuthority")
+  , typeAliasInfoParams      :: ![(Text, Kind)]   -- ^ Type parameters with their kinds
+  , typeAliasInfoBaseType    :: !Type             -- ^ Base type (e.g., "Authority")
+  , typeAliasInfoConstraints :: ![FieldConstraintInfo]  -- ^ Field constraints
+  } deriving stock (Eq, Show)
+
+-- | Information about a field constraint in a type alias
+data FieldConstraintInfo = FieldConstraintInfo
+  { fieldConstraintInfoName    :: !Text           -- ^ Field name
+  , fieldConstraintInfoPattern :: !Text           -- ^ Pattern description (for display/error messages)
+  } deriving stock (Eq, Show)
+
 -- | The typing context
 data Context = Context
   { contextBindings    :: ![Binding]              -- ^ Stack of bindings (innermost first)
@@ -154,6 +175,7 @@ data Context = Context
   , contextImpls       :: ![ImplInfo]             -- ^ Registered trait implementations
   , contextExternals   :: !(Map Text ExternalInfo) -- ^ Registered external (FFI) functions
   , contextRefinements :: !(Map Text RefinementInfo) -- ^ Registered refinement type aliases
+  , contextTypeAliases :: !(Map Text TypeAliasInfo) -- ^ Registered type aliases with constraints
   , contextAuthority   :: !(Maybe Text)           -- ^ Current module authority
   } deriving stock (Eq, Show)
 
@@ -167,6 +189,7 @@ emptyContext = Context
   , contextImpls = []
   , contextExternals = Map.empty
   , contextRefinements = Map.empty
+  , contextTypeAliases = Map.empty
   , contextAuthority = Nothing
   }
 
@@ -493,3 +516,17 @@ checkTypeParamConstraints typeArgConstraints ctx =
   where
     checkOne (ty, traits) =
       map (\t -> (ty, t)) (satisfiesAllConstraints ty traits ctx)
+
+-- | Register a type alias with field constraints
+registerTypeAlias :: TypeAliasInfo -> Context -> Context
+registerTypeAlias info ctx = ctx
+  { contextTypeAliases = Map.insert (typeAliasInfoName info) info (contextTypeAliases ctx) }
+
+-- | Look up a type alias by name
+lookupTypeAlias :: Text -> Context -> Maybe TypeAliasInfo
+lookupTypeAlias name ctx = Map.lookup name (contextTypeAliases ctx)
+
+-- | Expand a type alias to its base type
+-- Returns Nothing if the name is not a type alias
+expandTypeAlias :: Text -> Context -> Maybe Type
+expandTypeAlias name ctx = typeAliasInfoBaseType <$> lookupTypeAlias name ctx
