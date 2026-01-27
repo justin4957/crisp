@@ -28,13 +28,15 @@ These aren't arbitrary examples. They reveal Crisp's central thesis:
 
 ### Why WASM?
 
-Crisp compiles to **WebAssembly** — not because it's "fast" or "the future," but because WASM provides:
+Crisp compiles to **WebAssembly** — not because it's "fast" or "the future," but because WASM provides **constraint**, **explicitness**, and **inspectability**:
 
 - **Capability boundaries**: No ambient authority; all effects are explicit imports
 - **Semantic choke points**: Effects *must* surface at module boundaries
-- **Sandboxed execution**: The runtime cannot cheat (unlike certain contractors)
+- **Constrained execution**: The runtime is limited to declared imports (unlike certain contractors)
 - **Portable artifacts**: Same binary runs in browser, server, or policy engine
 - **Typed IR preservation**: Audit artifacts alongside binaries
+
+**Note:** WASM is not inherently "secure" — it is *constrained* and *explicit*. Crisp leverages these properties to make guarantees inspectable, not to claim the binary is magically safe.
 
 ### Who Is Crisp For?
 
@@ -47,11 +49,43 @@ Crisp is **not** a general-purpose language. It is designed for:
 
 Crisp expects expert users. It trades approachability for precision. If you wanted easy, you'd have picked Python and mass-emailed compliance when things broke.
 
+> **What Crisp is not:**
+> - A scripting language
+> - A rapid-prototyping tool
+> - A general-purpose replacement for Haskell or Rust
+> - Forgiving of type errors
+>
+> If your goal is "ship by Friday," Crisp is not your friend. If your goal is "defend this decision in court three years from now," keep reading.
+
 ---
 
 ## Part 1: Foundations
 
 Before diving into the domains, let's establish Crisp's core features.
+
+### 1.0 A Minimal Example (No Jokes)
+
+Before the bureaucratic humor begins, here is a simple, clean example showing Crisp's core idea — authority as a required value:
+
+```crisp
+-- A document that can be Draft or Published
+type DocState:
+  Draft
+  Published
+
+type Document(s: DocState):
+  title:   String
+  content: String
+
+-- Authority to publish
+type CanPublish = Authority(Publish)
+
+-- Publishing requires authority — no authority, no compilation
+fn publish(doc: Document(Draft), auth: CanPublish) -> Document(Published):
+  Document { title = doc.title, content = doc.content }
+```
+
+If you call `publish` without a `CanPublish` value, the code does not compile. Not "fails at runtime" — does not compile.
 
 ### 1.1 Basic Types and Functions
 
@@ -306,6 +340,8 @@ Approval requires three things:
 2. Authority to approve
 3. **Proof** that evidence satisfies policy (not "I looked at it")
 
+**A note on "proofs":** In many institutional domains, proofs are not mathematical derivations in the Curry–Howard sense but *certified decision procedures* — functions that check properties and return evidence of the check. Crisp treats both uniformly: proof terms, checked propositions, and decidable policy predicates all inhabit the `Prop` universe and are erased at runtime after compile-time verification. The distinction is explicit in the type system.
+
 ```crisp
 -- Propositions live in Prop (erased at runtime, required at compile time)
 type prop SatisfiesPolicy(evidence: EvidenceSet, policy: Policy):
@@ -370,6 +406,32 @@ fn approve(
 ```
 
 **The invalid program cannot be written.** Not "shouldn't be written." Cannot.
+
+### 2.6.1 What a Compile Error Actually Looks Like
+
+When you try to bypass Crisp's requirements, you don't get a runtime exception — you get a compile error. Here's a real example:
+
+```
+Error at line 47, column 3:
+
+  Cannot construct Decision(Approved)
+
+  Missing required parameters:
+    - auth:  CanApprove
+             You must provide authority to approve. Authority is a value,
+             not a runtime check.
+    - proof: SatisfiesPolicy(d.evidence, StandardPolicy)
+             You must provide proof that evidence satisfies policy.
+             Proof cannot be fabricated; it must be constructed from
+             actual evidence evaluation.
+
+  Hint: Approval requires explicit authority and proof. If you don't have
+        these values, you cannot call this function. This is intentional.
+
+  See: https://crisp-lang.org/docs/authority-as-value
+```
+
+This isn't a warning. The program will not compile until you provide the required values.
 
 ### 2.7 Denial Path
 
@@ -619,6 +681,8 @@ Philosophy deals with:
 - Interpretive authority (who gets to say what Hegel meant)
 
 These map directly to Crisp's type system. This is **not metaphorical** — it is logic-as-data with authority constraints. Wittgenstein would have opinions about this.
+
+**Important clarification:** Crisp does not claim to mechanize philosophy or determine metaphysical truth. What it models is **constraints on interpretation**: who has the authority to synthesize, what rules are legitimate within which traditions, and how contradictions must be formally resolved. Crisp encodes *legitimacy and authority in discourse*, not correctness of philosophical claims. The type system tracks who may say what, not what is true.
 
 ### 4.2 Propositions as Types
 
@@ -1288,6 +1352,749 @@ Crisp is **not** a general-purpose language. It will not replace Python, JavaScr
 - Performance-critical systems (until tooling matures)
 - Teams without type theory experience (yet)
 - Anything where "move fast and break things" is the motto
+
+Crisp trades breadth for depth. If you need to model institutional authority with compile-time guarantees, welcome. If you need to ship a CRUD app by Friday, Godspeed.
+
+---
+
+## Appendix C: Hypothetical Future Use — Computational Legal Infrastructure
+
+This appendix presents a speculative but detailed exploration of how Crisp might enable a **computational legal infrastructure** that bridges common law and civil law traditions. This is not a product roadmap — it is an exercise in imagining what becomes possible when legal authority, precedent, and statutory interpretation are encoded with the same rigor Crisp brings to regulatory decisions.
+
+### C.1 The Problem: Two Legal Traditions, One Globalized World
+
+**Civil law systems** (France, Germany, most of Europe, Latin America, East Asia) derive authority primarily from codified statutes. Judges apply the code; precedent is persuasive but not binding. The law is "written down."
+
+**Common law systems** (UK, US, Canada, Australia, most former British colonies) derive authority from both statutes and judicial precedent. Prior court decisions bind future courts through *stare decisis*. The law is "built up" through cases.
+
+This creates fundamental tensions:
+
+| Issue | Civil Law | Common Law |
+|-------|-----------|------------|
+| Source of authority | The code | The code + all relevant precedent |
+| Role of judges | Apply the law | Interpret and extend the law |
+| Predictability | High (read the statute) | Variable (read 200 years of cases) |
+| Adaptability | Requires legislative amendment | Evolves through judicial decisions |
+| Accessibility | Find the relevant article | Find the relevant article + all cases interpreting it |
+| Cross-border consistency | Relatively straightforward | "It depends on the jurisdiction" |
+
+For international commerce, treaties, and human rights, this divergence creates friction. A contract valid under French law may be interpreted differently under English law — not because the words differ, but because the *interpretive machinery* differs.
+
+### C.2 The Vision: Auditable Legal Knowledge Graphs
+
+Imagine a system where:
+
+1. **Legislation** is encoded as typed, versioned artifacts
+2. **Judicial interpretations** are formally linked to the provisions they interpret
+3. **Precedent relationships** are explicit, typed, and auditable
+4. **Legal reasoning** can be simulated before disputes arise
+5. **Cross-jurisdictional mappings** are structurally verified
+
+This is not "AI replacing lawyers." It is **making the structure of legal authority inspectable and computable** — the same goal Crisp pursues for institutional decisions.
+
+### C.3 Core Types: Legislation as Structured Data
+
+```crisp
+-- Jurisdictions as type-level values
+type Jurisdiction:
+  Federal(country: Country)
+  State(country: Country, state: StateCode)
+  Municipal(country: Country, state: StateCode, city: CityCode)
+  International(treaty: TreatyId)
+  Supranational(body: SupranationalBody)  -- EU, etc.
+
+-- Legal systems
+type LegalSystem:
+  CommonLaw
+  CivilLaw
+  MixedSystem(primary: LegalSystem, secondary: LegalSystem)
+  ReligiousLaw(tradition: ReligiousTradition)
+  CustomaryLaw(community: CommunityId)
+
+-- A jurisdiction has a legal system
+type JurisdictionInfo(j: Jurisdiction):
+  system:           LegalSystem
+  constitutional:   Option(ConstitutionId)
+  hierarchy:        List(Jurisdiction)  -- Appeals path
+  treaty_parties:   List(TreatyId)
+
+-- Temporal validity — law changes over time
+type TemporalRange:
+  effective_from:  Date
+  effective_until: Option(Date)  -- None = still in force
+  amended_by:      List(AmendmentId)
+
+-- A legislative provision
+type Provision(j: Jurisdiction, temporal: TemporalRange):
+  id:              ProvisionId
+  parent_act:      ActId
+  section:         SectionNumber
+  subsection:      Option(SubsectionNumber)
+  text:            LegalText
+  language:        Language
+  translations:    Map(Language, LegalText)
+  annotations:     List(Annotation)
+
+-- The act itself
+type Act(j: Jurisdiction):
+  id:              ActId
+  short_title:     String
+  long_title:      String
+  enacted:         Date
+  provisions:      List(Provision(j, _))
+  preamble:        Option(LegalText)
+  schedules:       List(Schedule)
+  commencement:    CommencementRules
+  repeals:         List(RepealRecord)
+```
+
+**What this enables:**
+- Every provision is tagged with its jurisdiction and temporal validity
+- Cross-references are typed — you can't accidentally cite a repealed provision as current law
+- Translations are explicitly linked, not floating documents
+- The amendment history is structural, not buried in footnotes
+
+### C.4 Precedent as Typed Relationships
+
+In common law, precedent isn't just "this case said X." The relationship between cases is nuanced:
+
+```crisp
+-- Types of precedential relationships
+type PrecedentRelation:
+  Follows           -- Later court follows earlier decision
+  Distinguishes     -- Later court says facts differ, doesn't apply
+  Overrules         -- Higher court explicitly overturns (rare, significant)
+  Disapproves       -- Higher court criticizes but doesn't formally overrule
+  Doubts            -- Court expresses uncertainty about correctness
+  Applies           -- Court applies precedent to new facts
+  Extends           -- Court extends principle to new domain
+  Limits            -- Court narrows the scope of earlier decision
+  Harmonizes        -- Court reconciles apparently conflicting precedents
+  ConsidersObiter   -- Court notes dictum but doesn't rely on it
+
+-- A judicial decision
+type Decision(j: Jurisdiction, court: Court):
+  citation:        Citation
+  case_name:       String
+  decided:         Date
+  judges:          List(Judge)
+  majority:        Opinion
+  concurrences:    List(Opinion)
+  dissents:        List(Opinion)
+  facts:           FactPattern
+  issues:          List(LegalIssue)
+  holdings:        List(Holding)
+  ratio:           List(RatioDecidendi)     -- The binding principle
+  obiter:          List(ObiterDictum)       -- Said in passing, not binding
+  provisions_interpreted: List(ProvisionRef)
+  precedents_cited: List(PrecedentCitation)
+
+-- A holding with its precedential weight
+type Holding:
+  proposition:     LegalProposition
+  binding_on:      List(Court)              -- Which courts must follow
+  persuasive_for:  List(Court)              -- Which courts might follow
+  subject_to:      List(Limitation)
+
+-- Explicit precedent citation with relationship type
+type PrecedentCitation:
+  cited_case:      Citation
+  relationship:    PrecedentRelation
+  paragraph:       Option(ParagraphRef)
+  proposition:     LegalProposition
+  treatment:       TreatmentType            -- How seriously was it engaged?
+
+type TreatmentType:
+  Discussed        -- Substantively analyzed
+  Mentioned        -- Cited but not analyzed
+  Quoted           -- Direct quotation
+  Criticized       -- Engaged critically
+  Approved         -- Explicitly endorsed
+```
+
+**The key insight:** In common law, the *relationship* between cases carries as much information as the cases themselves. By making these relationships typed and explicit, we create an auditable knowledge graph of legal authority.
+
+### C.5 Authority Chains and Binding Force
+
+Not all precedent is equal. A district court cannot overrule the Supreme Court. Crisp can encode these hierarchies:
+
+```crisp
+-- Court hierarchy within a jurisdiction
+type CourtLevel:
+  TrialCourt
+  IntermediateAppellate
+  HighestAppellate
+  Constitutional        -- Separate in some systems
+
+type Court(j: Jurisdiction):
+  name:            String
+  level:           CourtLevel
+  geographic:      GeographicScope
+  subject_matter:  Option(SubjectMatterJurisdiction)
+
+-- Binding authority relationship
+type prop BindsOn(higher: Court(j), lower: Court(j)):
+  vertical_binding:
+    higher.level > lower.level &&
+    higher.geographic.contains(lower.geographic)
+      => BindsOn(higher, lower)
+
+-- A proposition is binding law in a jurisdiction
+type prop IsBindingLaw(p: LegalProposition, j: Jurisdiction, as_of: Date):
+  from_statute:
+    exists(prov: Provision(j, t)).
+      t.contains(as_of) &&
+      prov.establishes(p)
+        => IsBindingLaw(p, j, as_of)
+
+  from_precedent:
+    exists(d: Decision(j, c), h: Holding).
+      d.decided <= as_of &&
+      h in d.holdings &&
+      h.proposition == p &&
+      not_overruled(d, as_of)
+        => IsBindingLaw(p, j, as_of)
+
+-- Check if a decision has been overruled
+fn not_overruled(d: Decision(j, c), as_of: Date) -> Bool:
+  not(exists(later: Decision(j, higher)).
+    later.decided <= as_of &&
+    later.decided > d.decided &&
+    BindsOn(higher, c) &&
+    Overrules in later.precedents_cited.filter(_.cited_case == d.citation).map(_.relationship))
+```
+
+**What this enables:**
+- Automatic computation of whether a proposition is currently binding law
+- Detection of circuit splits (different appellate courts reaching different conclusions)
+- Identification of "zombie precedent" (overruled but still cited)
+- Clear distinction between binding and persuasive authority
+
+### C.6 Statutory Interpretation with Tracked Authority
+
+When courts interpret statutes, they create a new layer of meaning. This interpretation becomes part of the law:
+
+```crisp
+-- An interpretation links a provision to a court's reading
+type Interpretation(j: Jurisdiction):
+  provision:       ProvisionRef
+  court:           Court(j)
+  decision:        Citation
+  construction:    LegalProposition        -- What the court says it means
+  method:          InterpretationMethod
+  confidence:      InterpretationStrength
+
+type InterpretationMethod:
+  Textual           -- Plain meaning of words
+  Purposive         -- Legislative intent
+  Contextual        -- Reading in context of whole act
+  Historical        -- Original understanding
+  Systematic        -- Consistency with legal system
+  Comparative       -- Looking to other jurisdictions
+  Constitutional    -- Consistent with constitution
+
+type InterpretationStrength:
+  Definitive        -- Highest court, directly on point
+  Strong            -- High court, clear statement
+  Moderate          -- Intermediate court, or dictum from high court
+  Weak              -- Trial court, or tangential
+  Conflicting       -- Multiple courts disagree
+
+-- The current understanding of a provision
+fn current_interpretation(
+  prov: ProvisionRef,
+  j: Jurisdiction,
+  as_of: Date
+) -> List(Interpretation(j)) ! LegalResearch:
+  do
+    let all_interps = perform LegalResearch.find_interpretations(prov, j, as_of)
+    let valid_interps = all_interps.filter(fn(i) -> not_superseded(i, as_of))
+    rank_by_authority(valid_interps)
+
+-- Detect conflicting interpretations (the bane of lawyers everywhere)
+fn find_conflicts(
+  prov: ProvisionRef,
+  j: Jurisdiction,
+  as_of: Date
+) -> List(InterpretationConflict) ! LegalResearch:
+  do
+    let interps = perform LegalResearch.find_interpretations(prov, j, as_of)
+    let grouped = group_by_proposition(interps)
+    grouped
+      .filter(fn(g) -> g.propositions.length > 1)
+      .map(fn(g) -> InterpretationConflict {
+        provision   = prov,
+        readings    = g.propositions,
+        courts      = g.courts,
+        severity    = compute_conflict_severity(g)
+      })
+```
+
+### C.7 Bridging Common Law and Civil Law
+
+Here's where it gets interesting. With structured representations, we can create **mappings** between legal concepts across traditions:
+
+```crisp
+-- A conceptual mapping between legal systems
+type LegalMapping(source: Jurisdiction, target: Jurisdiction):
+  source_concept:  LegalConcept(source)
+  target_concept:  LegalConcept(target)
+  mapping_type:    MappingType
+  confidence:      MappingConfidence
+  authority:       MappingAuthority
+  notes:           String
+
+type MappingType:
+  Equivalent        -- Same concept, different expression
+  Analogous         -- Similar function, different mechanism
+  Partial           -- Overlaps but not identical
+  NoEquivalent      -- Concept doesn't exist in target system
+  Composite         -- Maps to multiple concepts in target
+
+type MappingConfidence:
+  Established       -- Treaty, harmonization directive, settled case law
+  Academic          -- Scholarly consensus
+  Proposed          -- Under discussion
+  Contested         -- Experts disagree
+
+type MappingAuthority:
+  Treaty(t: TreatyId)
+  Directive(d: DirectiveId)              -- EU harmonization
+  CaseLaw(c: Citation)                   -- Court found equivalence
+  Scholarly(sources: List(AcademicSource))
+  Institutional(body: InstitutionId)     -- UNIDROIT, Hague Conference
+
+-- Example: Contract formation across jurisdictions
+let offer_acceptance_mapping = LegalMapping {
+  source_concept = UKLaw.ContractFormation.OfferAndAcceptance,
+  target_concept = FrenchLaw.ContractFormation.ConsentementMutuel,
+  mapping_type   = Analogous,
+  confidence     = Established,
+  authority      = CaseLaw(Citation.eu("C-381/98")),
+  notes          = "Functional equivalence recognized; timing rules differ"
+}
+
+-- Proof that a mapping is recognized
+type prop RecognizedMapping(m: LegalMapping(s, t)):
+  by_treaty:
+    exists(treaty: Treaty).
+      treaty.parties.contains(s.country) &&
+      treaty.parties.contains(t.country) &&
+      treaty.establishes_equivalence(m.source_concept, m.target_concept)
+        => RecognizedMapping(m)
+
+  by_case_law:
+    exists(decision: Decision).
+      decision.holdings.any(fn(h) ->
+        h.establishes_equivalence(m.source_concept, m.target_concept))
+        => RecognizedMapping(m)
+```
+
+**What this enables:**
+- Explicit tracking of how legal concepts translate across borders
+- Identification of gaps where no equivalent exists
+- Audit trail for why a particular mapping was chosen
+- Foundation for automated conflict-of-laws analysis
+
+### C.8 Legal Simulation: Testing Legislation Before Enactment
+
+Perhaps the most speculative application: using Crisp to **simulate** legal scenarios before legislation is enacted or disputes arise.
+
+```crisp
+-- A hypothetical fact pattern for simulation
+type Scenario:
+  parties:         List(Party)
+  facts:           List(Fact)
+  timeline:        List(Event)
+  jurisdiction:    Jurisdiction
+  applicable_law:  List(ProvisionRef)
+  assumptions:     List(Assumption)
+
+-- A simulation query
+type LegalQuery:
+  scenario:        Scenario
+  question:        LegalQuestion
+  alternatives:    List(ProvisionRef)  -- Compare different legal rules
+
+type LegalQuestion:
+  IsLawful(action: Action)
+  WhoIsLiable(harm: Harm)
+  WhatRemedies(wrong: Wrong)
+  HowToComply(requirement: Requirement)
+  WhatIfChanged(provision: ProvisionRef, new_text: LegalText)
+
+-- Simulation result
+type SimulationResult:
+  query:           LegalQuery
+  conclusion:      LegalConclusion
+  reasoning_chain: List(ReasoningStep)
+  authorities:     List(AuthorityCited)
+  confidence:      SimulationConfidence
+  caveats:         List(Caveat)
+  alternative_outcomes: List(AlternativeOutcome)
+
+type ReasoningStep:
+  premise:         LegalProposition
+  authority:       AuthorityCited
+  inference:       InferenceType
+  conclusion:      LegalProposition
+
+type InferenceType:
+  StatutoryApplication   -- Provision applies to facts
+  PrecedentApplication   -- Case applies to facts
+  Analogy                -- Similar case, similar outcome
+  AContrario             -- Opposite case, opposite outcome
+  Deduction              -- Logical inference
+  PolicyArgument         -- Underlying purpose suggests
+
+-- Run a simulation
+fn simulate(
+  query: LegalQuery,
+  auth:  SimulationAuthority  -- Who is authorized to run simulations
+) -> SimulationResult ! LegalResearch, Reasoning, AuditLog:
+  do
+    perform AuditLog.record_simulation_request(query, auth)
+
+    let applicable_rules = perform LegalResearch.find_applicable_law(
+      query.scenario.jurisdiction,
+      query.scenario.facts
+    )
+
+    let relevant_precedent = perform LegalResearch.find_precedent(
+      query.scenario.jurisdiction,
+      query.scenario.facts,
+      query.question
+    )
+
+    let reasoning = perform Reasoning.construct_argument(
+      query.scenario,
+      applicable_rules,
+      relevant_precedent
+    )
+
+    let conclusion = derive_conclusion(reasoning)
+
+    perform AuditLog.record_simulation_result(query, conclusion, reasoning)
+
+    SimulationResult {
+      query               = query,
+      conclusion          = conclusion,
+      reasoning_chain     = reasoning,
+      authorities         = extract_authorities(reasoning),
+      confidence          = assess_confidence(reasoning),
+      caveats             = identify_caveats(query, reasoning),
+      alternative_outcomes = compute_alternatives(query, reasoning)
+    }
+```
+
+### C.9 Legislative Impact Analysis
+
+Before enacting new legislation, simulate its effects:
+
+```crisp
+-- Proposed legislative change
+type ProposedAmendment:
+  target:          ProvisionRef
+  current_text:    LegalText
+  proposed_text:   LegalText
+  sponsor:         LegislatorId
+  rationale:       String
+
+-- Impact analysis
+type ImpactAnalysis:
+  amendment:       ProposedAmendment
+  affected_cases:  List(AffectedCaseAnalysis)
+  conflicts:       List(ConflictAnalysis)
+  gaps:            List(GapAnalysis)
+  unintended:      List(UnintendedConsequence)
+
+type AffectedCaseAnalysis:
+  original_case:   Citation
+  original_outcome: LegalConclusion
+  projected_outcome: LegalConclusion
+  change_type:     OutcomeChangeType
+  certainty:       AnalysisCertainty
+
+type OutcomeChangeType:
+  NoChange
+  ReverseOutcome      -- Winner becomes loser
+  DifferentRemedy     -- Same winner, different relief
+  ProceduralChange    -- Different process, same result
+  NewlyPermitted      -- Previously prohibited conduct now allowed
+  NewlyProhibited     -- Previously permitted conduct now banned
+
+-- Analyze a proposed amendment
+fn analyze_amendment(
+  amendment: ProposedAmendment,
+  auth: LegislativeAnalysisAuthority
+) -> ImpactAnalysis ! LegalResearch, Reasoning, AuditLog:
+  do
+    perform AuditLog.record_analysis_request(amendment, auth)
+
+    -- Find all cases that interpreted the current provision
+    let interpreting_cases = perform LegalResearch.find_interpretations(
+      amendment.target,
+      amendment.target.jurisdiction,
+      Date.today
+    )
+
+    -- For each case, simulate with new text
+    let case_analyses = interpreting_cases.map(fn(interp) ->
+      let original_scenario = reconstruct_scenario(interp.decision)
+      let projected = simulate_with_amendment(original_scenario, amendment)
+      AffectedCaseAnalysis {
+        original_case     = interp.decision,
+        original_outcome  = interp.decision.holdings.primary,
+        projected_outcome = projected.conclusion,
+        change_type       = classify_change(interp, projected),
+        certainty         = projected.confidence
+      }
+    )
+
+    -- Check for conflicts with other provisions
+    let conflicts = perform LegalResearch.find_conflicts(
+      amendment.proposed_text,
+      amendment.target.jurisdiction
+    )
+
+    -- Identify gaps the amendment might create
+    let gaps = identify_coverage_gaps(amendment)
+
+    -- Flag potential unintended consequences
+    let unintended = flag_unintended_consequences(case_analyses, conflicts)
+
+    ImpactAnalysis {
+      amendment       = amendment,
+      affected_cases  = case_analyses,
+      conflicts       = conflicts,
+      gaps            = gaps,
+      unintended      = unintended
+    }
+```
+
+### C.10 The Audit Trail: Transparency in Legal Reasoning
+
+Every simulation, every mapping, every interpretation lookup is recorded:
+
+```crisp
+-- Legal audit record
+type LegalAuditRecord:
+  timestamp:       Timestamp
+  actor:           AuditedActor
+  action:          AuditedAction
+  inputs:          AuditedInputs
+  outputs:         AuditedOutputs
+  authority_chain: List(AuthorityCited)
+  reasoning_hash:  Hash
+
+type AuditedAction:
+  SimulationRun(query: LegalQuery)
+  InterpretationLookup(provision: ProvisionRef)
+  PrecedentSearch(criteria: SearchCriteria)
+  MappingApplication(mapping: LegalMapping)
+  ImpactAnalysis(amendment: ProposedAmendment)
+  ConflictDetection(provisions: List(ProvisionRef))
+
+-- The manifest for a legal reasoning artifact
+type LegalReasoningManifest:
+  query:           LegalQuery
+  conclusion:      LegalConclusion
+  authorities:     List(AuthorityCited)
+  hashes:
+    query_hash:    Hash
+    reasoning_hash: Hash
+    authorities_hash: Hash
+  reproducibility:
+    same_inputs_same_output: Bool
+    authorities_stable: Bool
+    as_of_date: Date
+  caveats:
+    interpretation_conflicts: List(InterpretationConflict)
+    recent_amendments: List(AmendmentId)
+    pending_cases: List(Citation)
+```
+
+**What auditors can verify:**
+- Every legal conclusion traces back to specific authorities
+- The reasoning chain is explicit and reproducible
+- Conflicts and uncertainties are flagged, not hidden
+- Changes in underlying law would change the conclusion
+
+### C.11 Example: Cross-Border Contract Dispute
+
+Let's trace through a complete example:
+
+```crisp
+-- Scenario: A UK company and a French company dispute contract formation
+let cross_border_dispute = Scenario {
+  parties = [
+    Party.company("Widgets Ltd", Jurisdiction.UK),
+    Party.company("Gadgets SA", Jurisdiction.France)
+  ],
+  facts = [
+    Fact.email_sent(Date(2025, 3, 1), "Widgets", "Gadgets", offer_text),
+    Fact.email_received(Date(2025, 3, 2), "Gadgets", offer_text),
+    Fact.email_sent(Date(2025, 3, 3), "Gadgets", "Widgets", acceptance_text),
+    Fact.email_received(Date(2025, 3, 4), "Widgets", acceptance_text),
+    -- But: acceptance modified a term (price)
+    Fact.term_difference(offer_text.price, acceptance_text.price)
+  ],
+  timeline = [...],
+  jurisdiction = Jurisdiction.International(Treaty.CISG),
+  applicable_law = [CISG.Art19, CISG.Art18],
+  assumptions = [
+    Assumption.both_parties_cisg_states,
+    Assumption.no_choice_of_law_clause
+  ]
+}
+
+-- Query: Was a contract formed?
+let formation_query = LegalQuery {
+  scenario     = cross_border_dispute,
+  question     = IsLawful(Action.enforce_contract),
+  alternatives = [
+    UK.SaleOfGoodsAct.S8,       -- What if UK law applied?
+    France.CodeCivil.Art1118,   -- What if French law applied?
+    CISG.Art19                   -- International default
+  ]
+}
+
+-- Run simulation with proper authority
+fn analyze_dispute(
+  auth: LegalAnalysisAuthority
+) -> SimulationResult ! LegalResearch, Reasoning, AuditLog:
+  do
+    let result = simulate(formation_query, auth)
+
+    -- Log the analysis
+    perform AuditLog.record_analysis(
+      formation_query,
+      result,
+      auth
+    )
+
+    result
+
+-- Expected output structure (simplified):
+-- SimulationResult {
+--   conclusion = ContractNotFormed(
+--     reason = "Under CISG Art 19(1), acceptance with modifications
+--               constitutes counter-offer, not acceptance"
+--   ),
+--   reasoning_chain = [
+--     ReasoningStep {
+--       premise    = "Acceptance purported to modify price term",
+--       authority  = CISG.Art19.Para1,
+--       inference  = StatutoryApplication,
+--       conclusion = "Response is counter-offer, not acceptance"
+--     },
+--     ReasoningStep {
+--       premise    = "Counter-offer was not accepted by original offeror",
+--       authority  = CISG.Art18,
+--       inference  = StatutoryApplication,
+--       conclusion = "No contract formed"
+--     }
+--   ],
+--   alternative_outcomes = [
+--     AlternativeOutcome {
+--       law        = UK.SaleOfGoodsAct,
+--       conclusion = ContractNotFormed(reason = "Battle of forms, last shot"),
+--       difference = "Same outcome, different reasoning"
+--     },
+--     AlternativeOutcome {
+--       law        = France.CodeCivil,
+--       conclusion = ContractFormed(terms = original_offer_terms),
+--       difference = "French law may find contract on original terms"
+--     }
+--   ],
+--   caveats = [
+--     Caveat.jurisdiction_uncertain,
+--     Caveat.fact_finding_required("Was modification 'material'?")
+--   ]
+-- }
+```
+
+### C.12 Why This Matters
+
+This hypothetical system would provide:
+
+**For Lawyers:**
+- Rapid identification of relevant authority
+- Explicit tracking of precedent relationships
+- Cross-jurisdictional comparison
+- Identification of unsettled questions
+
+**For Legislators:**
+- Impact analysis before enactment
+- Detection of conflicts with existing law
+- Identification of gaps and unintended consequences
+- Evidence-based legislative drafting
+
+**For Judges:**
+- Structured representation of prior decisions
+- Clear distinction between ratio and obiter
+- Identification of relevant precedent
+- Transparency in reasoning
+
+**For Citizens:**
+- Accessible representation of their rights
+- Understanding of how law applies to their situation
+- Visibility into legal reasoning
+- Reduced dependence on expensive expertise
+
+**For International Commerce:**
+- Explicit mappings between legal systems
+- Reduced legal uncertainty in cross-border transactions
+- Foundation for harmonization efforts
+- Auditable conflict-of-laws analysis
+
+### C.13 What This Is Not
+
+This system would **not** be:
+
+- **A replacement for lawyers**: It structures legal knowledge; it does not provide legal advice
+- **A replacement for judges**: It simulates reasoning; it does not render judgment
+- **An oracle of truth**: It shows what the law *says*; not what it *should* say
+- **A complete model**: Law is vast; any system models a subset
+- **Value-neutral**: The choice of what to encode embeds values
+- **Immune to manipulation**: Bad inputs produce bad outputs
+
+The system makes legal reasoning **inspectable**, not **automatic**. The goal is transparency and auditability, not replacement of human judgment.
+
+### C.14 Implementation Considerations
+
+Building such a system would require:
+
+1. **Standardized legal data formats**: Building on Akoma Ntoso, LegalRuleML, and similar efforts
+2. **Jurisdictional cooperation**: No single entity can encode all law
+3. **Expert curation**: Legal knowledge requires legal expertise
+4. **Versioning infrastructure**: Law changes constantly
+5. **Conflict resolution protocols**: When experts disagree on encoding
+6. **Governance structures**: Who maintains the system?
+7. **Liability frameworks**: What happens when the system is wrong?
+
+This is a multi-decade infrastructure project, not a startup pitch. But the foundations — typed representations, explicit authority, auditable reasoning — are precisely what Crisp provides.
+
+### C.15 The Connection to Crisp's Core Thesis
+
+This hypothetical legal infrastructure embodies Crisp's central insight:
+
+> *Authority is not a boolean check — it is a value you must possess.*
+
+In law, this manifests as:
+- **Precedent authority**: A case has binding force not by declaration but by its position in the judicial hierarchy
+- **Statutory authority**: A provision applies not by assertion but by satisfying jurisdictional and temporal criteria
+- **Interpretive authority**: A reading is legitimate not by confidence but by grounding in recognized authority
+
+The same type-level machinery that prevents unauthorized regulatory approvals can enforce that legal conclusions trace to legitimate authority. The same effect system that makes side effects explicit can make legal reasoning auditable. The same proof terms that require policy satisfaction can require citation of binding precedent.
+
+Legal reasoning is institutional reasoning. Crisp is a language for institutional reasoning. The connection is not superficial.
+
+---
+
+*This appendix presents a speculative application. The legal system is vastly more complex than any model can capture, and any actual implementation would require extensive collaboration with legal scholars, practitioners, and institutions. The purpose here is to illustrate the *kind* of problem Crisp is designed for — not to claim that this specific system exists or is imminent.*
+
+---
 
 Crisp trades breadth for depth. If you need to model institutional authority with compile-time guarantees, welcome. If you need to ship a CRUD app by Friday, Godspeed.
 
