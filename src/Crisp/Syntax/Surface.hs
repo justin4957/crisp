@@ -36,6 +36,9 @@ module Crisp.Syntax.Surface
   , ImplDef(..)
   , TraitConstraint(..)
   , DerivingClause(..)
+    -- * Type Aliases
+  , TypeAliasDef(..)
+  , FieldConstraint(..)
     -- * FFI
   , ExternalRef(..)
   , ExternalFnDef(..)
@@ -94,6 +97,7 @@ data Definition
   | DefTrait !TraitDef
   | DefImpl !ImplDef
   | DefExternal !ExternalFnDef
+  | DefTypeAlias !TypeAliasDef
   deriving stock (Eq, Show, Generic)
 
 -- | Type definition (ADT, GADT, record, linear type)
@@ -267,6 +271,24 @@ data ExternalFnDef = ExternalFnDef
   , extFnDefReturnType :: !Type
   , extFnDefExternal   :: !ExternalRef   -- ^ The external binding
   , extFnDefSpan       :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | Type alias definition with optional field constraints
+-- Example: type JudicialAuthority = Authority { action: Judicial(_) }
+data TypeAliasDef = TypeAliasDef
+  { typeAliasName        :: !Text           -- ^ Name of the alias (e.g., "JudicialAuthority")
+  , typeAliasParams      :: ![TypeParam]    -- ^ Type parameters
+  , typeAliasBase        :: !Type           -- ^ Base type (e.g., "Authority")
+  , typeAliasConstraints :: ![FieldConstraint]  -- ^ Field constraints
+  , typeAliasSpan        :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | A constraint on a field value in a type alias
+-- Example: action: Judicial(_) or status: Active
+data FieldConstraint = FieldConstraint
+  { fieldConstraintName    :: !Text         -- ^ Field name being constrained
+  , fieldConstraintPattern :: !Pattern      -- ^ Pattern the field must match
+  , fieldConstraintSpan    :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | Comparison operators for refinement predicates

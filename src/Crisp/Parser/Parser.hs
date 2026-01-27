@@ -167,7 +167,7 @@ pProvide = do
 
 pDefinition :: Parser Definition
 pDefinition = choice
-  [ DefType <$> pTypeDef
+  [ pTypeOrAlias  -- Handle both type definitions and type aliases
   , DefEffect <$> pEffectDef
   , DefHandler <$> pHandlerDef
   , DefTrait <$> pTraitDef
@@ -175,6 +175,39 @@ pDefinition = choice
   , DefExternal <$> pExternalFnDef
   , DefFn <$> pFunctionDef
   ]
+  where
+    -- Parse either a type alias (type Name = ...) or type definition (type Name: ...)
+    -- We look ahead after parsing name and params to decide which one
+    pTypeOrAlias = do
+      start <- getPos
+      keyword "type"
+      mods <- pTypeModifiers
+      name <- upperIdent
+      params <- many (try pTypeParamNotEq)
+      -- Now decide based on what comes next
+      choice
+        [ do -- Type alias: has = after name/params
+             symbol "="
+             -- Use pTypeAppNoRefinement so { field: Pattern } isn't parsed as refinement
+             baseType <- pTypeAppNoRefinement
+             constraints <- option [] pFieldConstraintBlock
+             span' <- spanFrom start
+             pure $ DefTypeAlias $ TypeAliasDef name params baseType constraints span'
+        , do -- Regular type definition
+             constraints <- option [] pTypeDefConstraints
+             mKind <- optional (try pTypeDefKind)
+             deriv <- optional pDerivingClause
+             cons <- optional (symbol ":" *> pConstructors)
+             span' <- spanFrom start
+             pure $ DefType $ TypeDef name params constraints mKind (maybe [] id cons) mods deriv span'
+        ]
+
+    -- Type parameter that doesn't consume = sign
+    pTypeParamNotEq = do
+      notFollowedBy (symbol "=")
+      pTypeParam
+
+    pTypeDefKind = symbol ":" *> pKind
 
 pTypeDef :: Parser TypeDef
 pTypeDef = do
@@ -196,6 +229,24 @@ pTypeDef = do
     pTypeDefKind = do
       symbol ":"
       pKind
+
+-- | Parse a block of field constraints: { field: Pattern, ... }
+pFieldConstraintBlock :: Parser [FieldConstraint]
+pFieldConstraintBlock = do
+  symbol "{"
+  constraints <- pFieldConstraint `sepBy1` symbol ","
+  symbol "}"
+  pure constraints
+
+-- | Parse a single field constraint: field: Pattern
+pFieldConstraint :: Parser FieldConstraint
+pFieldConstraint = do
+  start <- getPos
+  fieldName <- lowerIdent
+  symbol ":"
+  pat <- pPattern
+  span' <- spanFrom start
+  pure $ FieldConstraint fieldName pat span'
 
 -- | Parse where clause constraints for type definitions
 -- Example: where A: Action, B: Serializable
@@ -612,6 +663,32 @@ pTypeApp = do
            ty <- pTypeAtom
            span' <- spanFrom start'
            pure $ TyRef ty mut span'
+      , do start' <- getPos
+           -- Only consume uppercase identifiers as type arguments
+           name <- upperIdent
+           span' <- spanFrom start'
+           pure $ TyName name span'
+      ]
+
+-- | Parse type application without refinement blocks
+-- Used for type alias base types where { field: Pattern } is field constraints, not refinements
+pTypeAppNoRefinement :: Parser Type
+pTypeAppNoRefinement = do
+  start <- getPos
+  con <- pTypeAtomBase  -- Use base without refinement checking
+  args <- many pTypeArgAtomNoRefinement
+  span' <- spanFrom start
+  case args of
+    [] -> pure con
+    _  -> pure $ TyApp con args span'
+  where
+    pTypeArgAtomNoRefinement = choice
+      [ do start' <- getPos
+           symbol "("
+           ty <- pType
+           symbol ")"
+           span' <- spanFrom start'
+           pure $ TyParen ty span'
       , do start' <- getPos
            -- Only consume uppercase identifiers as type arguments
            name <- upperIdent
