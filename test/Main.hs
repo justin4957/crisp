@@ -30,6 +30,7 @@ import qualified Crisp.Types.LinearSpec
 import qualified Crisp.Types.TraitSpec
 import qualified Crisp.FFI.ExternalSpec
 import qualified Crisp.REPL.ReplSpec
+import qualified Crisp.Types.RefinementSpec
 
 main :: IO ()
 main = hspec $ do
@@ -59,3 +60,4 @@ main = hspec $ do
   describe "Crisp.Types.Trait" Crisp.Types.TraitSpec.spec
   describe "Crisp.FFI.External" Crisp.FFI.ExternalSpec.spec
   describe "Crisp.REPL" Crisp.REPL.ReplSpec.spec
+  describe "Crisp.Types.Refinement" Crisp.Types.RefinementSpec.spec

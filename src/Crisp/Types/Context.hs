@@ -46,6 +46,11 @@ module Crisp.Types.Context
   , registerExternal
   , lookupExternal
   , allExternals
+    -- * Refinement types
+  , RefinementInfo(..)
+  , registerRefinement
+  , lookupRefinement
+  , lookupRefinementsForType
     -- * Authority
   , setAuthority
   , getAuthority
@@ -127,15 +132,25 @@ data ExternalInfo = ExternalInfo
   , externalInfoType     :: !Type                 -- ^ Function type signature
   } deriving stock (Eq, Show)
 
+-- | Information about a refinement type
+-- Refinement types express compile-time constraints on values
+-- Example: type Month = Int { 1 <= self <= 12 }
+data RefinementInfo = RefinementInfo
+  { refinementInfoName       :: !Text             -- ^ Name of the refinement type (if aliased)
+  , refinementInfoBaseType   :: !Type             -- ^ The underlying type being refined
+  , refinementInfoPredicates :: ![Term]           -- ^ Predicate terms that must hold for values
+  } deriving stock (Eq, Show)
+
 -- | The typing context
 data Context = Context
-  { contextBindings  :: ![Binding]              -- ^ Stack of bindings (innermost first)
-  , contextTypes     :: !(Map Text TypeInfo)    -- ^ Registered type definitions
-  , contextEffects   :: !(Map Text EffectInfo)  -- ^ Registered effect definitions
-  , contextTraits    :: !(Map Text TraitInfo)   -- ^ Registered trait definitions
-  , contextImpls     :: ![ImplInfo]             -- ^ Registered trait implementations
-  , contextExternals :: !(Map Text ExternalInfo) -- ^ Registered external (FFI) functions
-  , contextAuthority :: !(Maybe Text)           -- ^ Current module authority
+  { contextBindings    :: ![Binding]              -- ^ Stack of bindings (innermost first)
+  , contextTypes       :: !(Map Text TypeInfo)    -- ^ Registered type definitions
+  , contextEffects     :: !(Map Text EffectInfo)  -- ^ Registered effect definitions
+  , contextTraits      :: !(Map Text TraitInfo)   -- ^ Registered trait definitions
+  , contextImpls       :: ![ImplInfo]             -- ^ Registered trait implementations
+  , contextExternals   :: !(Map Text ExternalInfo) -- ^ Registered external (FFI) functions
+  , contextRefinements :: !(Map Text RefinementInfo) -- ^ Registered refinement type aliases
+  , contextAuthority   :: !(Maybe Text)           -- ^ Current module authority
   } deriving stock (Eq, Show)
 
 -- | Create an empty context
@@ -147,6 +162,7 @@ emptyContext = Context
   , contextTraits = Map.empty
   , contextImpls = []
   , contextExternals = Map.empty
+  , contextRefinements = Map.empty
   , contextAuthority = Nothing
   }
 
@@ -431,3 +447,21 @@ lookupExternal name ctx = Map.lookup name (contextExternals ctx)
 -- | Get all registered external functions
 allExternals :: Context -> [ExternalInfo]
 allExternals ctx = Map.elems (contextExternals ctx)
+
+-- | Register a refinement type alias
+registerRefinement :: RefinementInfo -> Context -> Context
+registerRefinement info ctx = ctx
+  { contextRefinements = Map.insert (refinementInfoName info) info (contextRefinements ctx) }
+
+-- | Look up a refinement type by name
+lookupRefinement :: Text -> Context -> Maybe RefinementInfo
+lookupRefinement name ctx = Map.lookup name (contextRefinements ctx)
+
+-- | Look up all refinements that refine a specific base type
+lookupRefinementsForType :: Type -> Context -> [RefinementInfo]
+lookupRefinementsForType baseType ctx =
+  filter (\r -> typesMatch (refinementInfoBaseType r) baseType) (Map.elems (contextRefinements ctx))
+  where
+    typesMatch (TyCon n1 args1) (TyCon n2 args2) =
+      n1 == n2 && length args1 == length args2 && all (uncurry typesMatch) (zip args1 args2)
+    typesMatch t1 t2 = t1 == t2

@@ -76,6 +76,7 @@ data Type
   | TyNatLit !Int                             -- ^ Type-level natural number literal
   | TyAdd !Type !Type                         -- ^ Type-level addition
   | TyEffect !Text !Type                      -- ^ Effectful type expression (impure, rejected in types)
+  | TyRefined !Type ![Term]                   -- ^ Refinement type: { x : T | P(x) } where Terms are predicates
   deriving stock (Eq, Show, Generic)
 
 -- | Kind expressions
