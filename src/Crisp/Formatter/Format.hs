@@ -153,14 +153,19 @@ prettyProvides opts provs = T.intercalate "\n" (map prettyProv provs)
 -- | Pretty print a definition
 prettyDefinition :: FormatOptions -> Int -> Definition -> Text
 prettyDefinition opts ind = \case
-  DefType td -> prettyTypeDef opts ind td
-  DefEffect ed -> prettyEffectDef opts ind ed
-  DefHandler hd -> prettyHandlerDef opts ind hd
-  DefFn fd -> prettyFunctionDef opts ind fd
-  DefTrait td -> prettyTraitDef opts ind td
-  DefImpl id' -> prettyImplDef opts ind id'
-  DefExternal ed -> prettyExternalDef opts ind ed
-  DefTypeAlias ad -> prettyTypeAlias opts ind ad
+  DefType td -> prettyDocComment ind (typeDefDocComment td) <> prettyTypeDef opts ind td
+  DefEffect ed -> prettyDocComment ind (effectDefDocComment ed) <> prettyEffectDef opts ind ed
+  DefHandler hd -> prettyDocComment ind (handlerDefDocComment hd) <> prettyHandlerDef opts ind hd
+  DefFn fd -> prettyDocComment ind (fnDefDocComment fd) <> prettyFunctionDef opts ind fd
+  DefTrait td -> prettyDocComment ind (traitDefDocComment td) <> prettyTraitDef opts ind td
+  DefImpl id' -> prettyDocComment ind (implDefDocComment id') <> prettyImplDef opts ind id'
+  DefExternal ed -> prettyDocComment ind (extFnDefDocComment ed) <> prettyExternalDef opts ind ed
+  DefTypeAlias ad -> prettyDocComment ind (typeAliasDocComment ad) <> prettyTypeAlias opts ind ad
+
+-- | Pretty print a doc comment, if present
+prettyDocComment :: Int -> Maybe DocComment -> Text
+prettyDocComment _ Nothing = ""
+prettyDocComment ind (Just doc) = indent ind <> "--- | " <> doc <> "\n"
 
 -- | Pretty print a type definition
 prettyTypeDef :: FormatOptions -> Int -> TypeDef -> Text
@@ -325,7 +330,8 @@ prettyTraitMethod opts ind tm =
 prettyImplDef :: FormatOptions -> Int -> ImplDef -> Text
 prettyImplDef opts ind id' =
   let header = indent ind <> "impl " <> implDefTrait id' <> " for " <> prettyType opts 0 (implDefType id') <> ":"
-      methods = map (prettyFunctionDef opts (ind + optIndentWidth opts)) (implDefMethods id')
+      methodInd = ind + optIndentWidth opts
+      methods = map (\fd -> prettyDocComment methodInd (fnDefDocComment fd) <> prettyFunctionDef opts methodInd fd) (implDefMethods id')
   in header <> "\n" <> T.intercalate "\n\n" methods
 
 -- | Pretty print external function definition

@@ -63,7 +63,7 @@ module Crisp.Doc.Generate
   ) where
 
 import Crisp.Parser.Parser (parseModule)
-import Crisp.Syntax.Surface
+import Crisp.Syntax.Surface hiding (DocComment)
 import Crisp.Syntax.Span (Span(..), Position(..))
 
 import Data.Map.Strict (Map)
