@@ -1507,3 +1507,52 @@ docCommentTests = describe "doc comments" $ do
     case parseModule "test" "module Main" of
       Right m -> moduleDocComment m `shouldBe` Nothing
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "preserves indentation in doc comment lines (issue #147)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | Summary line"
+          , "--- |   indented content"
+          , "--- |     more indented"
+          , "--- | back to normal"
+          , "fn f(x: Int) -> Int:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> do
+          let doc = fnDefDocComment fd
+          doc `shouldSatisfy` \d -> d /= Nothing
+          case doc of
+            Just d -> do
+              d `shouldSatisfy` T.isInfixOf "  indented content"
+              d `shouldSatisfy` T.isInfixOf "    more indented"
+              d `shouldSatisfy` T.isInfixOf "back to normal"
+            Nothing -> expectationFailure "Expected doc comment"
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "preserves multi-level indentation in doc comments (issue #147)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | Examples:"
+          , "--- |   let x = 1"
+          , "--- |   let y = 2"
+          , "--- |     nested"
+          , "type T:"
+          , "  Value Int"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          let doc = typeDefDocComment td
+          case doc of
+            Just d -> do
+              d `shouldSatisfy` T.isInfixOf "  let x = 1"
+              d `shouldSatisfy` T.isInfixOf "  let y = 2"
+              d `shouldSatisfy` T.isInfixOf "    nested"
+            Nothing -> expectationFailure "Expected doc comment"
+        _ -> expectationFailure "Expected single type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
