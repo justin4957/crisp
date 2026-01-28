@@ -237,6 +237,26 @@ spec = describe "Crisp.Formatter.Format" $ do
       let result = formatExpr defaultFormatOptions "1"
       result `shouldBe` Right "1"
 
+    it "pretty prints addition" $ do
+      let result = formatExpr defaultFormatOptions "1 + 2"
+      result `shouldBe` Right "1 + 2"
+
+    it "pretty prints comparison operators" $ do
+      let result = formatExpr defaultFormatOptions "x >= 0"
+      result `shouldBe` Right "x >= 0"
+
+    it "pretty prints logical operators" $ do
+      let result = formatExpr defaultFormatOptions "a && b"
+      result `shouldBe` Right "a && b"
+
+    it "pretty prints field access" $ do
+      let result = formatExpr defaultFormatOptions "x.field"
+      result `shouldBe` Right "x.field"
+
+    it "pretty prints chained field access" $ do
+      let result = formatExpr defaultFormatOptions "x.a.b"
+      result `shouldBe` Right "x.a.b"
+
   describe "prettyType function" $ do
     it "formats function types in module" $ do
       let src = "module Test\n\nfn apply(f: Int -> Bool, x: Int) -> Bool:\n  f x"
