@@ -1272,26 +1272,56 @@ pAtom = choice
 pLet :: Parser Expr
 pLet = do
   start <- getPos
+  letCol <- unPos . sourceColumn <$> getSourcePos
   keyword "let"
   pat <- pPattern
   mTy <- optional (symbol ":" *> pType)
   _ <- symbol "="
-  value <- pLetValue  -- Parse value up to 'in'
-  keyword "in"
-  body <- pExpr
+  value <- pLetValue  -- Parse value up to 'in' or newline
+  -- Try explicit 'in', or use layout-based implicit 'in'
+  body <- pLetBody letCol
   span' <- spanFrom start
   pure $ ELet pat mTy value body span'
   where
-    -- Parse a let value - atoms that don't include 'in' keyword
+    -- Parse the body after a let binding
+    -- Either explicit 'in' or layout-based (next line at same/greater indentation)
+    pLetBody :: Int -> Parser Expr
+    pLetBody letCol = choice
+      [ -- Explicit 'in' keyword
+        keyword "in" *> pExpr
+      , -- Layout-based: next expression continues the let
+        pLayoutBody letCol
+      ]
+
+    -- Parse layout-based let body
+    pLayoutBody :: Int -> Parser Expr
+    pLayoutBody letCol = do
+      -- Check column of next token
+      col <- unPos . sourceColumn <$> getSourcePos
+      if col >= letCol
+        then pExpr  -- Parse the rest as the body
+        else fail "layout: body must be indented at least as much as let"
+
+    -- Parse a let value - stop at end of line for layout-based let
     pLetValue :: Parser Expr
     pLetValue = do
+      startLine <- unPos . sourceLine <$> getSourcePos
       start <- getPos
       func <- pLetPostfix
-      args <- many (try $ notFollowedBy (keyword "in") *> pLetPostfix)
+      -- Only consume more args if they're on the same line
+      args <- many (try $ pSameLineArg startLine)
       span' <- spanFrom start
       case args of
         [] -> pure func
         _  -> pure $ EApp func args span'
+
+    -- Parse an argument that's on the same line as the let value started
+    pSameLineArg :: Int -> Parser Expr
+    pSameLineArg startLine = do
+      curLine <- unPos . sourceLine <$> getSourcePos
+      if curLine == startLine
+        then notFollowedBy (keyword "in") *> pLetPostfix
+        else fail "argument on different line"
 
     -- Parse postfix expressions (field access) for let bindings
     pLetPostfix :: Parser Expr
