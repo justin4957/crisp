@@ -49,11 +49,15 @@ spec = describe "Crisp.Formatter.Format" $ do
         formatExpr defaultFormatOptions "f x y z" `shouldBe` Right "f x y z"
 
     describe "let expressions" $ do
-      it "formats simple let" $ do
-        formatExpr defaultFormatOptions "let x = 1 in x" `shouldBe` Right "let x = 1 in x"
+      it "formats simple let with layout-based style" $ do
+        formatExpr defaultFormatOptions "let x = 1 in x" `shouldBe` Right "let x = 1\nx"
 
-      it "formats let with type annotation" $ do
-        formatExpr defaultFormatOptions "let x: Int = 1 in x" `shouldBe` Right "let x: Int = 1 in x"
+      it "formats let with type annotation using layout-based style" $ do
+        formatExpr defaultFormatOptions "let x: Int = 1 in x" `shouldBe` Right "let x: Int = 1\nx"
+
+      it "formats nested let chain with each binding on its own line" $ do
+        formatExpr defaultFormatOptions "let x = 1 in let y = 2 in x"
+          `shouldBe` Right "let x = 1\nlet y = 2\nx"
 
     describe "if expressions" $ do
       it "formats if-then-else" $ do
@@ -282,7 +286,7 @@ spec = describe "Crisp.Formatter.Format" $ do
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
     it "formatting twice produces same result for expressions" $ do
-      let src = "let x = 1 in x"
+      let src = "let x = 1\nx"
       case formatExpr defaultFormatOptions src of
         Left err -> expectationFailure $ T.unpack err
         Right formatted1 ->
@@ -445,7 +449,7 @@ spec = describe "Crisp.Formatter.Format" $ do
 
     it "formats let patterns" $ do
       let result = formatExpr defaultFormatOptions "let x = 1 in x"
-      result `shouldBe` Right "let x = 1 in x"
+      result `shouldBe` Right "let x = 1\nx"
 
   describe "Doc Comment Preservation" $ do
     it "preserves doc comment on function definition" $ do

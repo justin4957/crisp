@@ -445,7 +445,7 @@ prettyExpr opts ind = \case
           Nothing -> ""
           Just ty -> ": " <> prettyType opts 0 ty
     in "let " <> prettyPattern opts pat <> tyStr <> " = " <> prettyExpr opts ind val
-       <> " in " <> prettyExpr opts ind body
+       <> "\n" <> indent ind <> prettyExpr opts ind body
 
   EMatch subj arms _ ->
     let header = "match " <> prettyExpr opts ind subj

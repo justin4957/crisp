@@ -33,6 +33,8 @@ test/
     │   └── ParserSpec.hs             # Parser tests
     ├── Doc/
     │   └── GenerateSpec.hs           # Doc generator tests
+    ├── Formatter/
+    │   └── FormatSpec.hs             # Formatter tests
     └── Types/
         └── CheckerSpec.hs            # Type checker tests
 ```
@@ -173,7 +175,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Literals: integers, floats, strings (with escapes, unicode), characters, unit
 - Variables and constructors: lowercase/uppercase, with underscores/primes/numbers
 - Function application: single/multiple args, nested, with literals
-- Let expressions: simple, with type annotation, nested, with patterns
+- Let expressions: simple, with type annotation, nested, with patterns, layout-based round-trip formatting
 - If expressions: simple, complex conditions, nested branches
 - Match expressions: keyword and subject (arms pending due to parser limitation)
 - Lambda expressions: backslash/unicode, single param, with application body
@@ -218,6 +220,51 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - With handler expression has same issue
 - Type constructors require layout (colon interpreted as kind annotation)
 - Multi-param lambdas don't parse due to greedy type parsing
+
+### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
+
+The formatter test suite covers source code formatting (~45 tests):
+
+**Expression Formatting (~15 tests)**
+- Literals: integer, float, string, unit
+- Variables and constructors
+- Application: simple, multi-arg
+- Let expressions: layout-based style, with type annotation, nested let chains
+- If-then-else expressions
+- Lambda expressions
+- Pipeline operator
+- Lazy and force expressions
+- Perform expressions (with and without arguments)
+- Field access: simple and chained
+
+**Module Formatting (~14 tests)**
+- Minimal module, with function/type/effect definitions
+- Provides block: with types, typed functions, followed by definitions
+- Requires block
+- Type definitions: named fields, positional fields, mixed constructors
+- Type alias with where refinement, field access, match, if expressions
+- External function definitions
+
+**Idempotence (~3 tests)**
+- Module formatting idempotent (format twice = same result)
+- Expression formatting idempotent (layout-based let)
+- Module with type formatting idempotent
+
+**Definition Formatting (~5 tests)**
+- Simple type, type with parameters
+- Simple function, function with effects
+- Effect definition
+
+**Doc Comment Preservation (~4 tests)**
+- Preserves doc comments on function and type definitions
+- Preserves doc comments on multiple definitions
+- Doc comment appears before definition in output
+
+**Other (~4 tests)**
+- Trailing newline option (enabled/disabled)
+- Error handling for invalid syntax
+- prettyModule function output
+- prettyPattern function output
 
 ### Type Checker Tests (`test/Crisp/Types/CheckerSpec.hs`)
 
