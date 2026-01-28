@@ -138,6 +138,38 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "provides fn is_valid: Date -> Bool"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats module with requires block" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "requires"
+            , "  Core.Types"
+            , "  Utils.Helpers"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "requires Core.Types"
+          formatted `shouldSatisfy` T.isInfixOf "requires Utils.Helpers"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats module with provides block followed by definitions" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  type Foo"
+            , ""
+            , "type Foo:"
+            , "  Foo Int"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "provides type Foo"
+          formatted `shouldSatisfy` T.isInfixOf "type Foo"
+        Left _ -> expectationFailure "Expected Right"
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"

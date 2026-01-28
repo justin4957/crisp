@@ -116,11 +116,11 @@ pModule = do
   keyword "module"
   name <- pModulePath
   auth <- optional (keyword "authority" *> upperIdent)
-  reqs <- many pRequire
+  reqLists <- many pRequires
   provLists <- many pProvides
   defs <- many pDefinition
   span' <- spanFrom start
-  pure $ Module name auth reqs (concat provLists) defs span'
+  pure $ Module name auth (concat reqLists) (concat provLists) defs span'
 
 pModulePath :: Parser ModulePath
 pModulePath = do
@@ -129,26 +129,55 @@ pModulePath = do
   span' <- spanFrom start
   pure $ ModulePath segs span'
 
-pRequire :: Parser Require
-pRequire = do
-  start <- getPos
+-- | Parse requires declarations
+-- Supports both inline format:
+--   requires ModulePath
+--   requires effects: E1, E2
+-- And block format:
+--   requires
+--     ModulePath
+--     effects: E1, E2
+pRequires :: Parser [Require]
+pRequires = do
+  baseCol <- unPos . sourceColumn <$> getSourcePos
   keyword "requires"
   choice
-    [ do keyword "effects"
-         symbol ":"
-         effs <- upperIdent `sepBy1` symbol ","
-         span' <- spanFrom start
-         pure $ RequireEffects effs span'
-    , do keyword "types"
-         symbol ":"
-         tys <- upperIdent `sepBy1` symbol ","
-         span' <- spanFrom start
-         pure $ RequireTypes tys span'
-    , do -- Module import: requires ModulePath
-         modPath <- pModulePath
-         span' <- spanFrom start
-         pure $ RequireModule modPath span'
+    [ -- Block format: multiple indented items after bare 'requires'
+      try $ some (pRequireItemIndented baseCol)
+    , -- Inline format: single item on same line
+      do start <- getPos
+         item <- pRequireItem start
+         pure [item]
     ]
+
+-- | Parse a require item that must be indented past the base column
+pRequireItemIndented :: Int -> Parser Require
+pRequireItemIndented baseCol = try $ do
+  col <- unPos . sourceColumn <$> getSourcePos
+  if col > baseCol
+    then do
+      start <- getPos
+      pRequireItem start
+    else fail "requires item not indented"
+
+-- | Parse a single require item (after the "requires" keyword)
+pRequireItem :: Position -> Parser Require
+pRequireItem start = choice
+  [ do keyword "effects"
+       symbol ":"
+       effs <- upperIdent `sepBy1` symbol ","
+       span' <- spanFrom start
+       pure $ RequireEffects effs span'
+  , do keyword "types"
+       symbol ":"
+       tys <- upperIdent `sepBy1` symbol ","
+       span' <- spanFrom start
+       pure $ RequireTypes tys span'
+  , do -- Module import: requires ModulePath
+       modPath <- pModulePath
+       span' <- spanFrom start
+       pure $ RequireModule modPath span'
+  ]
 
 -- | Parse provides declarations
 -- Supports both inline format:
@@ -160,21 +189,28 @@ pRequire = do
 --     fn name
 pProvides :: Parser [Provide]
 pProvides = do
+  baseCol <- unPos . sourceColumn <$> getSourcePos
   keyword "provides"
   choice
     [ -- Block format: multiple indented items after bare 'provides'
-      try $ some pProvideItemBlock
+      -- Items must be indented more than the 'provides' keyword
+      try $ some (pProvideItemIndented baseCol)
     , -- Inline format: single item on same line
       do start <- getPos
          item <- pProvideItem start
          pure [item]
     ]
 
--- | Parse a provide item in block format (type/fn at start of line)
-pProvideItemBlock :: Parser Provide
-pProvideItemBlock = do
-  start <- getPos
-  pProvideItem start
+-- | Parse a provide item that must be indented past the base column
+pProvideItemIndented :: Int -> Parser Provide
+pProvideItemIndented baseCol = try $ do
+  -- Check that current position is indented past base
+  col <- unPos . sourceColumn <$> getSourcePos
+  if col > baseCol
+    then do
+      start <- getPos
+      pProvideItem start
+    else fail "provides item not indented"
 
 -- | Parse a single provide item (after the "provides" keyword)
 pProvideItem :: Position -> Parser Provide
