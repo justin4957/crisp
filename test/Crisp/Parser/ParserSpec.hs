@@ -888,6 +888,85 @@ moduleTests = describe "modules" $ do
       Right m -> length (moduleProvides m) `shouldBe` 4
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block followed by type definition" $ do
+    let src = T.unlines
+          [ "module Test.WithProvides"
+          , "provides"
+          , "  type Foo"
+          , ""
+          , "type Foo:"
+          , "  value: Int"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 1
+        length (moduleDefinitions m) `shouldBe` 1
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block followed by function definition" $ do
+    let src = T.unlines
+          [ "module Test.Exports"
+          , "provides"
+          , "  fn helper"
+          , "  type Data"
+          , ""
+          , "fn helper(x: Int) -> Int:"
+          , "  x"
+          , ""
+          , "type Data:"
+          , "  Data Int"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 2
+        length (moduleDefinitions m) `shouldBe` 2
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses requires block with multiple items" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "requires"
+          , "  LexSim.Core.Refined"
+          , "  Treasury.Types"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleRequires m) `shouldBe` 2
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses requires block with effects" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "requires"
+          , "  LexSim.Core"
+          , "  effects: State, IO"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleRequires m) `shouldBe` 2
+        case moduleRequires m of
+          [RequireModule _ _, RequireEffects effs _] -> effs `shouldBe` ["State", "IO"]
+          _ -> expectationFailure "Expected RequireModule and RequireEffects"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses requires block followed by provides and definitions" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "requires"
+          , "  Core.Types"
+          , "provides"
+          , "  type Result"
+          , ""
+          , "type Result:"
+          , "  Ok Int"
+          , "  Err String"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleRequires m) `shouldBe` 1
+        length (moduleProvides m) `shouldBe` 1
+        length (moduleDefinitions m) `shouldBe` 1
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses module with multiple definitions" $ do
     -- Note: type definitions with constructors have parsing limitations
     let src = T.unlines
