@@ -117,10 +117,10 @@ pModule = do
   name <- pModulePath
   auth <- optional (keyword "authority" *> upperIdent)
   reqs <- many pRequire
-  provs <- many pProvide
+  provLists <- many pProvides
   defs <- many pDefinition
   span' <- spanFrom start
-  pure $ Module name auth reqs provs defs span'
+  pure $ Module name auth reqs (concat provLists) defs span'
 
 pModulePath :: Parser ModulePath
 pModulePath = do
@@ -158,10 +158,22 @@ pRequire = do
 --   provides
 --     type Name
 --     fn name
-pProvide :: Parser Provide
-pProvide = do
-  start <- getPos
+pProvides :: Parser [Provide]
+pProvides = do
   keyword "provides"
+  choice
+    [ -- Block format: multiple indented items after bare 'provides'
+      try $ some pProvideItemBlock
+    , -- Inline format: single item on same line
+      do start <- getPos
+         item <- pProvideItem start
+         pure [item]
+    ]
+
+-- | Parse a provide item in block format (type/fn at start of line)
+pProvideItemBlock :: Parser Provide
+pProvideItemBlock = do
+  start <- getPos
   pProvideItem start
 
 -- | Parse a single provide item (after the "provides" keyword)
