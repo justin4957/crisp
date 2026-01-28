@@ -340,15 +340,26 @@ parseDocComment ls =
     , docSince = since
     }
 
--- | Strip the doc comment prefix from a line
+-- | Strip the doc comment prefix from a line.
+-- Removes the @--- @ prefix and then the optional @| @ pipe marker,
+-- so both @--- | text@ and @--- text@ produce @text@.
 stripDocPrefix :: Text -> Text
 stripDocPrefix line =
   let stripped = T.stripStart line
-  in if T.isPrefixOf "--- " stripped
-     then T.drop 4 stripped
-     else if stripped == "---"
-     then ""
-     else stripped
+      content = if T.isPrefixOf "--- " stripped
+                then T.drop 4 stripped
+                else if stripped == "---"
+                then ""
+                else stripped
+  in stripPipePrefix content
+
+-- | Strip the optional pipe prefix from a doc comment line.
+-- Handles @| text@ (pipe + space + text) and lone @|@.
+stripPipePrefix :: Text -> Text
+stripPipePrefix t
+  | T.isPrefixOf "| " t = T.drop 2 t
+  | t == "|"             = ""
+  | otherwise             = t
 
 -- | Extract the summary (first paragraph)
 extractSummary :: [Text] -> (Maybe Text, [Text])

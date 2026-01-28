@@ -208,6 +208,10 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Requires (effects, types), provides (type, fn)
 - Multiple definitions
 
+**Doc Comment Tests (~2 tests)**
+- Multi-line doc comment with pipe on continuation lines parsed correctly
+- Multi-line doc comment with empty pipe line parsed correctly
+
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
 - Do statements with binds/let don't work due to greedy expression parsing
@@ -1747,7 +1751,7 @@ The linear type test suite covers usage counting and linearity checking (~82 tes
 
 ### Doc Generator Tests (`test/Crisp/Doc/GenerateSpec.hs`)
 
-The doc generator test suite covers documentation extraction and rendering (~52 tests):
+The doc generator test suite covers documentation extraction and rendering (~58 tests):
 
 **Doc Comment Parsing (~8 tests)**
 - Simple doc comment extraction
@@ -1787,6 +1791,14 @@ The doc generator test suite covers documentation extraction and rendering (~52 
 - Type alias doc comment displayed in rendered markdown
 - Doc comments displayed in HTML output
 - No doc comment text displayed when no doc comment exists
+
+**Doc Comment Pipe Stripping (~6 tests)**
+- Strips pipe prefix from multi-line doc comment continuation lines
+- Extracts examples section from pipe-style continuation lines
+- Handles mixed pipe and no-pipe continuation lines
+- Handles lone pipe line as blank separator
+- Does not produce literal pipe characters in rendered markdown
+- Extracts see also section from pipe-style continuation lines
 
 **Markdown Rendering (~9 tests)**
 - Module header rendering
