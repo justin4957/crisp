@@ -1428,7 +1428,13 @@ pMatchArmBody = makeExprParser pMatchArmApp
       , mkMatchBinOp "!=" OpNE
       ]
     pMatchAdd = mkMatchBinOp "+" OpAdd
-    pMatchSub = mkMatchBinOp "-" OpSub
+    -- Subtraction operator must not be followed by '>' (arrow) or '--' (doc comment prefix)
+    pMatchSub = do
+      start <- getPos
+      void $ try (string "-" <* notFollowedBy (char '>') <* notFollowedBy (string "--"))
+      sc
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp OpSub left right span'
     pMatchMul = mkMatchBinOp "*" OpMul
     pMatchDiv = mkMatchBinOp "/" OpDiv
     pMatchMod = mkMatchBinOp "%" OpMod
