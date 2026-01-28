@@ -189,7 +189,8 @@ extractModuleDoc sourcePath content mod' =
   let modPath = moduleName mod'
       modName = T.intercalate "." (modulePathSegments modPath)
       docComments = extractDocComments content
-      moduleComment = lookupModuleComment docComments
+      moduleStartLine = posLine (spanStart (moduleSpan mod'))
+      moduleComment = lookupModuleComment moduleStartLine docComments
       items = mapMaybe (extractItemDoc docComments) (moduleDefinitions mod')
   in ModuleDoc
     { modDocName = modName
@@ -204,7 +205,7 @@ extractItemDoc :: Map Int DocComment -> Definition -> Maybe ItemDoc
 extractItemDoc docs def = case def of
   DefFn fn ->
     let line = posLine (spanStart (fnDefSpan fn))
-        doc = Map.lookup (line - 1) docs
+        doc = Map.lookup line docs
     in Just $ ItemFunction $ FunctionDoc
       { fnDocName = fnDefName fn
       , fnDocSignature = formatFnSignature fn
@@ -216,7 +217,7 @@ extractItemDoc docs def = case def of
 
   DefType td ->
     let line = posLine (spanStart (typeDefSpan td))
-        doc = Map.lookup (line - 1) docs
+        doc = Map.lookup line docs
     in Just $ ItemType $ TypeDoc
       { tyDocName = typeDefName td
       , tyDocParams = map formatTypeParam (typeDefParams td)
@@ -227,7 +228,7 @@ extractItemDoc docs def = case def of
 
   DefEffect eff ->
     let line = posLine (spanStart (effectDefSpan eff))
-        doc = Map.lookup (line - 1) docs
+        doc = Map.lookup line docs
     in Just $ ItemEffect $ EffectDoc
       { effDocName = effectDefName eff
       , effDocParams = []  -- Effects don't have params in current Surface AST
@@ -238,7 +239,7 @@ extractItemDoc docs def = case def of
 
   DefExternal ext ->
     let line = posLine (spanStart (extFnDefSpan ext))
-        doc = Map.lookup (line - 1) docs
+        doc = Map.lookup line docs
     in Just $ ItemExternal $ FunctionDoc
       { fnDocName = extFnDefName ext
       , fnDocSignature = formatExternalSignature ext
@@ -250,7 +251,7 @@ extractItemDoc docs def = case def of
 
   DefTypeAlias alias ->
     let line = posLine (spanStart (typeAliasSpan alias))
-        doc = Map.lookup (line - 1) docs
+        doc = Map.lookup line docs
     in Just $ ItemTypeAlias $ TypeDoc
       { tyDocName = typeAliasName alias
       , tyDocParams = map formatTypeParam (typeAliasParams alias)
@@ -389,10 +390,13 @@ extractSection header ls =
       in map T.strip content
 
 -- | Look up the module-level doc comment
-lookupModuleComment :: Map Int DocComment -> Maybe DocComment
-lookupModuleComment docs =
-  -- Module comment is usually at the start
-  listToMaybe $ Map.elems $ Map.filterWithKey (\k _ -> k <= 10) docs
+-- Only matches doc comments that appear before the module declaration line,
+-- so definition doc comments aren't incorrectly stolen as module descriptions.
+lookupModuleComment :: Int -> Map Int DocComment -> Maybe DocComment
+lookupModuleComment moduleStartLine docs =
+  -- A doc comment stored at key K means it ends just before line K.
+  -- Only consider comments whose target line is before the module declaration.
+  listToMaybe $ Map.elems $ Map.filterWithKey (\k _ -> k < moduleStartLine) docs
 
 --------------------------------------------------------------------------------
 -- Rendering - Markdown
