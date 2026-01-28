@@ -847,6 +847,47 @@ moduleTests = describe "modules" $ do
           _ -> expectationFailure "Expected two ProvideFn with correct type presence"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block with multiple items" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "provides"
+          , "  type Date"
+          , "  fn is_valid_at"
+          , "  fn overlaps"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 3
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with typed fns" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "provides"
+          , "  type Date"
+          , "  fn is_valid_at: Date -> Bool"
+          , "  fn overlaps: Date -> Date -> Bool"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 3
+        case moduleProvides m of
+          [ProvideType "Date" _, ProvideFn "is_valid_at" (Just _) _, ProvideFn "overlaps" (Just _) _] -> pure ()
+          _ -> expectationFailure "Expected ProvideType and two typed ProvideFn"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses mixed inline and block provides" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "provides type First"
+          , "provides"
+          , "  type Second"
+          , "  fn helper"
+          , "provides fn last: Int"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 4
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses module with multiple definitions" $ do
     -- Note: type definitions with constructors have parsing limitations
     let src = T.unlines
