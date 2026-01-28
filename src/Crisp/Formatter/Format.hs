@@ -488,6 +488,33 @@ prettyExpr opts ind = \case
     "external(\"" <> externalModule ref <> "\", \"" <> externalFunction ref <> "\")"
     <> if null args then "" else " " <> T.unwords (map (prettyExprAtom opts ind) args)
 
+  EFieldAccess expr field _ ->
+    prettyExprAtom opts ind expr <> "." <> field
+
+  EBinOp op left right _ ->
+    prettyExprAtom opts ind left <> " " <> prettyBinOp op <> " " <> prettyExprAtom opts ind right
+
+  ERecord conName fields _ ->
+    let fieldStrs = map (\(name, val) -> name <> " = " <> prettyExpr opts ind val) fields
+    in conName <> " { " <> T.intercalate ", " fieldStrs <> " }"
+
+-- | Pretty print a binary operator
+prettyBinOp :: BinOp -> Text
+prettyBinOp = \case
+  OpAdd -> "+"
+  OpSub -> "-"
+  OpMul -> "*"
+  OpDiv -> "/"
+  OpMod -> "%"
+  OpAnd -> "&&"
+  OpOr  -> "||"
+  OpLT  -> "<"
+  OpLE  -> "<="
+  OpGT  -> ">"
+  OpGE  -> ">="
+  OpEQ  -> "=="
+  OpNE  -> "/="
+
 -- | Pretty print an atomic expression (with parens if needed)
 prettyExprAtom :: FormatOptions -> Int -> Expr -> Text
 prettyExprAtom opts ind expr = case expr of
@@ -499,6 +526,8 @@ prettyExprAtom opts ind expr = case expr of
   ECharLit {} -> prettyExpr opts ind expr
   EUnit {} -> prettyExpr opts ind expr
   EQualified {} -> prettyExpr opts ind expr
+  EFieldAccess {} -> prettyExpr opts ind expr
+  ERecord {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
 -- | Pretty print a match arm
