@@ -254,9 +254,19 @@ pDefinition = choice
              symbol "="
              -- Use pTypeAppNoRefinement so { field: Pattern } isn't parsed as refinement
              baseType <- pTypeAppNoRefinement
-             constraints <- option [] pFieldConstraintBlock
+             -- Support both 'where { predicate }' for refinement types
+             -- and '{ field: Pattern }' for field constraints
+             (finalType, constraints) <- choice
+               [ do -- Refinement type: type Name = Base where { predicate }
+                    keyword "where"
+                    (preds, refinementSpan) <- pRefinementBlock
+                    pure (TyRefinement baseType preds refinementSpan, [])
+               , do -- Field constraints: type Name = Base { field: Pattern }
+                    fieldConstraints <- option [] pFieldConstraintBlock
+                    pure (baseType, fieldConstraints)
+               ]
              span' <- spanFrom start
-             pure $ DefTypeAlias $ TypeAliasDef name params baseType constraints span'
+             pure $ DefTypeAlias $ TypeAliasDef name params finalType constraints span'
         , do -- Regular type definition
              constraints <- option [] pTypeDefConstraints
              mKind <- optional (try pTypeDefKind)
@@ -1002,12 +1012,31 @@ pRefinementExpr = do
 -- | Parse an atomic expression in a refinement context
 -- This is a simplified expression parser for refinements
 pRefinementExprAtom :: Parser Expr
-pRefinementExprAtom = choice
+pRefinementExprAtom = do
+  base <- pRefinementExprBase
+  -- Parse optional field access chain: base.field.field2...
+  pFieldAccessChain base
+
+-- | Parse the base of a refinement expression (before field access)
+pRefinementExprBase :: Parser Expr
+pRefinementExprBase = choice
   [ pRefinementInt
   , pRefinementSelf
   , pRefinementVar
   , pRefinementParenExpr
   ]
+
+-- | Parse field access chain: .field.field2...
+pFieldAccessChain :: Expr -> Parser Expr
+pFieldAccessChain base = do
+  mField <- optional (symbol "." *> lowerIdent)
+  case mField of
+    Nothing -> pure base
+    Just field -> do
+      start <- getPos
+      span' <- spanFrom start
+      let accessed = EFieldAccess base field span'
+      pFieldAccessChain accessed
 
 -- | Parse an integer literal in a refinement
 pRefinementInt :: Parser Expr

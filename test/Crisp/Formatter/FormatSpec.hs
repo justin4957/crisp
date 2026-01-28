@@ -220,6 +220,28 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "Named"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats type alias with where refinement" $ do
+      let src = "module Test type PositiveInt = Int where { self > 0 }"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "PositiveInt"
+          formatted `shouldSatisfy` T.isInfixOf "Int"
+          formatted `shouldSatisfy` T.isInfixOf "self > 0"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats type alias with where and field access" $ do
+      let src = "module Test type ValidRange = Range where { self.start <= self.end }"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "ValidRange"
+          formatted `shouldSatisfy` T.isInfixOf "self.start"
+          formatted `shouldSatisfy` T.isInfixOf "self.end"
+        Left _ -> expectationFailure "Expected Right"
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"
