@@ -570,6 +570,35 @@ spec = describe "Crisp.Formatter.Format" $ do
           let docLines = filter (T.isPrefixOf "--- |") (T.lines formatted)
           length docLines `shouldBe` 1
 
+    it "formats module-level doc comment before module keyword (issue #140)" $ do
+      let src = T.unlines
+            [ "--- | Module for testing"
+            , "module Test.ModDoc"
+            , ""
+            , "fn double(x: Int) -> Int:"
+            , "  x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "--- | Module for testing"
+          -- Doc comment should appear before module keyword
+          let docPos = T.breakOn "--- | Module" formatted
+              modPos = T.breakOn "module Test" formatted
+          T.length (fst docPos) `shouldSatisfy` (< T.length (fst modPos))
+
+    it "module-level doc comment formatting is idempotent (issue #140)" $ do
+      let src = T.unlines
+            [ "--- | Module docs"
+            , "module Test"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
 -- Helper functions
 
 isRight :: Either a b -> Bool

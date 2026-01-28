@@ -1479,3 +1479,31 @@ docCommentTests = describe "doc comments" $ do
         [DefFn _] -> pure ()
         _ -> expectationFailure "Expected single function definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses module-level doc comment before module keyword (issue #140)" $ do
+    let src = T.unlines
+          [ "--- | Module for testing"
+          , "module Test.ModDoc"
+          , ""
+          , "fn double(x: Int) -> Int:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> moduleDocComment m `shouldBe` Just "Module for testing"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multi-line module doc comment (issue #140)" $ do
+    let src = T.unlines
+          [ "--- | Module summary"
+          , "--- | More details here"
+          , "module Test.MultiDoc"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        moduleDocComment m `shouldBe` Just "Module summary\nMore details here"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "module without doc comment has Nothing (issue #140)" $ do
+    case parseModule "test" "module Main" of
+      Right m -> moduleDocComment m `shouldBe` Nothing
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
