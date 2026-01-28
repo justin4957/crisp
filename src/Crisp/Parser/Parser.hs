@@ -1020,11 +1020,85 @@ pRefinementExprAtom = do
 -- | Parse the base of a refinement expression (before field access)
 pRefinementExprBase :: Parser Expr
 pRefinementExprBase = choice
-  [ pRefinementInt
+  [ pRefinementMatch
+  , pRefinementIf
+  , pRefinementInt
+  , pRefinementBool
   , pRefinementSelf
   , pRefinementVar
   , pRefinementParenExpr
   ]
+
+-- | Parse a match expression in a refinement context
+pRefinementMatch :: Parser Expr
+pRefinementMatch = do
+  start <- getPos
+  keyword "match"
+  subject <- pRefinementExprAtom
+  arms <- many pRefinementMatchArm
+  span' <- spanFrom start
+  pure $ EMatch subject arms span'
+
+-- | Parse a match arm in a refinement context
+pRefinementMatchArm :: Parser MatchArm
+pRefinementMatchArm = do
+  start <- getPos
+  pat <- pPattern
+  guard' <- optional (symbol "|" *> pRefinementExprAtom)
+  symbol "->"
+  body <- pRefinementExprAtom
+  span' <- spanFrom start
+  pure $ MatchArm pat guard' body span'
+
+-- | Parse an if expression in a refinement context
+pRefinementIf :: Parser Expr
+pRefinementIf = do
+  start <- getPos
+  keyword "if"
+  cond <- pRefinementCondExpr
+  keyword "then"
+  then' <- pRefinementExprAtom
+  keyword "else"
+  else' <- pRefinementExprAtom
+  span' <- spanFrom start
+  pure $ EIf cond then' else' span'
+
+-- | Parse a condition expression for if (supports comparisons)
+pRefinementCondExpr :: Parser Expr
+pRefinementCondExpr = try pRefinementCondComparison <|> pRefinementExprAtom
+
+-- | Parse a comparison expression that returns Expr (for if conditions)
+pRefinementCondComparison :: Parser Expr
+pRefinementCondComparison = do
+  start <- getPos
+  left <- pRefinementExprAtom
+  op <- pRefinementCondOp
+  right <- pRefinementExprAtom
+  span' <- spanFrom start
+  pure $ EBinOp op left right span'
+
+-- | Parse comparison operators returning BinOp
+pRefinementCondOp :: Parser BinOp
+pRefinementCondOp = choice
+  [ OpLE <$ symbol "<="
+  , OpGE <$ symbol ">="
+  , OpLT <$ symbol "<"
+  , OpGT <$ symbol ">"
+  , OpEQ <$ symbol "=="
+  , OpNE <$ symbol "/="
+  ]
+
+-- | Parse a boolean literal in a refinement (True or False constructors)
+pRefinementBool :: Parser Expr
+pRefinementBool = do
+  start <- getPos
+  name <- try $ do
+    n <- upperIdent
+    if n == "True" || n == "False"
+      then pure n
+      else fail "expected True or False"
+  span' <- spanFrom start
+  pure $ ECon name span'
 
 -- | Parse field access chain: .field.field2...
 pFieldAccessChain :: Expr -> Parser Expr
