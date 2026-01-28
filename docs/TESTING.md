@@ -31,6 +31,8 @@ test/
     │   └── LexerSpec.hs              # Comprehensive lexer tests
     ├── Parser/
     │   └── ParserSpec.hs             # Parser tests
+    ├── Doc/
+    │   └── GenerateSpec.hs           # Doc generator tests
     └── Types/
         └── CheckerSpec.hs            # Type checker tests
 ```
@@ -1742,3 +1744,61 @@ The linear type test suite covers usage counting and linearity checking (~82 tes
 - Effect operations (perform)
 - Handler handling
 - Lazy and force handling
+
+### Doc Generator Tests (`test/Crisp/Doc/GenerateSpec.hs`)
+
+The doc generator test suite covers documentation extraction and rendering (~52 tests):
+
+**Doc Comment Parsing (~8 tests)**
+- Simple doc comment extraction
+- Summary parsing from doc comment
+- Multi-line doc comment parsing
+- Examples section extraction
+- See also section extraction
+- Since version extraction
+- Empty doc comment handling
+- Doc comment without pipe prefix
+
+**Module Documentation Extraction (~9 tests)**
+- Module name extraction
+- Function documentation extraction
+- Function signature extraction
+- Type documentation extraction
+- Effect documentation extraction
+- External function documentation extraction
+- Type alias documentation extraction
+- Multiple items handling
+- Invalid code error handling
+
+**Doc Comment Association (~7 tests)**
+- Does not steal first definition's doc comment as module description
+- Does not steal first type's doc comment as module description
+- Associates doc comment with adjacent function definition
+- Associates doc comment with adjacent type definition
+- Associates doc comment with adjacent effect definition
+- Does not associate doc comment with non-adjacent definition
+- Module has no description when doc comment belongs to first definition
+
+**Markdown Rendering (~9 tests)**
+- Module header rendering
+- Module summary rendering
+- Function documentation rendering
+- Function examples rendering
+- Type documentation rendering
+- Type with parameters rendering
+- Effect documentation rendering
+- Table of contents rendering
+- Source file reference rendering
+
+**HTML Rendering (~6 tests)**
+- Valid HTML document rendering
+- Module name in title
+- CSS styles inclusion
+- HTML special character escaping
+- Navigation links rendering
+- Footer with source file rendering
+
+**DocFormat (~3 tests)**
+- Markdown format renders markdown
+- HTML format renders HTML
+- DocFormat equality

@@ -20,6 +20,7 @@ spec :: Spec
 spec = do
   docCommentParsingTests
   moduleDocExtractionTests
+  docCommentAssociationTests
   markdownRenderingTests
   htmlRenderingTests
   docFormatTests
@@ -223,6 +224,138 @@ moduleDocExtractionTests = describe "Module Documentation Extraction" $ do
   it "returns error for invalid code" $ do
     let content = "this is {{ not valid"
     generateModuleDocs Markdown "test.crisp" content `shouldSatisfy` isLeft
+
+-- =============================================================================
+-- Doc Comment Association Tests (Issue #130)
+-- =============================================================================
+
+docCommentAssociationTests :: Spec
+docCommentAssociationTests = describe "Doc Comment Association (Issue #130)" $ do
+  it "does not steal first definition's doc comment as module description" $ do
+    let content = T.unlines
+          [ "module Test.Docs"
+          , ""
+          , "--- | Add two numbers"
+          , "fn add(x: Int, y: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        case modDocItems doc of
+          [ItemFunction fn] -> fnDocSummary fn `shouldBe` Just "Add two numbers"
+          _ -> expectationFailure "Expected one function item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "does not steal first type's doc comment as module description" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A color type"
+          , "type Color:"
+          , "  Red"
+          , "  Green"
+          , "  Blue"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        case modDocItems doc of
+          [ItemType ty] -> tyDocSummary ty `shouldBe` Just "A color type"
+          _ -> expectationFailure "Expected one type item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "associates doc comment with adjacent function definition" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Get the value"
+          , "fn get_value(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        case modDocItems doc of
+          [ItemFunction fn] -> do
+            fnDocName fn `shouldBe` "get_value"
+            fnDocSummary fn `shouldBe` Just "Get the value"
+          _ -> expectationFailure "Expected one function item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "associates doc comment with adjacent type definition" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A simple pair type"
+          , "type Pair:"
+          , "  MkPair Int Int"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        case modDocItems doc of
+          [ItemType ty] -> do
+            tyDocName ty `shouldBe` "Pair"
+            tyDocSummary ty `shouldBe` Just "A simple pair type"
+          _ -> expectationFailure "Expected one type item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "associates doc comment with adjacent effect definition" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Logging effect"
+          , "effect Log:"
+          , "  log: String -> Unit"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        case modDocItems doc of
+          [ItemEffect eff] -> do
+            effDocName eff `shouldBe` "Log"
+            effDocSummary eff `shouldBe` Just "Logging effect"
+          _ -> expectationFailure "Expected one effect item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "does not associate doc comment with non-adjacent definition" $ do
+    -- Doc comment on line 3, but function starts on line 6 (not adjacent)
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Orphaned doc comment"
+          , ""
+          , ""
+          , "fn foo(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> case modDocItems doc of
+        [ItemFunction fn] ->
+          -- Doc at line 3 stored at key 4, fn at line 6 looks up key 6 -> Nothing
+          fnDocSummary fn `shouldBe` Nothing
+        _ -> expectationFailure "Expected one function item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "module has no description when doc comment belongs to first definition" $ do
+    -- Regression: previously lookupModuleComment grabbed the first doc comment
+    -- within lines 1-10, even when it belonged to a definition
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | User identifier"
+          , "type UserId = Int"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        case modDocItems doc of
+          [ItemTypeAlias ty] -> do
+            tyDocName ty `shouldBe` "UserId"
+            tyDocSummary ty `shouldBe` Just "User identifier"
+          _ -> expectationFailure "Expected one type alias item"
+      Left err -> expectationFailure $ T.unpack err
 
 -- =============================================================================
 -- Markdown Rendering Tests
