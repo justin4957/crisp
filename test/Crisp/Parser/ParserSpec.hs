@@ -1344,3 +1344,41 @@ docCommentTests = describe "doc comments" $ do
           fnDefDocComment fd2 `shouldBe` Nothing
         _ -> expectationFailure "Expected two function definitions"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multi-line doc comment with pipe on continuation lines" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | Summary line"
+          , "--- | Continuation line"
+          , "type Color:"
+          , "  Red"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> typeDefDocComment td `shouldBe` Just "Summary line\nContinuation line"
+        _ -> expectationFailure "Expected single type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multi-line doc comment with empty pipe line" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | Summary"
+          , "--- |"
+          , "--- | After blank"
+          , "type Color:"
+          , "  Red"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          let doc = typeDefDocComment td
+          doc `shouldSatisfy` \d -> d /= Nothing
+          case doc of
+            Just d -> do
+              d `shouldSatisfy` T.isInfixOf "Summary"
+              d `shouldSatisfy` T.isInfixOf "After blank"
+            Nothing -> expectationFailure "Expected doc comment"
+        _ -> expectationFailure "Expected single type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err

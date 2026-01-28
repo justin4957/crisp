@@ -22,6 +22,7 @@ spec = do
   moduleDocExtractionTests
   docCommentAssociationTests
   docCommentDisplayTests
+  docCommentPipeStrippingTests
   markdownRenderingTests
   htmlRenderingTests
   docFormatTests
@@ -477,6 +478,86 @@ docCommentDisplayTests = describe "Doc Comment Display (Issue #131)" $ do
             fnDocDescription fn `shouldBe` Nothing
           _ -> expectationFailure "Expected one function item"
       Left err -> expectationFailure $ T.unpack err
+
+-- =============================================================================
+-- Doc Comment Pipe Stripping Tests (Issue #132)
+-- =============================================================================
+
+docCommentPipeStrippingTests :: Spec
+docCommentPipeStrippingTests = describe "Doc Comment Pipe Stripping (Issue #132)" $ do
+  it "strips pipe prefix from multi-line doc comment continuation lines" $ do
+    let block =
+          [ "--- | Brief summary"
+          , "--- | This is the description"
+          , "--- | spanning multiple lines."
+          ]
+    let doc = parseDocComment block
+    docSummary doc `shouldBe` Just "Brief summary"
+    docDescription doc `shouldBe` Just "This is the description\nspanning multiple lines."
+
+  it "extracts examples section from pipe-style continuation lines" $ do
+    let block =
+          [ "--- | A function"
+          , "--- |"
+          , "--- | Examples:"
+          , "--- |   add(1, 2)"
+          , "--- |   add(3, 4)"
+          ]
+    let doc = parseDocComment block
+    docSummary doc `shouldBe` Just "A function"
+    length (docExamples doc) `shouldSatisfy` (>= 1)
+
+  it "handles mixed pipe and no-pipe continuation lines" $ do
+    let block =
+          [ "--- | Brief summary"
+          , "---"
+          , "--- Description without pipe"
+          , "--- | Description with pipe"
+          ]
+    let doc = parseDocComment block
+    docSummary doc `shouldBe` Just "Brief summary"
+    case docDescription doc of
+      Just desc -> desc `shouldSatisfy` (not . T.isInfixOf "|")
+      Nothing -> expectationFailure "Expected description"
+
+  it "handles lone pipe line as blank separator" $ do
+    let block =
+          [ "--- | Summary"
+          , "--- |"
+          , "--- | After blank"
+          ]
+    let doc = parseDocComment block
+    docSummary doc `shouldBe` Just "Summary"
+    case docDescription doc of
+      Just desc -> desc `shouldSatisfy` T.isInfixOf "After blank"
+      Nothing -> expectationFailure "Expected description containing 'After blank'"
+
+  it "does not produce literal pipe characters in rendered markdown" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A useful type"
+          , "--- | with extended description"
+          , "type Useful = Int"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "A useful type"
+        -- The rendered output must not contain literal pipe prefixes
+        md `shouldSatisfy` (not . T.isInfixOf "| with")
+      Left err -> expectationFailure $ T.unpack err
+
+  it "extracts see also section from pipe-style continuation lines" $ do
+    let block =
+          [ "--- | A function"
+          , "--- |"
+          , "--- | See also:"
+          , "--- |   other_fn"
+          ]
+    let doc = parseDocComment block
+    docSummary doc `shouldBe` Just "A function"
+    length (docSeeAlso doc) `shouldSatisfy` (>= 1)
 
 -- =============================================================================
 -- Markdown Rendering Tests

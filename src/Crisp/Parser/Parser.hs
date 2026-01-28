@@ -62,10 +62,18 @@ pSkipNonDocComment = try $ do
   notFollowedBy (string "- |")
   void $ takeWhileP Nothing (/= '\n')
 
--- | Parse a doc comment line: --- | text
--- Returns the text content after "--- |"
+-- | Parse one or more consecutive doc comment lines starting with @--- |@.
+-- Multiple lines are joined with newlines to support multi-line doc comments.
 pDocComment :: Parser DocComment
 pDocComment = do
+  firstLine <- pDocCommentLine
+  moreLines <- many (try pDocCommentLine)
+  pure $ T.strip $ T.intercalate "\n" (firstLine : moreLines)
+
+-- | Parse a single doc comment line: --- | text
+-- Returns the text content after "--- |", with the pipe stripped.
+pDocCommentLine :: Parser Text
+pDocCommentLine = do
   _ <- string "--- |"
   content <- takeWhileP Nothing (/= '\n')
   sc  -- consume trailing whitespace after the doc comment line
