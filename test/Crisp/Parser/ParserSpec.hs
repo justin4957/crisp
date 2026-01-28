@@ -867,6 +867,37 @@ typeDefTests = describe "type definitions" $ do
     let src = "module Test type Bounded = Int where { self >= 0, self <= 100 }"
     shouldParse $ parseModule "test" src
 
+  -- Match expressions in refinement predicates (issue #120)
+  it "parses match expression in refinement predicate" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type NonEmptyOption A = Option A where {"
+          , "  match self"
+          , "    Some(_) -> True"
+          , "    None -> False"
+          , "}"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses match with field access in refinement" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type ValidTemporalRange = TemporalRange where {"
+          , "  match self.effective_until"
+          , "    None -> True"
+          , "    Some(end) -> end >= self.effective_from"
+          , "}"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses if expression in refinement predicate" $ do
+    let src = "module Test type Bounded = Int where { if self >= 0 then True else False }"
+    shouldParse $ parseModule "test" src
+
+  it "parses boolean literals in refinement" $ do
+    let src = "module Test type Always = Int where { True }"
+    shouldParse $ parseModule "test" src
+
 effectDefTests :: Spec
 effectDefTests = describe "effect definitions" $ do
   it "parses simple effect" $ do

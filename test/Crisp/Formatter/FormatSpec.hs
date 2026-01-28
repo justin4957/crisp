@@ -242,6 +242,35 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "self.end"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats refinement with match expression" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type NonEmptyOption A = Option A where {"
+            , "  match self"
+            , "    Some(_) -> True"
+            , "    None -> False"
+            , "}"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "match self"
+          formatted `shouldSatisfy` T.isInfixOf "Some"
+          formatted `shouldSatisfy` T.isInfixOf "None"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats refinement with if expression" $ do
+      let src = "module Test type Bounded = Int where { if self >= 0 then True else False }"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "if"
+          formatted `shouldSatisfy` T.isInfixOf "then"
+          formatted `shouldSatisfy` T.isInfixOf "else"
+        Left _ -> expectationFailure "Expected Right"
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"
