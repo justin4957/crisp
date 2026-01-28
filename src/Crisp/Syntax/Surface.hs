@@ -14,6 +14,8 @@ module Crisp.Syntax.Surface
   , ModulePath(..)
   , Require(..)
   , Provide(..)
+    -- * Doc Comments
+  , DocComment
     -- * Definitions
   , Definition(..)
   , TypeDef(..)
@@ -90,6 +92,9 @@ data Provide
   | ProvideFn !Text !(Maybe Type) !Span     -- ^ Export a function: provides fn name or provides fn name: Type
   deriving stock (Eq, Show, Generic)
 
+-- | A doc comment (--- | text)
+type DocComment = Text
+
 -- | Top-level definition
 data Definition
   = DefType !TypeDef
@@ -104,7 +109,8 @@ data Definition
 
 -- | Type definition (ADT, GADT, record, linear type)
 data TypeDef = TypeDef
-  { typeDefName         :: !Text
+  { typeDefDocComment   :: !(Maybe DocComment)
+  , typeDefName         :: !Text
   , typeDefParams       :: ![TypeParam]
   , typeDefConstraints  :: ![TraitConstraint]    -- ^ Where clause constraints
   , typeDefKind         :: !(Maybe Kind)
@@ -153,9 +159,10 @@ data Kind
 
 -- | Effect definition
 data EffectDef = EffectDef
-  { effectDefName       :: !Text
-  , effectDefOperations :: ![Operation]
-  , effectDefSpan       :: !Span
+  { effectDefDocComment  :: !(Maybe DocComment)
+  , effectDefName        :: !Text
+  , effectDefOperations  :: ![Operation]
+  , effectDefSpan        :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | An effect operation
@@ -167,7 +174,8 @@ data Operation = Operation
 
 -- | Handler definition
 data HandlerDef = HandlerDef
-  { handlerDefName              :: !Text
+  { handlerDefDocComment        :: !(Maybe DocComment)
+  , handlerDefName              :: !Text
   , handlerDefParams            :: ![HandlerParam]
   , handlerDefEffect            :: !Text
   , handlerDefIntroducedEffects :: ![EffectRef]
@@ -189,7 +197,8 @@ data HandlerClause
 
 -- | Function definition
 data FunctionDef = FunctionDef
-  { fnDefName       :: !Text
+  { fnDefDocComment :: !(Maybe DocComment)
+  , fnDefName       :: !Text
   , fnDefTypeParams :: ![TypeParam]
   , fnDefParams     :: ![Param]
   , fnDefReturnType :: !(Maybe Type)
@@ -216,7 +225,8 @@ data EffectRef = EffectRef
 -- Example: trait Ord A:
 --            compare: (A, A) -> Ordering
 data TraitDef = TraitDef
-  { traitDefName       :: !Text
+  { traitDefDocComment :: !(Maybe DocComment)
+  , traitDefName       :: !Text
   , traitDefParam      :: !Text               -- ^ The type parameter (e.g., A in "trait Ord A")
   , traitDefParamKind  :: !(Maybe Kind)       -- ^ Optional kind annotation
   , traitDefSupers     :: ![TraitConstraint]  -- ^ Supertraits (e.g., Eq for Ord)
@@ -236,10 +246,11 @@ data TraitMethod = TraitMethod
 -- Example: impl Ord for Int:
 --            compare(a, b): int_compare(a, b)
 data ImplDef = ImplDef
-  { implDefTrait     :: !Text                 -- ^ Trait being implemented
-  , implDefType      :: !Type                 -- ^ Type implementing the trait
-  , implDefMethods   :: ![FunctionDef]        -- ^ Method implementations
-  , implDefSpan      :: !Span
+  { implDefDocComment :: !(Maybe DocComment)
+  , implDefTrait      :: !Text                 -- ^ Trait being implemented
+  , implDefType       :: !Type                 -- ^ Type implementing the trait
+  , implDefMethods    :: ![FunctionDef]        -- ^ Method implementations
+  , implDefSpan       :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | A trait constraint (for bounded polymorphism)
@@ -268,17 +279,19 @@ data ExternalRef = ExternalRef
 -- | External function definition (FFI binding)
 -- Example: external fn query(sql: String) -> String = ("postgres", "query")
 data ExternalFnDef = ExternalFnDef
-  { extFnDefName       :: !Text
-  , extFnDefParams     :: ![Param]
-  , extFnDefReturnType :: !Type
-  , extFnDefExternal   :: !ExternalRef   -- ^ The external binding
-  , extFnDefSpan       :: !Span
+  { extFnDefDocComment  :: !(Maybe DocComment)
+  , extFnDefName        :: !Text
+  , extFnDefParams      :: ![Param]
+  , extFnDefReturnType  :: !Type
+  , extFnDefExternal    :: !ExternalRef   -- ^ The external binding
+  , extFnDefSpan        :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | Type alias definition with optional field constraints
 -- Example: type JudicialAuthority = Authority { action: Judicial(_) }
 data TypeAliasDef = TypeAliasDef
-  { typeAliasName        :: !Text           -- ^ Name of the alias (e.g., "JudicialAuthority")
+  { typeAliasDocComment  :: !(Maybe DocComment)
+  , typeAliasName        :: !Text           -- ^ Name of the alias (e.g., "JudicialAuthority")
   , typeAliasParams      :: ![TypeParam]    -- ^ Type parameters
   , typeAliasBase        :: !Type           -- ^ Base type (e.g., "Authority")
   , typeAliasConstraints :: ![FieldConstraint]  -- ^ Field constraints

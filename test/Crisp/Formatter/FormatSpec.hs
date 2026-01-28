@@ -447,6 +447,73 @@ spec = describe "Crisp.Formatter.Format" $ do
       let result = formatExpr defaultFormatOptions "let x = 1 in x"
       result `shouldBe` Right "let x = 1 in x"
 
+  describe "Doc Comment Preservation" $ do
+    it "preserves doc comment on function definition" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | Add two numbers"
+            , "fn add(x: Int, y: Int) -> Int:"
+            , "  x"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "--- | Add two numbers"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "preserves doc comment on type definition" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | A simple type"
+            , "type T:"
+            , "  Value Int"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "--- | A simple type"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "preserves doc comments on multiple definitions" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | A type"
+            , "type T:"
+            , "  Value Int"
+            , ""
+            , "--- | Get value"
+            , "fn get_value(t: T) -> Int:"
+            , "  0"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "--- | A type"
+          formatted `shouldSatisfy` T.isInfixOf "--- | Get value"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "doc comment appears before definition in output" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | My function"
+            , "fn foo(x: Int) -> Int:"
+            , "  x"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          let docPos = T.breakOn "--- | My function" formatted
+              fnPos = T.breakOn "fn foo" formatted
+          -- Doc comment line should come before function definition
+          T.length (fst docPos) `shouldSatisfy` (< T.length (fst fnPos))
+        Left _ -> expectationFailure "Expected Right"
+
 -- Helper functions
 
 isRight :: Either a b -> Bool

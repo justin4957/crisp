@@ -35,6 +35,7 @@ spec = do
   moduleTests
   operatorTests
   edgeCaseTests
+  docCommentTests
 
 -- =============================================================================
 -- Expression Tests
@@ -1262,3 +1263,84 @@ edgeCaseTests = describe "edge cases" $ do
           , "in x"
           ]
     shouldParse $ parseExpr "test" src
+
+-- =============================================================================
+-- Doc Comment Tests
+-- =============================================================================
+
+docCommentTests :: Spec
+docCommentTests = describe "doc comments" $ do
+  it "parses doc comment on function definition" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | Add two numbers"
+          , "fn add(x: Int, y: Int) -> Int:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> fnDefDocComment fd `shouldBe` Just "Add two numbers"
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses doc comment on type definition" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | A simple type"
+          , "type T:"
+          , "  Value Int"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> typeDefDocComment td `shouldBe` Just "A simple type"
+        _ -> expectationFailure "Expected single type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses definition without doc comment" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "fn id(x: Int) -> Int:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> fnDefDocComment fd `shouldBe` Nothing
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "preserves regular comments while capturing doc comments" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "-- Regular comment"
+          , "--- | Doc comment"
+          , "fn foo(x: Int) -> Int:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> fnDefDocComment fd `shouldBe` Just "Doc comment"
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multiple definitions with and without doc comments" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | First function"
+          , "fn first(x: Int) -> Int:"
+          , "  x"
+          , ""
+          , "fn second(y: Int) -> Int:"
+          , "  y"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd1, DefFn fd2] -> do
+          fnDefDocComment fd1 `shouldBe` Just "First function"
+          fnDefDocComment fd2 `shouldBe` Nothing
+        _ -> expectationFailure "Expected two function definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err

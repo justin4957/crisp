@@ -47,12 +47,29 @@ parseType = parse (sc *> pType <* eof)
 
 -- * Whitespace and comments
 
--- | Space consumer (skips whitespace and comments)
+-- | Space consumer (skips whitespace and regular comments, but not doc comments)
+-- Doc comments start with "--- |" and are preserved in the AST.
 sc :: Parser ()
 sc = L.space
   space1
-  (L.skipLineComment "--")
+  pSkipNonDocComment
   (L.skipBlockCommentNested "{-" "-}")
+
+-- | Skip a line comment that is NOT a doc comment (--- |)
+pSkipNonDocComment :: Parser ()
+pSkipNonDocComment = try $ do
+  _ <- string "--"
+  notFollowedBy (string "- |")
+  void $ takeWhileP Nothing (/= '\n')
+
+-- | Parse a doc comment line: --- | text
+-- Returns the text content after "--- |"
+pDocComment :: Parser DocComment
+pDocComment = do
+  _ <- string "--- |"
+  content <- takeWhileP Nothing (/= '\n')
+  sc  -- consume trailing whitespace after the doc comment line
+  pure $ T.strip content
 
 -- | Lexeme - consume trailing whitespace
 lexeme :: Parser a -> Parser a
@@ -230,19 +247,21 @@ pProvideItem start = choice
 -- * Definition parsing
 
 pDefinition :: Parser Definition
-pDefinition = choice
-  [ pTypeOrAlias  -- Handle both type definitions and type aliases
-  , DefEffect <$> pEffectDef
-  , DefHandler <$> pHandlerDef
-  , DefTrait <$> pTraitDef
-  , DefImpl <$> pImplDef
-  , DefExternal <$> pExternalFnDef
-  , DefFn <$> pFunctionDef
-  ]
+pDefinition = do
+  doc <- optional (try pDocComment)
+  choice
+    [ pTypeOrAlias doc  -- Handle both type definitions and type aliases
+    , DefEffect <$> pEffectDef doc
+    , DefHandler <$> pHandlerDef doc
+    , DefTrait <$> pTraitDef doc
+    , DefImpl <$> pImplDef doc
+    , DefExternal <$> pExternalFnDef doc
+    , DefFn <$> pFunctionDef doc
+    ]
   where
     -- Parse either a type alias (type Name = ...) or type definition (type Name: ...)
     -- We look ahead after parsing name and params to decide which one
-    pTypeOrAlias = do
+    pTypeOrAlias doc = do
       start <- getPos
       keyword "type"
       mods <- pTypeModifiers
@@ -266,7 +285,7 @@ pDefinition = choice
                     pure (baseType, fieldConstraints)
                ]
              span' <- spanFrom start
-             pure $ DefTypeAlias $ TypeAliasDef name params finalType constraints span'
+             pure $ DefTypeAlias $ TypeAliasDef doc name params finalType constraints span'
         , do -- Regular type definition
              constraints <- option [] pTypeDefConstraints
              mKind <- optional (try pTypeDefKind)
@@ -278,7 +297,7 @@ pDefinition = choice
                    Just [RecordConstructor "" fields s] ->
                      [RecordConstructor name fields s]
                    _ -> maybe [] id cons
-             pure $ DefType $ TypeDef name params constraints mKind fixedCons mods deriv span'
+             pure $ DefType $ TypeDef doc name params constraints mKind fixedCons mods deriv span'
         ]
 
     -- Type parameter that doesn't consume = sign
@@ -301,7 +320,7 @@ pTypeDef = do
   deriv <- optional pDerivingClause
   cons <- optional (symbol ":" *> pConstructors)
   span' <- spanFrom start
-  pure $ TypeDef name params constraints mKind (maybe [] id cons) mods deriv span'
+  pure $ TypeDef Nothing name params constraints mKind (maybe [] id cons) mods deriv span'
   where
     -- Parse kind annotation for type definition: : Type or : Type -> Type
     -- Uses try to backtrack if what follows : isn't a valid kind
@@ -554,15 +573,15 @@ pKind = do
         , keyword "Linear" *> (KindLinear <$> spanFrom start)
         ]
 
-pEffectDef :: Parser EffectDef
-pEffectDef = do
+pEffectDef :: Maybe DocComment -> Parser EffectDef
+pEffectDef doc = do
   start <- getPos
   keyword "effect"
   name <- upperIdent
   symbol ":"
   ops <- many pOperation
   span' <- spanFrom start
-  pure $ EffectDef name ops span'
+  pure $ EffectDef doc name ops span'
 
 pOperation :: Parser Operation
 pOperation = do
@@ -573,8 +592,8 @@ pOperation = do
   span' <- spanFrom start
   pure $ Operation name ty span'
 
-pHandlerDef :: Parser HandlerDef
-pHandlerDef = do
+pHandlerDef :: Maybe DocComment -> Parser HandlerDef
+pHandlerDef doc = do
   start <- getPos
   keyword "handler"
   name <- upperIdent
@@ -585,7 +604,7 @@ pHandlerDef = do
   symbol ":"
   clauses <- many pHandlerClause
   span' <- spanFrom start
-  pure $ HandlerDef name params effect intros clauses span'
+  pure $ HandlerDef doc name params effect intros clauses span'
 
 pHandlerParam :: Parser HandlerParam
 pHandlerParam = choice
@@ -634,8 +653,8 @@ pHandlerClause = choice
 -- Example: trait Ord A:
 --            compare: (A, A) -> Ordering
 -- Or with kind: trait Functor (F: Type -> Type):
-pTraitDef :: Parser TraitDef
-pTraitDef = do
+pTraitDef :: Maybe DocComment -> Parser TraitDef
+pTraitDef doc = do
   start <- getPos
   keyword "trait"
   name <- upperIdent
@@ -644,7 +663,7 @@ pTraitDef = do
   symbol ":"
   methods <- many pTraitMethod
   span' <- spanFrom start
-  pure $ TraitDef name param paramKind supers methods span'
+  pure $ TraitDef doc name param paramKind supers methods span'
   where
     -- Parse trait parameter with optional kind annotation in parens
     pTraitParam = choice
@@ -691,8 +710,8 @@ pTraitMethod = try $ do
 -- | Parse an implementation definition
 -- Example: impl Ord for Int:
 --            fn compare(a: Int, b: Int) -> Ordering: int_compare(a, b)
-pImplDef :: Parser ImplDef
-pImplDef = do
+pImplDef :: Maybe DocComment -> Parser ImplDef
+pImplDef doc = do
   start <- getPos
   keyword "impl"
   traitName <- upperIdent
@@ -701,11 +720,13 @@ pImplDef = do
   symbol ":"
   methods <- many pImplMethod
   span' <- spanFrom start
-  pure $ ImplDef traitName ty methods span'
+  pure $ ImplDef doc traitName ty methods span'
 
 -- | Parse a method implementation within an impl block
 pImplMethod :: Parser FunctionDef
-pImplMethod = pFunctionDef
+pImplMethod = do
+  doc <- optional (try pDocComment)
+  pFunctionDef doc
 
 -- * External function (FFI) parsing
 
@@ -725,8 +746,8 @@ pExternalRef = do
 
 -- | Parse an external function definition
 -- Example: external fn query(sql: String) -> String = ("postgres", "query")
-pExternalFnDef :: Parser ExternalFnDef
-pExternalFnDef = do
+pExternalFnDef :: Maybe DocComment -> Parser ExternalFnDef
+pExternalFnDef doc = do
   start <- getPos
   keyword "external"
   keyword "fn"
@@ -742,10 +763,10 @@ pExternalFnDef = do
   symbol ")"
   span' <- spanFrom start
   let extRef = ExternalRef (T.pack modName) (T.pack fnName) span'
-  pure $ ExternalFnDef name params retTy extRef span'
+  pure $ ExternalFnDef doc name params retTy extRef span'
 
-pFunctionDef :: Parser FunctionDef
-pFunctionDef = do
+pFunctionDef :: Maybe DocComment -> Parser FunctionDef
+pFunctionDef doc = do
   start <- getPos
   keyword "fn"
   name <- lowerIdent
@@ -756,7 +777,7 @@ pFunctionDef = do
   symbol ":"
   body <- pExpr
   span' <- spanFrom start
-  pure $ FunctionDef name tyParams params retTy effs body span'
+  pure $ FunctionDef doc name tyParams params retTy effs body span'
 
 pParam :: Parser Param
 pParam = do
