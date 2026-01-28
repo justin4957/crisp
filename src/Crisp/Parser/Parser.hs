@@ -1378,11 +1378,68 @@ pMatchArm = do
   span' <- spanFrom start
   pure $ MatchArm pat guard' body span'
 
--- | Parse match arm body - a simple expression that doesn't consume too much
--- Uses a single postfix expression, not application (which would consume literals
--- from subsequent match arms as arguments)
+-- | Parse match arm body - supports parenthesized function calls with field access
+-- Uses a restricted parser that doesn't consume space-separated arguments
+-- (which would consume literals from subsequent match arms as arguments)
 pMatchArmBody :: Parser Expr
-pMatchArmBody = pPostfix
+pMatchArmBody = makeExprParser pMatchArmApp
+  [ [InfixN pMatchCmp]
+  , [InfixL pMatchAdd, InfixL pMatchSub]
+  , [InfixL pMatchMul, InfixL pMatchDiv, InfixL pMatchMod]
+  ]
+  where
+    pMatchCmp = choice
+      [ mkMatchBinOp "<=" OpLE
+      , mkMatchBinOp "<" OpLT
+      , mkMatchBinOp ">=" OpGE
+      , mkMatchBinOp ">" OpGT
+      , mkMatchBinOp "==" OpEQ
+      , mkMatchBinOp "!=" OpNE
+      ]
+    pMatchAdd = mkMatchBinOp "+" OpAdd
+    pMatchSub = mkMatchBinOp "-" OpSub
+    pMatchMul = mkMatchBinOp "*" OpMul
+    pMatchDiv = mkMatchBinOp "/" OpDiv
+    pMatchMod = mkMatchBinOp "%" OpMod
+    mkMatchBinOp sym op = do
+      start <- getPos
+      void $ symbol sym
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp op left right span'
+
+-- | Parse function application in match arm - only parenthesized arguments
+pMatchArmApp :: Parser Expr
+pMatchArmApp = do
+  start <- getPos
+  base <- pMatchArmPostfix
+  args <- many pParenArg
+  span' <- spanFrom start
+  case args of
+    [] -> pure base
+    _  -> pure $ EApp base (concat args) span'
+  where
+    pParenArg = do
+      symbol "("
+      argList <- pMatchArmBody `sepBy1` symbol ","
+      symbol ")"
+      pure argList
+
+-- | Parse postfix expressions in match arm - field access only
+pMatchArmPostfix :: Parser Expr
+pMatchArmPostfix = do
+  start <- getPos
+  base <- pAtom
+  accesses <- many pMatchFieldAccess
+  span' <- spanFrom start
+  pure $ foldl (\e (field, s) -> EFieldAccess e field s) base accesses
+  where
+    pMatchFieldAccess = do
+      fieldStart <- getPos
+      symbol "."
+      notFollowedBy upperIdent
+      field <- lowerIdent
+      span' <- spanFrom fieldStart
+      pure (field, span')
 
 pIf :: Parser Expr
 pIf = do
