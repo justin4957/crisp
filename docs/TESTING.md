@@ -1810,7 +1810,7 @@ The linear type test suite covers usage counting and linearity checking (~82 tes
 
 ### Doc Generator Tests (`test/Crisp/Doc/GenerateSpec.hs`)
 
-The doc generator test suite covers documentation extraction and rendering (~58 tests):
+The doc generator test suite covers documentation extraction and rendering (~66 tests):
 
 **Doc Comment Parsing (~8 tests)**
 - Simple doc comment extraction
@@ -1858,6 +1858,16 @@ The doc generator test suite covers documentation extraction and rendering (~58 
 - Handles lone pipe line as blank separator
 - Does not produce literal pipe characters in rendered markdown
 - Extracts see also section from pipe-style continuation lines
+
+**Type/Effect Examples (~8 tests)**
+- Extracts examples section for type doc comment
+- Extracts examples section for effect doc comment
+- Renders type examples in markdown output
+- Renders effect examples in markdown output
+- Extracts see-also section for type doc comment
+- Extracts see-also section for effect doc comment
+- Type without examples has empty list
+- Effect without examples has empty list
 
 **Markdown Rendering (~9 tests)**
 - Module header rendering

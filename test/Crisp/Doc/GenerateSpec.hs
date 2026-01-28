@@ -23,6 +23,7 @@ spec = do
   docCommentAssociationTests
   docCommentDisplayTests
   docCommentPipeStrippingTests
+  typeEffectExamplesTests
   markdownRenderingTests
   htmlRenderingTests
   docFormatTests
@@ -560,6 +561,162 @@ docCommentPipeStrippingTests = describe "Doc Comment Pipe Stripping (Issue #132)
     length (docSeeAlso doc) `shouldSatisfy` (>= 1)
 
 -- =============================================================================
+-- Type/Effect Examples Tests (Issue #141)
+-- =============================================================================
+
+typeEffectExamplesTests :: Spec
+typeEffectExamplesTests = describe "Type/Effect Examples (Issue #141)" $ do
+  it "extracts examples section for type doc comment" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A color type"
+          , "---"
+          , "--- Examples:"
+          , "---   Color.Red"
+          , "---   Color.Blue"
+          , "type Color:"
+          , "  Red"
+          , "  Blue"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> case modDocItems doc of
+        [ItemType ty] -> do
+          tyDocName ty `shouldBe` "Color"
+          tyDocSummary ty `shouldBe` Just "A color type"
+          length (tyDocExamples ty) `shouldSatisfy` (>= 1)
+        _ -> expectationFailure "Expected one type item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "extracts examples section for effect doc comment" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Logging effect"
+          , "---"
+          , "--- Examples:"
+          , "---   handle log_handler(Log.log(msg))"
+          , "effect Log:"
+          , "  log: String -> Unit"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> case modDocItems doc of
+        [ItemEffect eff] -> do
+          effDocName eff `shouldBe` "Log"
+          effDocSummary eff `shouldBe` Just "Logging effect"
+          length (effDocExamples eff) `shouldSatisfy` (>= 1)
+        _ -> expectationFailure "Expected one effect item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "renders type examples in markdown output" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A color type"
+          , "---"
+          , "--- Examples:"
+          , "---   Color.Red"
+          , "type Color:"
+          , "  Red"
+          , "  Blue"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "**Examples:**"
+        md `shouldSatisfy` T.isInfixOf "Color.Red"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "renders effect examples in markdown output" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Logging effect"
+          , "---"
+          , "--- Examples:"
+          , "---   handle log_handler(Log.log(msg))"
+          , "effect Log:"
+          , "  log: String -> Unit"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "**Examples:**"
+        md `shouldSatisfy` T.isInfixOf "handle log_handler"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "extracts see-also section for type doc comment" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A color type"
+          , "---"
+          , "--- See also:"
+          , "---   Palette"
+          , "type Color:"
+          , "  Red"
+          , "  Blue"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> case modDocItems doc of
+        [ItemType ty] -> do
+          tyDocName ty `shouldBe` "Color"
+          length (tyDocSeeAlso ty) `shouldSatisfy` (>= 1)
+        _ -> expectationFailure "Expected one type item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "extracts see-also section for effect doc comment" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Logging effect"
+          , "---"
+          , "--- See also:"
+          , "---   Console"
+          , "effect Log:"
+          , "  log: String -> Unit"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> case modDocItems doc of
+        [ItemEffect eff] -> do
+          effDocName eff `shouldBe` "Log"
+          length (effDocSeeAlso eff) `shouldSatisfy` (>= 1)
+        _ -> expectationFailure "Expected one effect item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "type without examples has empty list" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A simple type"
+          , "type Color:"
+          , "  Red"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> case modDocItems doc of
+        [ItemType ty] -> do
+          tyDocExamples ty `shouldBe` []
+          tyDocSeeAlso ty `shouldBe` []
+        _ -> expectationFailure "Expected one type item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "effect without examples has empty list" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Logging effect"
+          , "effect Log:"
+          , "  log: String -> Unit"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> case modDocItems doc of
+        [ItemEffect eff] -> do
+          effDocExamples eff `shouldBe` []
+          effDocSeeAlso eff `shouldBe` []
+        _ -> expectationFailure "Expected one effect item"
+      Left err -> expectationFailure $ T.unpack err
+
+-- =============================================================================
 -- Markdown Rendering Tests
 -- =============================================================================
 
@@ -638,6 +795,8 @@ markdownRenderingTests = describe "Markdown Rendering" $ do
               [ ConstructorDoc "Red" [] Nothing
               , ConstructorDoc "Green" [] Nothing
               ]
+          , tyDocExamples = []
+          , tyDocSeeAlso = []
           }
     let doc = ModuleDoc
           { modDocName = "Test"
@@ -658,6 +817,8 @@ markdownRenderingTests = describe "Markdown Rendering" $ do
           , tyDocSummary = Nothing
           , tyDocDescription = Nothing
           , tyDocConstructors = []
+          , tyDocExamples = []
+          , tyDocSeeAlso = []
           }
     let doc = ModuleDoc
           { modDocName = "Test"
@@ -679,6 +840,8 @@ markdownRenderingTests = describe "Markdown Rendering" $ do
               [ OperationDoc "get" "Unit -> s" Nothing
               , OperationDoc "put" "s -> Unit" Nothing
               ]
+          , effDocExamples = []
+          , effDocSeeAlso = []
           }
     let doc = ModuleDoc
           { modDocName = "Test"
