@@ -165,7 +165,10 @@ prettyDefinition opts ind = \case
 -- | Pretty print a doc comment, if present
 prettyDocComment :: Int -> Maybe DocComment -> Text
 prettyDocComment _ Nothing = ""
-prettyDocComment ind (Just doc) = indent ind <> "--- | " <> doc <> "\n"
+prettyDocComment ind (Just doc) =
+  let docLines = T.lines doc
+      prefixed = map (\l -> indent ind <> "--- | " <> l) docLines
+  in T.unlines prefixed
 
 -- | Pretty print a type definition
 prettyTypeDef :: FormatOptions -> Int -> TypeDef -> Text
