@@ -1779,6 +1779,15 @@ The doc generator test suite covers documentation extraction and rendering (~52 
 - Does not associate doc comment with non-adjacent definition
 - Module has no description when doc comment belongs to first definition
 
+**Doc Comment Display (~7 tests)**
+- Function doc comment displayed in rendered markdown
+- Type doc comment displayed in rendered markdown
+- Effect doc comment displayed in rendered markdown
+- External function doc comment displayed in rendered markdown
+- Type alias doc comment displayed in rendered markdown
+- Doc comments displayed in HTML output
+- No doc comment text displayed when no doc comment exists
+
 **Markdown Rendering (~9 tests)**
 - Module header rendering
 - Module summary rendering

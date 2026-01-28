@@ -21,6 +21,7 @@ spec = do
   docCommentParsingTests
   moduleDocExtractionTests
   docCommentAssociationTests
+  docCommentDisplayTests
   markdownRenderingTests
   htmlRenderingTests
   docFormatTests
@@ -125,7 +126,9 @@ moduleDocExtractionTests = describe "Module Documentation Extraction" $ do
       Right doc -> do
         length (modDocItems doc) `shouldBe` 1
         case head (modDocItems doc) of
-          ItemFunction fn -> fnDocName fn `shouldBe` "add"
+          ItemFunction fn -> do
+            fnDocName fn `shouldBe` "add"
+            fnDocSummary fn `shouldBe` Just "Add two numbers"
           _ -> expectationFailure "Expected function"
       Left err -> expectationFailure $ T.unpack err
 
@@ -158,6 +161,7 @@ moduleDocExtractionTests = describe "Module Documentation Extraction" $ do
       Right doc -> case modDocItems doc of
         [ItemType ty] -> do
           tyDocName ty `shouldBe` "Color"
+          tyDocSummary ty `shouldBe` Just "A color type"
           length (tyDocConstructors ty) `shouldSatisfy` (>= 1)
         _ -> expectationFailure "Expected one type"
       Left err -> expectationFailure $ T.unpack err
@@ -174,6 +178,7 @@ moduleDocExtractionTests = describe "Module Documentation Extraction" $ do
       Right doc -> case modDocItems doc of
         [ItemEffect eff] -> do
           effDocName eff `shouldBe` "Log"
+          effDocSummary eff `shouldBe` Just "Logging effect"
           length (effDocOperations eff) `shouldSatisfy` (>= 1)
         _ -> expectationFailure "Expected one effect"
       Left err -> expectationFailure $ T.unpack err
@@ -187,7 +192,9 @@ moduleDocExtractionTests = describe "Module Documentation Extraction" $ do
           ]
     case generateModuleDocs Markdown "test.crisp" content of
       Right doc -> case modDocItems doc of
-        [ItemExternal fn] -> fnDocName fn `shouldBe` "now"
+        [ItemExternal fn] -> do
+          fnDocName fn `shouldBe` "now"
+          fnDocSummary fn `shouldBe` Just "Get current time"
         _ -> expectationFailure "Expected one external"
       Left err -> expectationFailure $ T.unpack err
 
@@ -200,7 +207,9 @@ moduleDocExtractionTests = describe "Module Documentation Extraction" $ do
           ]
     case generateModuleDocs Markdown "test.crisp" content of
       Right doc -> case modDocItems doc of
-        [ItemTypeAlias ty] -> tyDocName ty `shouldBe` "UserId"
+        [ItemTypeAlias ty] -> do
+          tyDocName ty `shouldBe` "UserId"
+          tyDocSummary ty `shouldBe` Just "User identifier"
         _ -> expectationFailure "Expected one type alias"
       Left err -> expectationFailure $ T.unpack err
 
@@ -355,6 +364,118 @@ docCommentAssociationTests = describe "Doc Comment Association (Issue #130)" $ d
             tyDocName ty `shouldBe` "UserId"
             tyDocSummary ty `shouldBe` Just "User identifier"
           _ -> expectationFailure "Expected one type alias item"
+      Left err -> expectationFailure $ T.unpack err
+
+-- =============================================================================
+-- Doc Comment Display Tests (Issue #131)
+-- =============================================================================
+
+docCommentDisplayTests :: Spec
+docCommentDisplayTests = describe "Doc Comment Display (Issue #131)" $ do
+  it "displays function doc comment in rendered markdown" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Double a number"
+          , "fn double(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "Double a number"
+        md `shouldSatisfy` T.isInfixOf "### `double`"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "displays type doc comment in rendered markdown" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A color type"
+          , "type Color:"
+          , "  Red"
+          , "  Green"
+          , "  Blue"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "A color type"
+        md `shouldSatisfy` T.isInfixOf "### `Color`"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "displays effect doc comment in rendered markdown" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Logging effect"
+          , "effect Log:"
+          , "  log: String -> Unit"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "Logging effect"
+        md `shouldSatisfy` T.isInfixOf "### `effect Log`"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "displays external function doc comment in rendered markdown" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | Get current time"
+          , "external fn now() -> Int = (\"time\", \"now\")"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "Get current time"
+        md `shouldSatisfy` T.isInfixOf "### `now`"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "displays type alias doc comment in rendered markdown" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | User identifier"
+          , "type UserId = Int"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "User identifier"
+        md `shouldSatisfy` T.isInfixOf "### `UserId`"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "displays doc comments in HTML output" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A useful function"
+          , "fn useful(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs HTML "test.crisp" content of
+      Right doc -> do
+        let html = renderHtml doc
+        html `shouldSatisfy` T.isInfixOf "A useful function"
+        html `shouldSatisfy` T.isInfixOf "useful"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "does not display doc comment text when no doc comment exists" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "fn bare(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        case modDocItems doc of
+          [ItemFunction fn] -> do
+            fnDocSummary fn `shouldBe` Nothing
+            fnDocDescription fn `shouldBe` Nothing
+          _ -> expectationFailure "Expected one function item"
       Left err -> expectationFailure $ T.unpack err
 
 -- =============================================================================
