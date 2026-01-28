@@ -122,6 +122,8 @@ data TypeDoc = TypeDoc
   , tyDocSummary     :: !(Maybe Text)    -- ^ Brief description
   , tyDocDescription :: !(Maybe Text)    -- ^ Full description
   , tyDocConstructors :: ![ConstructorDoc] -- ^ Constructor docs
+  , tyDocExamples    :: ![Text]          -- ^ Usage examples
+  , tyDocSeeAlso     :: ![Text]          -- ^ Related items
   } deriving stock (Eq, Show)
 
 -- | Documentation for a constructor
@@ -138,6 +140,8 @@ data EffectDoc = EffectDoc
   , effDocSummary     :: !(Maybe Text)   -- ^ Brief description
   , effDocDescription :: !(Maybe Text)   -- ^ Full description
   , effDocOperations  :: ![OperationDoc] -- ^ Operation docs
+  , effDocExamples    :: ![Text]         -- ^ Usage examples
+  , effDocSeeAlso     :: ![Text]         -- ^ Related items
   } deriving stock (Eq, Show)
 
 -- | Documentation for an effect operation
@@ -224,6 +228,8 @@ extractItemDoc docs def = case def of
       , tyDocSummary = doc >>= docSummary
       , tyDocDescription = doc >>= docDescription
       , tyDocConstructors = map extractConstructorDoc (typeDefConstructors td)
+      , tyDocExamples = maybe [] docExamples doc
+      , tyDocSeeAlso = maybe [] docSeeAlso doc
       }
 
   DefEffect eff ->
@@ -235,6 +241,8 @@ extractItemDoc docs def = case def of
       , effDocSummary = doc >>= docSummary
       , effDocDescription = doc >>= docDescription
       , effDocOperations = map extractOperationDoc (effectDefOperations eff)
+      , effDocExamples = maybe [] docExamples doc
+      , effDocSeeAlso = maybe [] docSeeAlso doc
       }
 
   DefExternal ext ->
@@ -258,6 +266,8 @@ extractItemDoc docs def = case def of
       , tyDocSummary = doc >>= docSummary
       , tyDocDescription = doc >>= docDescription
       , tyDocConstructors = []
+      , tyDocExamples = maybe [] docExamples doc
+      , tyDocSeeAlso = maybe [] docSeeAlso doc
       }
 
   _ -> Nothing
@@ -498,7 +508,17 @@ renderTypeMarkdown TypeDoc{..} =
   (if null tyDocConstructors then [] else
     [ "**Constructors:**"
     , ""
-    ] ++ concatMap renderConstructorMarkdown tyDocConstructors)
+    ] ++ concatMap renderConstructorMarkdown tyDocConstructors) ++
+  (if null tyDocExamples then [] else
+    [ "**Examples:**"
+    , ""
+    , "```crisp"
+    ] ++ tyDocExamples ++
+    [ "```"
+    , ""
+    ]) ++
+  (if null tyDocSeeAlso then [] else
+    ["**See also:** " <> T.intercalate ", " (map (\x -> "`" <> x <> "`") tyDocSeeAlso), ""])
 
 -- | Render constructor documentation as Markdown
 renderConstructorMarkdown :: ConstructorDoc -> [Text]
@@ -518,7 +538,17 @@ renderEffectMarkdown EffectDoc{..} =
   (if null effDocOperations then [] else
     [ "**Operations:**"
     , ""
-    ] ++ concatMap renderOperationMarkdown effDocOperations)
+    ] ++ concatMap renderOperationMarkdown effDocOperations) ++
+  (if null effDocExamples then [] else
+    [ "**Examples:**"
+    , ""
+    , "```crisp"
+    ] ++ effDocExamples ++
+    [ "```"
+    , ""
+    ]) ++
+  (if null effDocSeeAlso then [] else
+    ["**See also:** " <> T.intercalate ", " (map (\x -> "`" <> x <> "`") effDocSeeAlso), ""])
 
 -- | Render operation documentation as Markdown
 renderOperationMarkdown :: OperationDoc -> [Text]
@@ -643,6 +673,9 @@ renderTypeHtml TypeDoc{..} = T.unlines
                           (if null (conDocFields c) then "" else " " <> escapeHtml (T.unwords (conDocFields c))) <>
                           "</code></li>") tyDocConstructors) <>
       "\n          </ul>\n        </div>"
+  , if null tyDocExamples then "" else
+      "        <h4>Examples</h4>\n        <pre><code>" <>
+      escapeHtml (T.unlines tyDocExamples) <> "</code></pre>"
   , "      </div>"
   ]
 
@@ -658,6 +691,9 @@ renderEffectHtml EffectDoc{..} = T.unlines
       T.concat (map (\o -> "\n            <li><code>" <> escapeHtml (opDocName o) <>
                           "</code>: <code>" <> escapeHtml (opDocSignature o) <> "</code></li>") effDocOperations) <>
       "\n          </ul>\n        </div>"
+  , if null effDocExamples then "" else
+      "        <h4>Examples</h4>\n        <pre><code>" <>
+      escapeHtml (T.unlines effDocExamples) <> "</code></pre>"
   , "      </div>"
   ]
 
