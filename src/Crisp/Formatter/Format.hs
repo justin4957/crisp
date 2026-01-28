@@ -117,11 +117,12 @@ prettyModule opts mod' = T.intercalate "\n\n" $ filter (not . T.null)
 -- | Pretty print module header
 prettyModuleHeader :: FormatOptions -> Module -> Text
 prettyModuleHeader _opts mod' =
-  let path = T.intercalate "." (modulePathSegments (moduleName mod'))
+  let docStr = prettyDocComment 0 (moduleDocComment mod')
+      path = T.intercalate "." (modulePathSegments (moduleName mod'))
       auth = case moduleAuthority mod' of
         Nothing -> ""
         Just a -> " authority " <> a
-  in "module " <> path <> auth
+  in docStr <> "module " <> path <> auth
 
 -- | Pretty print requires declarations
 prettyRequires :: FormatOptions -> [Require] -> Text

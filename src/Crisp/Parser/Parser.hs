@@ -138,6 +138,7 @@ identifier = lowerIdent <|> upperIdent
 pModule :: Parser Module
 pModule = do
   start <- getPos
+  doc <- optional (try pDocComment)
   keyword "module"
   name <- pModulePath
   auth <- optional (keyword "authority" *> upperIdent)
@@ -145,7 +146,7 @@ pModule = do
   provLists <- many pProvides
   defs <- many pDefinition
   span' <- spanFrom start
-  pure $ Module name auth (concat reqLists) (concat provLists) defs span'
+  pure $ Module name auth (concat reqLists) (concat provLists) defs span' doc
 
 pModulePath :: Parser ModulePath
 pModulePath = do

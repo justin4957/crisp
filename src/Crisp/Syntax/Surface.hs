@@ -71,6 +71,7 @@ data Module = Module
   , moduleProvides   :: ![Provide]
   , moduleDefinitions :: ![Definition]
   , moduleSpan       :: !Span
+  , moduleDocComment :: !(Maybe DocComment)
   } deriving stock (Eq, Show, Generic)
 
 -- | A qualified module path (e.g., Treasury.Audit)
