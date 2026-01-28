@@ -1219,10 +1219,11 @@ pAddSub = makeExprParser pMulDiv
   [ [InfixL pAdd, InfixL pSub] ]
   where
     pAdd = mkBinOp "+" OpAdd
-    -- Subtraction operator must not be followed by '>' (to avoid matching '->')
+    -- Subtraction operator must not be followed by '>' (arrow) or '--' (doc comment prefix)
     pSub = do
       start <- getPos
-      void $ try (symbol "-" <* notFollowedBy (char '>'))
+      void $ try (string "-" <* notFollowedBy (char '>') <* notFollowedBy (string "--"))
+      sc
       span' <- spanFrom start
       pure $ \left right -> EBinOp OpSub left right span'
 

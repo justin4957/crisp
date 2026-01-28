@@ -1406,3 +1406,76 @@ docCommentTests = describe "doc comments" $ do
             Nothing -> expectationFailure "Expected doc comment"
         _ -> expectationFailure "Expected single type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses two functions with doc comments (issue #138)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | First thing"
+          , "fn first(x: Int) -> Int:"
+          , "  x"
+          , ""
+          , "--- | Second thing"
+          , "fn second(x: Int) -> Int:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd1, DefFn fd2] -> do
+          fnDefDocComment fd1 `shouldBe` Just "First thing"
+          fnDefDocComment fd2 `shouldBe` Just "Second thing"
+        _ -> expectationFailure "Expected two function definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses two types with doc comments (issue #138)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | A color"
+          , "type Color:"
+          , "  Red"
+          , ""
+          , "--- | A shape"
+          , "type Shape:"
+          , "  Circle"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td1, DefType td2] -> do
+          typeDefDocComment td1 `shouldBe` Just "A color"
+          typeDefDocComment td2 `shouldBe` Just "A shape"
+        _ -> expectationFailure "Expected two type definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses documented function followed by documented type (issue #138)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "--- | A function"
+          , "fn foo(x: Int) -> Int:"
+          , "  x"
+          , ""
+          , "--- | A type"
+          , "type Bar:"
+          , "  Baz"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd, DefType td] -> do
+          fnDefDocComment fd `shouldBe` Just "A function"
+          typeDefDocComment td `shouldBe` Just "A type"
+        _ -> expectationFailure "Expected function and type definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "subtraction still works after doc comment fix (issue #138)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "fn sub(x: Int, y: Int) -> Int:"
+          , "  x - y"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn _] -> pure ()
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err

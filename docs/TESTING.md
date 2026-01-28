@@ -210,9 +210,13 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Requires (effects, types), provides (type, fn)
 - Multiple definitions
 
-**Doc Comment Tests (~2 tests)**
+**Doc Comment Tests (~6 tests)**
 - Multi-line doc comment with pipe on continuation lines parsed correctly
 - Multi-line doc comment with empty pipe line parsed correctly
+- Two functions with doc comments parse correctly (issue #138)
+- Two types with doc comments parse correctly (issue #138)
+- Documented function followed by documented type parses correctly (issue #138)
+- Subtraction still works after doc comment disambiguation fix (issue #138)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
