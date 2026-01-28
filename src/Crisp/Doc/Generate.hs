@@ -193,8 +193,10 @@ extractModuleDoc sourcePath content mod' =
   let modPath = moduleName mod'
       modName = T.intercalate "." (modulePathSegments modPath)
       docComments = extractDocComments content
-      moduleStartLine = posLine (spanStart (moduleSpan mod'))
-      moduleComment = lookupModuleComment moduleStartLine docComments
+      moduleComment = case moduleDocComment mod' of
+        Just astDoc -> Just (parseAstDocComment astDoc)
+        Nothing     -> let moduleStartLine = posLine (spanStart (moduleSpan mod'))
+                       in lookupModuleComment moduleStartLine docComments
       items = mapMaybe (extractItemDoc docComments) (moduleDefinitions mod')
   in ModuleDoc
     { modDocName = modName
@@ -336,11 +338,34 @@ isDocLine line =
   let stripped = T.stripStart line
   in T.isPrefixOf "--- " stripped || stripped == "---"
 
--- | Parse a doc comment block
+-- | Parse a doc comment block from raw source lines
 parseDocComment :: [Text] -> DocComment
 parseDocComment ls =
   let cleaned = map stripDocPrefix ls
       (summary, rest) = extractSummary cleaned
+      (description, examples, seeAlso, since) = parseDocSections rest
+  in DocComment
+    { docSummary = summary
+    , docDescription = description
+    , docExamples = examples
+    , docSeeAlso = seeAlso
+    , docSince = since
+    }
+
+-- | Parse a doc comment from already-stripped AST text.
+-- The AST stores doc comments as plain text with prefixes removed,
+-- so we split by lines and extract sections directly.
+parseAstDocComment :: Text -> DocComment
+parseAstDocComment text =
+  let linesList = T.lines text
+      (summary, rest) = case linesList of
+        []     -> (Nothing, [])
+        (l:ls) -> let stripped = T.strip l
+                  in if T.null stripped
+                     then case ls of
+                       []      -> (Nothing, [])
+                       (l2:r2) -> (Just (T.strip l2), r2)
+                     else (Just stripped, ls)
       (description, examples, seeAlso, since) = parseDocSections rest
   in DocComment
     { docSummary = summary

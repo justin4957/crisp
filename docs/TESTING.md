@@ -1814,7 +1814,7 @@ The linear type test suite covers usage counting and linearity checking (~82 tes
 
 ### Doc Generator Tests (`test/Crisp/Doc/GenerateSpec.hs`)
 
-The doc generator test suite covers documentation extraction and rendering (~66 tests):
+The doc generator test suite covers documentation extraction and rendering (~71 tests):
 
 **Doc Comment Parsing (~8 tests)**
 - Simple doc comment extraction
@@ -1872,6 +1872,13 @@ The doc generator test suite covers documentation extraction and rendering (~66 
 - Extracts see-also section for effect doc comment
 - Type without examples has empty list
 - Effect without examples has empty list
+
+**Module Doc Comment in Generator (~5 tests)**
+- Uses module-level doc comment as module summary
+- Renders module-level doc comment in markdown output
+- Uses multi-line module doc comment for summary and description
+- Does not use first definition doc as module description
+- Module without doc comment has no summary
 
 **Markdown Rendering (~9 tests)**
 - Module header rendering

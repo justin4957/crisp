@@ -24,6 +24,7 @@ spec = do
   docCommentDisplayTests
   docCommentPipeStrippingTests
   typeEffectExamplesTests
+  moduleDocCommentTests
   markdownRenderingTests
   htmlRenderingTests
   docFormatTests
@@ -714,6 +715,83 @@ typeEffectExamplesTests = describe "Type/Effect Examples (Issue #141)" $ do
           effDocExamples eff `shouldBe` []
           effDocSeeAlso eff `shouldBe` []
         _ -> expectationFailure "Expected one effect item"
+      Left err -> expectationFailure $ T.unpack err
+
+-- =============================================================================
+-- Module Doc Comment in Generator Tests (Issue #148)
+-- =============================================================================
+
+moduleDocCommentTests :: Spec
+moduleDocCommentTests = describe "Module Doc Comment in Generator (Issue #148)" $ do
+  it "uses module-level doc comment as module summary" $ do
+    let content = T.unlines
+          [ "--- | Module for comprehensive testing"
+          , "module Test.ModDoc"
+          , ""
+          , "--- | Double a number"
+          , "fn double(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Just "Module for comprehensive testing"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "renders module-level doc comment in markdown output" $ do
+    let content = T.unlines
+          [ "--- | Module for comprehensive testing"
+          , "module Test.ModDoc"
+          , ""
+          , "--- | Double a number"
+          , "fn double(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        let md = renderMarkdown doc
+        md `shouldSatisfy` T.isInfixOf "Module for comprehensive testing"
+        md `shouldSatisfy` T.isInfixOf "# Test.ModDoc"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "uses multi-line module doc comment for summary and description" $ do
+    let content = T.unlines
+          [ "--- | Module summary"
+          , "--- | More details here"
+          , "module Test.Multi"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Just "Module summary"
+        modDocDescription doc `shouldSatisfy` \d -> d /= Nothing
+      Left err -> expectationFailure $ T.unpack err
+
+  it "does not use first definition doc as module description" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "--- | A function doc"
+          , "fn foo(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        case modDocItems doc of
+          [ItemFunction fn] -> fnDocSummary fn `shouldBe` Just "A function doc"
+          _ -> expectationFailure "Expected one function item"
+      Left err -> expectationFailure $ T.unpack err
+
+  it "module without doc comment has no summary" $ do
+    let content = T.unlines
+          [ "module Test"
+          , ""
+          , "fn foo(x: Int) -> Int:"
+          , "  x"
+          ]
+    case generateModuleDocs Markdown "test.crisp" content of
+      Right doc -> do
+        modDocSummary doc `shouldBe` Nothing
+        modDocDescription doc `shouldBe` Nothing
       Left err -> expectationFailure $ T.unpack err
 
 -- =============================================================================
