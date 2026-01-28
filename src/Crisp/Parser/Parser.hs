@@ -369,18 +369,69 @@ pConstructor = do
          ty <- pType
          span' <- spanFrom start
          pure $ GadtConstructor name ty span'
-    , -- Record constructor: { field: Type, ... }
+    , -- Record constructor with braces: { field: Type, ... }
       try $ do
         symbol "{"
         fields <- pField `sepBy1` symbol ","
         symbol "}"
         span' <- spanFrom start
         pure $ RecordConstructor name fields span'
-    , -- Simple positional constructor: Cons Type1 Type2
-      do args <- many pTypeAtom
+    , -- Parenthesized constructor: Cons(args) or Cons(field: Type, ...)
+      try $ do
+        symbol "("
+        -- Try to parse as named fields first (lowercase name followed by colon)
+        choice
+          [ -- Named fields: Cons(field: Type, ...)
+            try $ do
+              fields <- pConstructorField `sepBy1` symbol ","
+              symbol ")"
+              span' <- spanFrom start
+              pure $ RecordConstructor name fields span'
+          , -- Positional types: Cons(Type1, Type2, ...)
+            do args <- pTypeApp `sepBy1` symbol ","
+               symbol ")"
+               span' <- spanFrom start
+               pure $ SimpleConstructor name args span'
+          ]
+    , -- Simple positional constructor without parens: Cons Type1 Type2
+      -- Don't consume uppercase identifiers that could be new constructors
+      do args <- many pSimpleConstructorArg
          span' <- spanFrom start
          pure $ SimpleConstructor name args span'
     ]
+
+-- | Parse a type argument for simple constructors
+-- This is more restrictive than pTypeAtom to avoid consuming subsequent constructors
+-- We don't consume bare uppercase identifiers since they could be new constructors
+pSimpleConstructorArg :: Parser Type
+pSimpleConstructorArg = choice
+  [ -- Parenthesized types are safe
+    do start <- getPos
+       symbol "("
+       ty <- pType
+       symbol ")"
+       span' <- spanFrom start
+       pure $ TyParen ty span'
+  , -- Lazy types
+    do start <- getPos
+       keyword "Lazy"
+       ty <- pSimpleConstructorArg
+       span' <- spanFrom start
+       pure $ TyLazy ty span'
+  , -- Ref types
+    do start <- getPos
+       keyword "ref"
+       mut <- option False (True <$ keyword "mut")
+       ty <- pSimpleConstructorArg
+       span' <- spanFrom start
+       pure $ TyRef ty mut span'
+  , -- Only lowercase type variables are allowed as bare arguments
+    -- Uppercase identifiers could be new constructors
+    do start <- getPos
+       name <- lowerIdent
+       span' <- spanFrom start
+       pure $ TyName name span'
+  ]
 
 -- | Parse a record field: name: Type
 pField :: Parser Field
@@ -389,6 +440,16 @@ pField = do
   name <- lowerIdent
   symbol ":"
   ty <- pType
+  span' <- spanFrom start
+  pure $ Field name ty span'
+
+-- | Parse a constructor field: name: Type (using pTypeApp to avoid consuming commas)
+pConstructorField :: Parser Field
+pConstructorField = do
+  start <- getPos
+  name <- lowerIdent
+  symbol ":"
+  ty <- pTypeApp  -- Use pTypeApp instead of pType to not consume arrows/effects
   span' <- spanFrom start
   pure $ Field name ty span'
 
