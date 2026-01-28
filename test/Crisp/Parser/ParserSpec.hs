@@ -706,6 +706,129 @@ typeDefTests = describe "type definitions" $ do
     let src = "module Main type List T: Type"
     shouldParse $ parseModule "test" src
 
+  -- Constructor syntax tests (issues #115, #116)
+  it "parses constructor with named fields" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Wrapper:"
+          , "  Empty"
+          , "  Value(content: String)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleDefinitions m) `shouldBe` 1
+        case moduleDefinitions m of
+          [DefType td] -> length (typeDefConstructors td) `shouldBe` 2
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses constructor with multiple named fields" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Point:"
+          , "  Origin"
+          , "  Cartesian(x: Int, y: Int)"
+          , "  Polar(radius: Float, angle: Float)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> length (typeDefConstructors td) `shouldBe` 3
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses constructor with positional fields" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Pair:"
+          , "  Empty"
+          , "  MkPair(Int, Int)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> length (typeDefConstructors td) `shouldBe` 2
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses constructor with multiple positional fields" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Triple:"
+          , "  MkTriple(Int, String, Bool)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            length (typeDefConstructors td) `shouldBe` 1
+            case typeDefConstructors td of
+              [SimpleConstructor _ args _] -> length args `shouldBe` 3
+              _ -> expectationFailure "Expected SimpleConstructor with 3 args"
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses mixed nullary and parenthesized constructors" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Timezone:"
+          , "  UTC"
+          , "  Local"
+          , "  Offset(hours: Int, minutes: Int)"
+          , "  Named(name: String)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> length (typeDefConstructors td) `shouldBe` 4
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses generic type with named field constructors" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Result E A:"
+          , "  Ok(value: A)"
+          , "  Err(error: E)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            length (typeDefParams td) `shouldBe` 2
+            length (typeDefConstructors td) `shouldBe` 2
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses generic type with positional field constructors" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Pair A B:"
+          , "  MkPair(A, B)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            length (typeDefParams td) `shouldBe` 2
+            length (typeDefConstructors td) `shouldBe` 1
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses constructor with nested generic types" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Complex:"
+          , "  Simple(Int)"
+          , "  Nested(List Int, Option String)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> length (typeDefConstructors td) `shouldBe` 2
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 effectDefTests :: Spec
 effectDefTests = describe "effect definitions" $ do
   it "parses simple effect" $ do

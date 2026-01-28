@@ -170,6 +170,56 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "type Foo"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats type with named field constructors" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type Point:"
+            , "  Origin"
+            , "  Cartesian(x: Int, y: Int)"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "Origin"
+          formatted `shouldSatisfy` T.isInfixOf "Cartesian"
+          formatted `shouldSatisfy` T.isInfixOf "x: Int"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats type with positional field constructors" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type Pair:"
+            , "  MkPair(Int, String)"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "MkPair"
+          formatted `shouldSatisfy` T.isInfixOf "Int"
+          formatted `shouldSatisfy` T.isInfixOf "String"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats type with mixed constructors" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type Timezone:"
+            , "  UTC"
+            , "  Local"
+            , "  Offset(hours: Int, minutes: Int)"
+            , "  Named(name: String)"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "UTC"
+          formatted `shouldSatisfy` T.isInfixOf "Local"
+          formatted `shouldSatisfy` T.isInfixOf "Offset"
+          formatted `shouldSatisfy` T.isInfixOf "Named"
+        Left _ -> expectationFailure "Expected Right"
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"
