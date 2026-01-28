@@ -1286,12 +1286,32 @@ pLet = do
     pLetValue :: Parser Expr
     pLetValue = do
       start <- getPos
-      func <- pLetAtom
-      args <- many (try $ notFollowedBy (keyword "in") *> pLetAtom)
+      func <- pLetPostfix
+      args <- many (try $ notFollowedBy (keyword "in") *> pLetPostfix)
       span' <- spanFrom start
       case args of
         [] -> pure func
         _  -> pure $ EApp func args span'
+
+    -- Parse postfix expressions (field access) for let bindings
+    pLetPostfix :: Parser Expr
+    pLetPostfix = do
+      start <- getPos
+      base <- pLetAtom
+      accesses <- many pLetFieldAccess
+      span' <- spanFrom start
+      pure $ foldl (\e (field, s) -> EFieldAccess e field s) base accesses
+
+    -- Parse field access, but not followed by 'in' keyword
+    pLetFieldAccess :: Parser (Text, Span)
+    pLetFieldAccess = try $ do
+      notFollowedBy (keyword "in")
+      s <- getPos
+      symbol "."
+      notFollowedBy upperIdent
+      field <- lowerIdent
+      span' <- spanFrom s
+      pure (field, span')
 
     pLetAtom :: Parser Expr
     pLetAtom = choice
