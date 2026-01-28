@@ -259,10 +259,13 @@ The formatter test suite covers source code formatting (~45 tests):
 - Simple function, function with effects
 - Effect definition
 
-**Doc Comment Preservation (~4 tests)**
+**Doc Comment Preservation (~7 tests)**
 - Preserves doc comments on function and type definitions
 - Preserves doc comments on multiple definitions
 - Doc comment appears before definition in output
+- Multi-line doc comment formatted with `--- |` prefix on every line (issue #139)
+- Multi-line doc comment formatting is idempotent (issue #139)
+- Single-line doc comment formatted unchanged (issue #139)
 
 **Other (~4 tests)**
 - Trailing newline option (enabled/disabled)

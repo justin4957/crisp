@@ -518,6 +518,58 @@ spec = describe "Crisp.Formatter.Format" $ do
           T.length (fst docPos) `shouldSatisfy` (< T.length (fst fnPos))
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats multi-line doc comment with prefix on every line (issue #139)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | A range with start and end bounds"
+            , "--- | Examples:"
+            , "--- |   let r = Range(0, 10)"
+            , "type Range:"
+            , "  start: Int"
+            , "  end: Int"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "--- | A range with start and end bounds"
+          formatted `shouldSatisfy` T.isInfixOf "--- | Examples:"
+          formatted `shouldSatisfy` T.isInfixOf "--- | let r = Range(0, 10)"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "multi-line doc comment formatting is idempotent (issue #139)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | Summary line"
+            , "--- | Detail line"
+            , "type T:"
+            , "  Value Int"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
+    it "formats single-line doc comment unchanged (issue #139)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | Just one line"
+            , "fn foo(x: Int) -> Int:"
+            , "  x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "--- | Just one line"
+          -- Should not have duplicate prefix lines
+          let docLines = filter (T.isPrefixOf "--- |") (T.lines formatted)
+          length docLines `shouldBe` 1
+
 -- Helper functions
 
 isRight :: Either a b -> Bool
