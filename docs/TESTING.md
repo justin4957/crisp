@@ -210,7 +210,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Requires (effects, types), provides (type, fn)
 - Multiple definitions
 
-**Doc Comment Tests (~9 tests)**
+**Doc Comment Tests (~11 tests)**
 - Multi-line doc comment with pipe on continuation lines parsed correctly
 - Multi-line doc comment with empty pipe line parsed correctly
 - Two functions with doc comments parse correctly (issue #138)
@@ -220,6 +220,8 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Module-level doc comment before module keyword parsed correctly (issue #140)
 - Multi-line module doc comment parsed correctly (issue #140)
 - Module without doc comment has Nothing (issue #140)
+- Preserves indentation in doc comment lines (issue #147)
+- Preserves multi-level indentation in doc comments (issue #147)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
@@ -262,7 +264,7 @@ The formatter test suite covers source code formatting (~45 tests):
 - Simple function, function with effects
 - Effect definition
 
-**Doc Comment Preservation (~9 tests)**
+**Doc Comment Preservation (~11 tests)**
 - Preserves doc comments on function and type definitions
 - Preserves doc comments on multiple definitions
 - Doc comment appears before definition in output
@@ -271,6 +273,8 @@ The formatter test suite covers source code formatting (~45 tests):
 - Single-line doc comment formatted unchanged (issue #139)
 - Module-level doc comment formatted before module keyword (issue #140)
 - Module-level doc comment formatting is idempotent (issue #140)
+- Preserves indentation in doc comment continuation lines (issue #147)
+- Indented doc comment formatting is idempotent (issue #147)
 
 **Other (~4 tests)**
 - Trailing newline option (enabled/disabled)

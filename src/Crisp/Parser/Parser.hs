@@ -68,16 +68,17 @@ pDocComment :: Parser DocComment
 pDocComment = do
   firstLine <- pDocCommentLine
   moreLines <- many (try pDocCommentLine)
-  pure $ T.strip $ T.intercalate "\n" (firstLine : moreLines)
+  pure $ T.stripEnd $ T.intercalate "\n" (firstLine : moreLines)
 
 -- | Parse a single doc comment line: --- | text
--- Returns the text content after "--- |", with the pipe stripped.
+-- Returns the text content after "--- |", preserving leading indentation.
+-- Strips the single conventional space after the pipe character.
 pDocCommentLine :: Parser Text
 pDocCommentLine = do
   _ <- string "--- |"
   content <- takeWhileP Nothing (/= '\n')
   sc  -- consume trailing whitespace after the doc comment line
-  pure $ T.strip content
+  pure $ T.stripEnd $ if T.isPrefixOf " " content then T.drop 1 content else content
 
 -- | Lexeme - consume trailing whitespace
 lexeme :: Parser a -> Parser a

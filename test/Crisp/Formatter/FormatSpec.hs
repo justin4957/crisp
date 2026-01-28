@@ -535,7 +535,7 @@ spec = describe "Crisp.Formatter.Format" $ do
         Right formatted -> do
           formatted `shouldSatisfy` T.isInfixOf "--- | A range with start and end bounds"
           formatted `shouldSatisfy` T.isInfixOf "--- | Examples:"
-          formatted `shouldSatisfy` T.isInfixOf "--- | let r = Range(0, 10)"
+          formatted `shouldSatisfy` T.isInfixOf "--- |   let r = Range(0, 10)"
         Left _ -> expectationFailure "Expected Right"
 
     it "multi-line doc comment formatting is idempotent (issue #139)" $ do
@@ -591,6 +591,42 @@ spec = describe "Crisp.Formatter.Format" $ do
       let src = T.unlines
             [ "--- | Module docs"
             , "module Test"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
+    it "preserves indentation in doc comment continuation lines (issue #147)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | Summary line"
+            , "--- |   indented content"
+            , "--- |     more indented"
+            , "--- | back to normal"
+            , "fn f(x: Int) -> Int:"
+            , "  x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "--- | Summary line"
+          formatted `shouldSatisfy` T.isInfixOf "--- |   indented content"
+          formatted `shouldSatisfy` T.isInfixOf "--- |     more indented"
+          formatted `shouldSatisfy` T.isInfixOf "--- | back to normal"
+
+    it "indented doc comment formatting is idempotent (issue #147)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "--- | Examples:"
+            , "--- |   let x = 1"
+            , "--- |   let y = 2"
+            , "fn f(x: Int) -> Int:"
+            , "  x"
             ]
       case formatSource defaultFormatOptions src of
         Left err -> expectationFailure $ T.unpack err
