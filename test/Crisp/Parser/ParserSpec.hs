@@ -12,6 +12,7 @@ module Crisp.Parser.ParserSpec (spec) where
 import Test.Hspec
 
 import Crisp.Parser.Parser
+import Crisp.Formatter.Format (formatExpr, defaultFormatOptions)
 import Crisp.Syntax.Surface
 import Crisp.Syntax.Span (Span(..))
 
@@ -189,6 +190,29 @@ letExpressionTests = describe "let expressions" $ do
       Right (ELet _ _ _ _ _) -> pure ()
       Right other -> expectationFailure $ "Expected ELet, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "round-trips layout-based let through formatter" $ do
+    let src = "let x = 1\nx"
+    case formatExpr defaultFormatOptions src of
+      Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+      Right formatted -> do
+        formatted `shouldBe` "let x = 1\nx"
+        -- Re-parse to verify it's still valid
+        case parseExpr "test" formatted of
+          Right (ELet _ _ _ _ _) -> pure ()
+          Right other -> expectationFailure $ "Expected ELet, got " ++ show other
+          Left err -> expectationFailure $ "Re-parse failed: " ++ show err
+
+  it "round-trips nested layout-based let through formatter" $ do
+    let src = "let x = 1 in let y = 2 in x"
+    case formatExpr defaultFormatOptions src of
+      Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+      Right formatted -> do
+        formatted `shouldBe` "let x = 1\nlet y = 2\nx"
+        case parseExpr "test" formatted of
+          Right (ELet _ _ _ _ _) -> pure ()
+          Right other -> expectationFailure $ "Expected ELet, got " ++ show other
+          Left err -> expectationFailure $ "Re-parse failed: " ++ show err
 
 ifExpressionTests :: Spec
 ifExpressionTests = describe "if expressions" $ do
