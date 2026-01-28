@@ -829,6 +829,44 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Type alias with 'where' refinement tests (issue #118)
+  it "parses type alias with where refinement" $ do
+    let src = "module Test type PositiveInt = Int where { self > 0 }"
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleDefinitions m) `shouldBe` 1
+        case moduleDefinitions m of
+          [DefTypeAlias _] -> pure ()
+          _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type alias with where and field access" $ do
+    let src = "module Test type ValidRange = Range where { self.start <= self.end }"
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleDefinitions m) `shouldBe` 1
+        case moduleDefinitions m of
+          [DefTypeAlias _] -> pure ()
+          _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses generic type alias with where refinement" $ do
+    let src = "module Test type NonEmpty A = List A where { self.length > 0 }"
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefTypeAlias td] -> length (typeAliasParams td) `shouldBe` 1
+          _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type alias with chained field access in where" $ do
+    let src = "module Test type Valid = Record where { self.field.inner > 0 }"
+    shouldParse $ parseModule "test" src
+
+  it "parses type alias with multiple predicates in where" $ do
+    let src = "module Test type Bounded = Int where { self >= 0, self <= 100 }"
+    shouldParse $ parseModule "test" src
+
 effectDefTests :: Spec
 effectDefTests = describe "effect definitions" $ do
   it "parses simple effect" $ do
