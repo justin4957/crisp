@@ -547,7 +547,19 @@ prettyMatchArm opts ind arm =
         Nothing -> ""
         Just g -> " | " <> prettyExpr opts ind g
   in indent ind <> prettyPattern opts (matchArmPattern arm) <> guardStr
-     <> " -> " <> prettyExpr opts ind (matchArmBody arm)
+     <> " -> " <> prettyMatchArmExpr opts ind (matchArmBody arm)
+
+-- | Pretty print an expression in a match arm body.
+-- Uses parenthesized application syntax (f(x, y)) instead of space-separated
+-- (f x y) to ensure the formatted output can be re-parsed by the match arm
+-- body parser, which only supports parenthesized application.
+prettyMatchArmExpr :: FormatOptions -> Int -> Expr -> Text
+prettyMatchArmExpr opts ind expr = case expr of
+  EApp func args _ ->
+    prettyMatchArmExpr opts ind func <> "("
+    <> T.intercalate ", " (map (prettyMatchArmExpr opts ind) args) <> ")"
+  -- For other expressions, delegate to the standard prettyExpr
+  _ -> prettyExpr opts ind expr
 
 -- | Pretty print a do statement
 prettyDoStmt :: FormatOptions -> Int -> DoStatement -> Text
