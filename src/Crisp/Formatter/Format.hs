@@ -146,6 +146,9 @@ prettyProvides opts provs = T.intercalate "\n" (map prettyProv provs)
     prettyProv (ProvideFn name mTy _) = case mTy of
       Just ty -> "provides fn " <> name <> ": " <> prettyType opts 0 ty
       Nothing -> "provides fn " <> name
+    prettyProv (ProvideExternalFn name mTy _) = case mTy of
+      Just ty -> "provides external fn " <> name <> ": " <> prettyType opts 0 ty
+      Nothing -> "provides external fn " <> name
 
 --------------------------------------------------------------------------------
 -- Pretty Printing - Definitions
