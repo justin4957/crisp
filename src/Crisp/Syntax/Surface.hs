@@ -93,6 +93,7 @@ data Provide
   | ProvideFn !Text !(Maybe Type) !Span     -- ^ Export a function: provides fn name or provides fn name: Type
   | ProvideExternalFn !Text !(Maybe Type) !Span  -- ^ Export an external function: provides external fn name
   | ProvideEffect !Text !Span               -- ^ Export an effect: provides effect Name
+  | ProvideTrait !Text !Span                -- ^ Export a trait: provides trait Name
   deriving stock (Eq, Show, Generic)
 
 -- | A doc comment (--- | text)

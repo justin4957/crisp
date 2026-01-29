@@ -1372,6 +1372,47 @@ moduleTests = describe "modules" $ do
       Right m -> length (moduleProvides m) `shouldBe` 4
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block with trait (issue #164)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  trait Action"
+          , "  type JudicialAction"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 2
+        case moduleProvides m of
+          [ProvideTrait name _, ProvideType _ _] -> name `shouldBe` "Action"
+          _ -> expectationFailure "Expected ProvideTrait and ProvideType"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with multiple traits (issue #164)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  trait Eq"
+          , "  trait Ord"
+          , "  trait Show"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 3
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with all item types including trait (issue #164)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  trait Action"
+          , "  type JudicialAction"
+          , "  effect Logger"
+          , "  fn execute"
+          , "  external fn ffi_call"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 5
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses requires block with multiple items" $ do
     let src = T.unlines
           [ "module Main"

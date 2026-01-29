@@ -249,6 +249,37 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats module with trait in provides block (issue #164)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  trait Action"
+            , "  type JudicialAction"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "provides trait Action"
+          formatted `shouldSatisfy` T.isInfixOf "provides type JudicialAction"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats trait in provides block idempotently (issue #164)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  trait Eq"
+            , "  trait Ord"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats type with named field constructors" $ do
       let src = T.unlines
             [ "module Test"
