@@ -244,7 +244,14 @@ pProvideItemIndented baseCol = try $ do
 -- | Parse a single provide item (after the "provides" keyword)
 pProvideItem :: Position -> Parser Provide
 pProvideItem start = choice
-  [ do keyword "type"
+  [ -- type prop Name (must come before type Name)
+    try $ do
+       keyword "type"
+       keyword "prop"
+       name <- upperIdent
+       span' <- spanFrom start
+       pure $ ProvideTypeProp name span'
+  , do keyword "type"
        name <- upperIdent
        span' <- spanFrom start
        pure $ ProvideType name span'
