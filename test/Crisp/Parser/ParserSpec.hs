@@ -1000,6 +1000,65 @@ effectDefTests = describe "effect definitions" $ do
         _ -> expectationFailure "Expected single effect definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses function-style effect operation (issue #162)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect HttpClient:"
+          , "  http_get(url: String) -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> case effectDefOperations ed of
+          [op] -> operationName op `shouldBe` "http_get"
+          _ -> expectationFailure "Expected single operation"
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses function-style operation with multiple params (issue #162)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect HttpClient:"
+          , "  http_post(url: String, body: String) -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> case effectDefOperations ed of
+          [op] -> operationName op `shouldBe` "http_post"
+          _ -> expectationFailure "Expected single operation"
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses effect with mixed operation syntaxes (issue #162)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect Database:"
+          , "  connect: String -> Unit"
+          , "  query(sql: String) -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> length (effectDefOperations ed) `shouldBe` 2
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses function-style operation with no params (issue #162)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect Random:"
+          , "  next() -> Int"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> case effectDefOperations ed of
+          [op] -> operationName op `shouldBe` "next"
+          _ -> expectationFailure "Expected single operation"
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 handlerDefTests :: Spec
 handlerDefTests = describe "handler definitions" $ do
   it "parses simple handler" $ do

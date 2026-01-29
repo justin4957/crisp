@@ -234,6 +234,10 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parses provides block with effect (issue #160)
 - Parses provides block with multiple effects (issue #160)
 - Parses provides block with all item types (issue #160)
+- Parses function-style effect operation (issue #162)
+- Parses function-style operation with multiple params (issue #162)
+- Parses effect with mixed operation syntaxes (issue #162)
+- Parses function-style operation with no params (issue #162)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
@@ -276,12 +280,14 @@ The formatter test suite covers source code formatting (~51 tests):
 - Expression formatting idempotent (layout-based let)
 - Module with type formatting idempotent
 
-**Definition Formatting (~7 tests)**
+**Definition Formatting (~9 tests)**
 - Simple type, type with parameters
 - Simple function, function with effects
 - Effect definition
 - Effect with documented operations (issue #154)
 - Effect with documented operations is idempotent (issue #154)
+- Function-style effect operation formatting (issue #162)
+- Function-style effect operation is idempotent (issue #162)
 
 **Doc Comment Preservation (~11 tests)**
 - Preserves doc comments on function and type definitions

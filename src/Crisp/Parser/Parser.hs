@@ -610,10 +610,24 @@ pOperation = do
   doc <- optional (try pDocComment)
   start <- getPos
   name <- lowerIdent
-  symbol ":"
-  ty <- pType
+  -- Support both syntaxes:
+  -- 1. name: Type (simple)
+  -- 2. name(params) -> ReturnType (function-style)
+  ty <- pOperationSig start
   span' <- spanFrom start
   pure $ Operation doc name ty span'
+  where
+    -- Parse operation signature: either ": Type" or "(params) -> ReturnType"
+    pOperationSig opStart = choice
+      [ do symbol ":"
+           pType
+      , do params <- between (symbol "(") (symbol ")") (pParam `sepBy` symbol ",")
+           symbol "->"
+           retTy <- pType
+           -- Build curried function type from params: A -> B -> C -> ReturnType
+           span' <- spanFrom opStart
+           pure $ foldr (\p acc -> TyFn (paramType p) acc [] span') retTy params
+      ]
 
 pHandlerDef :: Maybe DocComment -> Parser HandlerDef
 pHandlerDef doc = do
