@@ -1413,6 +1413,51 @@ moduleTests = describe "modules" $ do
       Right m -> length (moduleProvides m) `shouldBe` 5
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block with handler (issue #165)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  effect Database"
+          , "  handler MockDatabase"
+          , "  handler DatabaseResearch"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 3
+        case moduleProvides m of
+          [ProvideEffect _ _, ProvideHandler name1 _, ProvideHandler name2 _] -> do
+            name1 `shouldBe` "MockDatabase"
+            name2 `shouldBe` "DatabaseResearch"
+          _ -> expectationFailure "Expected ProvideEffect and two ProvideHandlers"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with multiple handlers (issue #165)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  handler MockAudit"
+          , "  handler PersistentAudit"
+          , "  handler StreamingAudit"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 3
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with all item types including handler (issue #165)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  type Result"
+          , "  effect Database"
+          , "  handler MockDatabase"
+          , "  trait Action"
+          , "  fn execute"
+          , "  external fn ffi_call"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 6
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses requires block with multiple items" $ do
     let src = T.unlines
           [ "module Main"

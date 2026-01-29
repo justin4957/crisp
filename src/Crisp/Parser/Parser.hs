@@ -256,6 +256,10 @@ pProvideItem start = choice
        name <- upperIdent
        span' <- spanFrom start
        pure $ ProvideTrait name span'
+  , do keyword "handler"
+       name <- upperIdent
+       span' <- spanFrom start
+       pure $ ProvideHandler name span'
   , do keyword "external"
        keyword "fn"
        name <- lowerIdent
