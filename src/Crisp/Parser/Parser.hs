@@ -299,14 +299,21 @@ pDefinition = do
              symbol "="
              -- Use pTypeAppNoRefinement so { field: Pattern } isn't parsed as refinement
              baseType <- pTypeAppNoRefinement
-             -- Support both 'where { predicate }' for refinement types
-             -- and '{ field: Pattern }' for field constraints
+             -- Support 'where { predicate }' for refinement types,
+             -- 'where field: Pattern' for field constraints without braces,
+             -- and '{ field: Pattern }' for field constraints with braces
              (finalType, constraints) <- choice
-               [ do -- Refinement type: type Name = Base where { predicate }
+               [ do -- where clause: refinement or field constraint
                     keyword "where"
-                    (preds, refinementSpan) <- pRefinementBlock
-                    pure (TyRefinement baseType preds refinementSpan, [])
-               , do -- Field constraints: type Name = Base { field: Pattern }
+                    choice
+                      [ do -- Refinement type: type Name = Base where { predicate }
+                           (preds, refinementSpan) <- pRefinementBlock
+                           pure (TyRefinement baseType preds refinementSpan, [])
+                      , do -- Field constraint without braces: type Name = Base where field: Pattern
+                           fieldConstraints <- pFieldConstraint `sepBy1` symbol ","
+                           pure (baseType, fieldConstraints)
+                      ]
+               , do -- Field constraints with braces: type Name = Base { field: Pattern }
                     fieldConstraints <- option [] pFieldConstraintBlock
                     pure (baseType, fieldConstraints)
                ]

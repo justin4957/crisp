@@ -381,6 +381,26 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "else"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats type alias with where field constraint (issue #168)" $ do
+      let src = "module Test type TrialCourt = Court where level: TrialCourt"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "where level: TrialCourt"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats type alias with where field constraint idempotently (issue #168)" $ do
+      let src = "module Test type ActiveUser = User where status: Active"
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"
