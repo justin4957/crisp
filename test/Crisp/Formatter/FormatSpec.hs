@@ -218,6 +218,37 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats module with effect in provides block (issue #160)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  effect HttpClient"
+            , "  fn some_function"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "provides effect HttpClient"
+          formatted `shouldSatisfy` T.isInfixOf "provides fn some_function"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats effect in provides block idempotently (issue #160)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  effect Logger"
+            , "  effect Database"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats type with named field constructors" $ do
       let src = T.unlines
             [ "module Test"

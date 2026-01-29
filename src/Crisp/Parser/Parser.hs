@@ -248,6 +248,10 @@ pProvideItem start = choice
        name <- upperIdent
        span' <- spanFrom start
        pure $ ProvideType name span'
+  , do keyword "effect"
+       name <- upperIdent
+       span' <- spanFrom start
+       pure $ ProvideEffect name span'
   , do keyword "external"
        keyword "fn"
        name <- lowerIdent

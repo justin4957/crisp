@@ -143,6 +143,7 @@ prettyProvides _opts [] = ""
 prettyProvides opts provs = T.intercalate "\n" (map prettyProv provs)
   where
     prettyProv (ProvideType name _) = "provides type " <> name
+    prettyProv (ProvideEffect name _) = "provides effect " <> name
     prettyProv (ProvideFn name mTy _) = case mTy of
       Just ty -> "provides fn " <> name <> ": " <> prettyType opts 0 ty
       Nothing -> "provides fn " <> name
