@@ -1273,6 +1273,46 @@ moduleTests = describe "modules" $ do
       Right m -> length (moduleProvides m) `shouldBe` 4
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block with effect (issue #160)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  effect HttpClient"
+          , "  fn some_function"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 2
+        case moduleProvides m of
+          [ProvideEffect name _, ProvideFn _ _ _] -> name `shouldBe` "HttpClient"
+          _ -> expectationFailure "Expected ProvideEffect and ProvideFn"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with multiple effects (issue #160)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  effect Logger"
+          , "  effect Database"
+          , "  effect HttpClient"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 3
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with all item types (issue #160)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  type Config"
+          , "  effect Logger"
+          , "  fn initialize"
+          , "  external fn ffi_log"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 4
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses requires block with multiple items" $ do
     let src = T.unlines
           [ "module Main"
