@@ -252,6 +252,10 @@ pProvideItem start = choice
        name <- upperIdent
        span' <- spanFrom start
        pure $ ProvideEffect name span'
+  , do keyword "trait"
+       name <- upperIdent
+       span' <- spanFrom start
+       pure $ ProvideTrait name span'
   , do keyword "external"
        keyword "fn"
        name <- lowerIdent
