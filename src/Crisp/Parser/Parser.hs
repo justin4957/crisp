@@ -235,6 +235,8 @@ pProvideItemIndented baseCol = try $ do
   col <- unPos . sourceColumn <$> getSourcePos
   if col > baseCol
     then do
+      -- Skip optional doc comment before provide item
+      _ <- optional (try pDocComment)
       start <- getPos
       pProvideItem start
     else fail "provides item not indented"

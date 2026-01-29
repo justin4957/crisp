@@ -225,6 +225,9 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Module without doc comment has Nothing (issue #140)
 - Preserves indentation in doc comment lines (issue #147)
 - Preserves multi-level indentation in doc comments (issue #147)
+- Parses provides block with doc comments (issue #155)
+- Parses provides block with multiple doc comments (issue #155)
+- Parses provides block with mixed documented and undocumented items (issue #155)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr

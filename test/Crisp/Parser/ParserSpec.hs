@@ -1192,6 +1192,45 @@ moduleTests = describe "modules" $ do
         length (moduleDefinitions m) `shouldBe` 2
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block with doc comments (issue #155)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  --- | FFI bindings"
+          , "  fn some_function"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 1
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with multiple doc comments (issue #155)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  --- | Date type for temporal operations"
+          , "  type Date"
+          , "  --- | Check if date is valid"
+          , "  fn is_valid"
+          , "  --- | Overlap check"
+          , "  fn overlaps"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 3
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with mixed documented and undocumented items (issue #155)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  type Plain"
+          , "  --- | Documented function"
+          , "  fn documented"
+          , "  fn undocumented"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 3
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses requires block with multiple items" $ do
     let src = T.unlines
           [ "module Main"
