@@ -248,6 +248,12 @@ pProvideItem start = choice
        name <- upperIdent
        span' <- spanFrom start
        pure $ ProvideType name span'
+  , do keyword "external"
+       keyword "fn"
+       name <- lowerIdent
+       mTy <- optional (symbol ":" *> pType)
+       span' <- spanFrom start
+       pure $ ProvideExternalFn name mTy span'
   , do keyword "fn"
        name <- lowerIdent
        -- Type annotation is optional

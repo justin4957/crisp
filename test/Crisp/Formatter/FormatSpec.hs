@@ -174,6 +174,50 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "type Foo"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats module with external fn in provides block (issue #156)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  external fn ffi_http_get"
+            , "  fn some_function"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "provides external fn ffi_http_get"
+          formatted `shouldSatisfy` T.isInfixOf "provides fn some_function"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats external fn with type annotation in provides block (issue #156)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  external fn query: String -> String"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted ->
+          formatted `shouldSatisfy` T.isInfixOf "provides external fn query: String -> String"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats external fn in provides block idempotently (issue #156)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  external fn ffi_connect"
+            , "  external fn ffi_query: String -> Result"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats type with named field constructors" $ do
       let src = T.unlines
             [ "module Test"

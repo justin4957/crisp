@@ -91,6 +91,7 @@ data Require
 data Provide
   = ProvideType !Text !Span                 -- ^ Export a type: provides type Name
   | ProvideFn !Text !(Maybe Type) !Span     -- ^ Export a function: provides fn name or provides fn name: Type
+  | ProvideExternalFn !Text !(Maybe Type) !Span  -- ^ Export an external function: provides external fn name
   deriving stock (Eq, Show, Generic)
 
 -- | A doc comment (--- | text)

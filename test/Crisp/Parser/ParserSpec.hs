@@ -1231,6 +1231,48 @@ moduleTests = describe "modules" $ do
       Right m -> length (moduleProvides m) `shouldBe` 3
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block with external fn (issue #156)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  external fn ffi_http_get"
+          , "  fn some_function"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 2
+        case moduleProvides m of
+          [ProvideExternalFn name _ _, ProvideFn _ _ _] -> name `shouldBe` "ffi_http_get"
+          _ -> expectationFailure "Expected ProvideExternalFn and ProvideFn"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides external fn with type annotation (issue #156)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  external fn query: String -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 1
+        case moduleProvides m of
+          [ProvideExternalFn name (Just _) _] -> name `shouldBe` "query"
+          _ -> expectationFailure "Expected ProvideExternalFn with type"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with mixed types, fns, and external fns (issue #156)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  type Config"
+          , "  fn initialize"
+          , "  external fn ffi_connect"
+          , "  external fn ffi_query: String -> Result"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 4
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses requires block with multiple items" $ do
     let src = T.unlines
           [ "module Main"

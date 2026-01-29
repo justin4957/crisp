@@ -228,6 +228,9 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parses provides block with doc comments (issue #155)
 - Parses provides block with multiple doc comments (issue #155)
 - Parses provides block with mixed documented and undocumented items (issue #155)
+- Parses provides block with external fn (issue #156)
+- Parses provides external fn with type annotation (issue #156)
+- Parses provides block with mixed types, fns, and external fns (issue #156)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
@@ -252,9 +255,12 @@ The formatter test suite covers source code formatting (~51 tests):
 - Perform expressions (with and without arguments)
 - Field access: simple and chained
 
-**Module Formatting (~14 tests)**
+**Module Formatting (~17 tests)**
 - Minimal module, with function/type/effect definitions
 - Provides block: with types, typed functions, followed by definitions
+- Provides block: with external fn (issue #156)
+- Provides block: external fn with type annotation (issue #156)
+- Provides block: external fn idempotent formatting (issue #156)
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions
