@@ -635,6 +635,67 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
+  describe "Match Arm Body Formatting (Issue #152)" $ do
+    it "formats function application in match arm body with parentheses" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "fn check(r: Range) -> Int:"
+            , "  match r"
+            , "    Range(s, e) -> get_start(r)"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "get_start(r)"
+
+    it "match arm body with application is idempotent" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "fn check(r: Range) -> Int:"
+            , "  match r"
+            , "    Range(s, e) -> get_start(r)"
+            , ""
+            , "--- | Next"
+            , "fn next(x: Int) -> Int:"
+            , "  x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
+    it "formats nested application in match arm body with parentheses" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "fn check(x: Int) -> Int:"
+            , "  match x"
+            , "    0 -> add(mul(x, 2), 1)"
+            , "    n -> n"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "add(mul(x, 2), 1)"
+
+    it "formats multiple args in match arm body application" $ do
+      let src = T.unlines
+            [ "module Test"
+            , ""
+            , "fn check(x: Int, y: Int) -> Int:"
+            , "  match x"
+            , "    0 -> compute(x, y, z)"
+            , "    n -> n"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "compute(x, y, z)"
+
 -- Helper functions
 
 isRight :: Either a b -> Bool

@@ -232,7 +232,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 
 ### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
 
-The formatter test suite covers source code formatting (~45 tests):
+The formatter test suite covers source code formatting (~49 tests):
 
 **Expression Formatting (~15 tests)**
 - Literals: integer, float, string, unit
@@ -275,6 +275,12 @@ The formatter test suite covers source code formatting (~45 tests):
 - Module-level doc comment formatting is idempotent (issue #140)
 - Preserves indentation in doc comment continuation lines (issue #147)
 - Indented doc comment formatting is idempotent (issue #147)
+
+**Match Arm Body Formatting (~4 tests)**
+- Formats function application in match arm body with parentheses (issue #152)
+- Match arm body with application is idempotent (issue #152)
+- Formats nested application in match arm body with parentheses (issue #152)
+- Formats multiple args in match arm body application (issue #152)
 
 **Other (~4 tests)**
 - Trailing newline option (enabled/disabled)
