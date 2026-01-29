@@ -595,12 +595,13 @@ pEffectDef doc = do
 
 pOperation :: Parser Operation
 pOperation = do
+  doc <- optional (try pDocComment)
   start <- getPos
   name <- lowerIdent
   symbol ":"
   ty <- pType
   span' <- spanFrom start
-  pure $ Operation name ty span'
+  pure $ Operation doc name ty span'
 
 pHandlerDef :: Maybe DocComment -> Parser HandlerDef
 pHandlerDef doc = do

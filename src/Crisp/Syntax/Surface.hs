@@ -168,9 +168,10 @@ data EffectDef = EffectDef
 
 -- | An effect operation
 data Operation = Operation
-  { operationName      :: !Text
-  , operationSignature :: !Type
-  , operationSpan      :: !Span
+  { operationDocComment :: !(Maybe DocComment)
+  , operationName       :: !Text
+  , operationSignature  :: !Type
+  , operationSpan       :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | Handler definition

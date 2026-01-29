@@ -248,7 +248,8 @@ prettyEffectDef opts ind ed =
 -- | Pretty print an operation
 prettyOperation :: FormatOptions -> Int -> Operation -> Text
 prettyOperation opts ind op =
-  indent ind <> operationName op <> ": " <> prettyType opts 0 (operationSignature op)
+  prettyDocComment ind (operationDocComment op)
+  <> indent ind <> operationName op <> ": " <> prettyType opts 0 (operationSignature op)
 
 -- | Pretty print handler definition
 prettyHandlerDef :: FormatOptions -> Int -> HandlerDef -> Text
