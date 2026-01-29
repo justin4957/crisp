@@ -854,6 +854,65 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Deriving clause tests (issue #167)
+  it "parses type with deriving clause (issue #167)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type ConfidenceLevel deriving (Eq, Ord):"
+          , "  VeryHigh"
+          , "  High"
+          , "  Moderate"
+          , "  Low"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            typeDefName td `shouldBe` "ConfidenceLevel"
+            case typeDefDeriving td of
+              Just dc -> derivingTraits dc `shouldBe` ["Eq", "Ord"]
+              Nothing -> expectationFailure "Expected deriving clause"
+            length (typeDefConstructors td) `shouldBe` 4
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type with single deriving trait (issue #167)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Status deriving Eq:"
+          , "  Active"
+          , "  Inactive"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            case typeDefDeriving td of
+              Just dc -> derivingTraits dc `shouldBe` ["Eq"]
+              Nothing -> expectationFailure "Expected deriving clause"
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type with deriving and constructors with arguments (issue #167)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Option T deriving (Eq):"
+          , "  Some(value: T)"
+          , "  None"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            typeDefName td `shouldBe` "Option"
+            length (typeDefParams td) `shouldBe` 1
+            case typeDefDeriving td of
+              Just dc -> derivingTraits dc `shouldBe` ["Eq"]
+              Nothing -> expectationFailure "Expected deriving clause"
+            length (typeDefConstructors td) `shouldBe` 2
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   -- Type alias with 'where' refinement tests (issue #118)
   it "parses type alias with where refinement" $ do
     let src = "module Test type PositiveInt = Int where { self > 0 }"

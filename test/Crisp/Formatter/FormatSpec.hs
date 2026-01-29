@@ -344,6 +344,37 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats type with deriving clause (issue #167)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type ConfidenceLevel deriving (Eq, Ord):"
+            , "  VeryHigh"
+            , "  High"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "deriving (Eq, Ord)"
+          formatted `shouldSatisfy` T.isInfixOf "VeryHigh"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats type with deriving clause idempotently (issue #167)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type Status deriving Eq:"
+            , "  Active"
+            , "  Inactive"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats type with named field constructors" $ do
       let src = T.unlines
             [ "module Test"
