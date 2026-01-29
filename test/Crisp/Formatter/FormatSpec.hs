@@ -453,6 +453,33 @@ spec = describe "Crisp.Formatter.Format" $ do
               Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
               Right formatted2 -> formatted1 `shouldBe` formatted2
 
+      it "formats function-style effect operation (issue #162)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "effect HttpClient:"
+              , "  http_get(url: String) -> String"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted -> do
+            -- Function-style gets converted to type signature
+            formatted `shouldSatisfy` T.isInfixOf "http_get: String -> String"
+
+      it "function-style effect operation is idempotent (issue #162)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "effect HttpClient:"
+              , "  http_post(url: String, body: String) -> String"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted1 ->
+            case formatSource defaultFormatOptions formatted1 of
+              Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+              Right formatted2 -> formatted1 `shouldBe` formatted2
+
     describe "external function definitions" $ do
       it "formats external fn" $ do
         let src = "module Test\n\nexternal fn log(msg: String) -> Unit = (\"console\", \"log\")"
