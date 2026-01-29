@@ -947,6 +947,59 @@ effectDefTests = describe "effect definitions" $ do
   it "parses effect with multiple operations" $ do
     pendingWith "Parser limitation: multiple operations need layout/newlines"
 
+  it "parses doc comment on operation (issue #154)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect HttpClient:"
+          , "  --- | Make a GET request"
+          , "  http_get: String -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> case effectDefOperations ed of
+          [op] -> operationDocComment op `shouldBe` Just "Make a GET request"
+          _ -> expectationFailure "Expected single operation"
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses effect with multiple documented operations (issue #154)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect Http:"
+          , "  --- | GET request"
+          , "  get: String -> String"
+          , "  --- | POST request"
+          , "  post: String -> String -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> do
+          length (effectDefOperations ed) `shouldBe` 2
+          case effectDefOperations ed of
+            [op1, op2] -> do
+              operationDocComment op1 `shouldBe` Just "GET request"
+              operationDocComment op2 `shouldBe` Just "POST request"
+            _ -> expectationFailure "Expected two operations"
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses operation without doc comment has Nothing (issue #154)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect IO:"
+          , "  print: String -> Unit"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> case effectDefOperations ed of
+          [op] -> operationDocComment op `shouldBe` Nothing
+          _ -> expectationFailure "Expected single operation"
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 handlerDefTests :: Spec
 handlerDefTests = describe "handler definitions" $ do
   it "parses simple handler" $ do

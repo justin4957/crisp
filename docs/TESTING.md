@@ -210,13 +210,16 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Requires (effects, types), provides (type, fn)
 - Multiple definitions
 
-**Doc Comment Tests (~11 tests)**
+**Doc Comment Tests (~14 tests)**
 - Multi-line doc comment with pipe on continuation lines parsed correctly
 - Multi-line doc comment with empty pipe line parsed correctly
 - Two functions with doc comments parse correctly (issue #138)
 - Two types with doc comments parse correctly (issue #138)
 - Documented function followed by documented type parses correctly (issue #138)
 - Subtraction still works after doc comment disambiguation fix (issue #138)
+- Doc comment on operation parsed correctly (issue #154)
+- Effect with multiple documented operations parsed correctly (issue #154)
+- Operation without doc comment has Nothing (issue #154)
 - Module-level doc comment before module keyword parsed correctly (issue #140)
 - Multi-line module doc comment parsed correctly (issue #140)
 - Module without doc comment has Nothing (issue #140)
@@ -232,7 +235,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 
 ### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
 
-The formatter test suite covers source code formatting (~49 tests):
+The formatter test suite covers source code formatting (~51 tests):
 
 **Expression Formatting (~15 tests)**
 - Literals: integer, float, string, unit
@@ -259,10 +262,12 @@ The formatter test suite covers source code formatting (~49 tests):
 - Expression formatting idempotent (layout-based let)
 - Module with type formatting idempotent
 
-**Definition Formatting (~5 tests)**
+**Definition Formatting (~7 tests)**
 - Simple type, type with parameters
 - Simple function, function with effects
 - Effect definition
+- Effect with documented operations (issue #154)
+- Effect with documented operations is idempotent (issue #154)
 
 **Doc Comment Preservation (~11 tests)**
 - Preserves doc comments on function and type definitions

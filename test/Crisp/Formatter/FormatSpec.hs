@@ -347,6 +347,37 @@ spec = describe "Crisp.Formatter.Format" $ do
           Right formatted ->
             formatted `shouldSatisfy` T.isInfixOf "effect Reader"
 
+      it "formats effect with documented operations (issue #154)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "effect HttpClient:"
+              , "  --- | Make a GET request"
+              , "  http_get: String -> String"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted -> do
+            formatted `shouldSatisfy` T.isInfixOf "--- | Make a GET request"
+            formatted `shouldSatisfy` T.isInfixOf "http_get: String -> String"
+
+      it "effect with documented operations is idempotent (issue #154)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "effect Http:"
+              , "  --- | GET request"
+              , "  get: String -> String"
+              , "  --- | POST request"
+              , "  post: String -> String -> String"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted1 ->
+            case formatSource defaultFormatOptions formatted1 of
+              Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+              Right formatted2 -> formatted1 `shouldBe` formatted2
+
     describe "external function definitions" $ do
       it "formats external fn" $ do
         let src = "module Test\n\nexternal fn log(msg: String) -> Unit = (\"console\", \"log\")"
