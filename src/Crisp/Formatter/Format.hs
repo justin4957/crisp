@@ -551,6 +551,8 @@ prettyExpr opts ind = \case
   EList elems _ ->
     "[" <> T.intercalate ", " (map (prettyExpr opts ind) elems) <> "]"
 
+  EBreak _ -> "break"
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case
@@ -585,6 +587,7 @@ prettyExprAtom opts ind expr = case expr of
   EMethodCall {} -> prettyExpr opts ind expr
   ERecord {} -> prettyExpr opts ind expr
   EList {} -> prettyExpr opts ind expr
+  EBreak {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
 -- | Pretty print a match arm

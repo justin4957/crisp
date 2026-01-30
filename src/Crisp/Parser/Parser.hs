@@ -1397,6 +1397,7 @@ pAtom = choice
   , pExternalCall
   , pLazy
   , pForce
+  , pBreak
   , pLiteral
   , pListLiteral
   , try pRecordConstruction
@@ -1509,6 +1510,7 @@ pLet = do
     pLetAtom = choice
       [ pLazy
       , pForce
+      , pBreak
       , pLiteral
       , pListLiteral
       , try pRecordConstruction
@@ -1722,6 +1724,13 @@ pForce = do
   inner <- pAtom
   span' <- spanFrom start
   pure $ EForce inner span'
+
+pBreak :: Parser Expr
+pBreak = do
+  start <- getPos
+  keyword "break"
+  span' <- spanFrom start
+  pure $ EBreak span'
 
 pLiteral :: Parser Expr
 pLiteral = choice

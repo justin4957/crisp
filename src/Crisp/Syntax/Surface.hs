@@ -383,6 +383,7 @@ data Expr
   | ERecord !Text ![(Text, Expr)] !Span                 -- ^ Record construction: Type { field = expr, ... }
   | EFor !Pattern !Expr !Expr !Span                     -- ^ For loop: for pattern in collection: body
   | EList ![Expr] !Span                                 -- ^ List literal: [expr, ...]
+  | EBreak !Span                                        -- ^ Break statement for loop exit
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators
