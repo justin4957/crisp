@@ -1290,7 +1290,7 @@ pCompare = makeExprParser pCons
 
 -- | Parse cons operator (right-associative, between comparison and additive)
 pCons :: Parser Expr
-pCons = makeExprParser pAddSub
+pCons = makeExprParser pRange
   [ [InfixR pConsOp] ]
   where
     pConsOp = do
@@ -1298,6 +1298,18 @@ pCons = makeExprParser pAddSub
       void $ symbol "::"
       span' <- spanFrom start
       pure $ \left right -> EBinOp OpCons left right span'
+
+-- | Parse range expressions (non-associative)
+pRange :: Parser Expr
+pRange = makeExprParser pAddSub
+  [ [InfixN pRangeOp] ]
+  where
+    pRangeOp = do
+      start <- getPos
+      void $ try (string ".." <* notFollowedBy (char '.'))
+      sc
+      span' <- spanFrom start
+      pure $ \left right -> ERange left right span'
 
 -- | Parse additive expressions
 pAddSub :: Parser Expr
@@ -1371,9 +1383,11 @@ pPostfix = do
   pure $ foldl applySuffix base suffixes
   where
     -- Parse .field or .method(args)
-    pDotSuffix = do
+    pDotSuffix = try $ do
       s <- getPos
       symbol "."
+      -- Must not be followed by another dot (range operator ..)
+      notFollowedBy (char '.')
       -- Must be followed by lowercase identifier (field name), not uppercase (qualified name)
       notFollowedBy upperIdent
       field <- lowerIdent
@@ -1692,7 +1706,7 @@ pFor = do
   keyword "for"
   pat <- pPattern
   keyword "in"
-  collection <- pPostfix
+  collection <- pRange
   symbol ":"
   body <- pExpr
   span' <- spanFrom start

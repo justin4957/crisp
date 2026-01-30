@@ -2180,6 +2180,29 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right _ -> pure ()
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses range expression (issue #181)" $ do
+    case parseExpr "test" "0..10" of
+      Right (ERange (EIntLit 0 _) (EIntLit 10 _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected range, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses range with field access (issue #181)" $ do
+    case parseExpr "test" "0..items.length" of
+      Right (ERange (EIntLit 0 _) (EFieldAccess _ "length" _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected range with field access, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses range in for loop (issue #181)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn count() -> Unit:"
+          , "  for i in 0..10:"
+          , "    process(i)"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================

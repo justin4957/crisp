@@ -386,6 +386,7 @@ data Expr
   | EBreak !Span                                        -- ^ Break statement for loop exit
   | EReturn !Expr !Span                                 -- ^ Early return: return expr
   | EIndex !Expr !Expr !Span                            -- ^ Index access: expr[expr]
+  | ERange !Expr !Expr !Span                            -- ^ Range expression: expr..expr
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators
