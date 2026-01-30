@@ -1387,10 +1387,21 @@ pAtom = choice
   , pLazy
   , pForce
   , pLiteral
+  , pListLiteral
   , try pRecordConstruction
   , pVar
   , pParens
   ]
+
+-- | Parse list literal: [expr, expr, ...] or []
+pListLiteral :: Parser Expr
+pListLiteral = do
+  start <- getPos
+  symbol "["
+  elems <- pExpr `sepBy` symbol ","
+  symbol "]"
+  span' <- spanFrom start
+  pure $ EList elems span'
 
 -- | Parse record construction: TypeName { field = expr, ... }
 pRecordConstruction :: Parser Expr
@@ -1488,6 +1499,7 @@ pLet = do
       [ pLazy
       , pForce
       , pLiteral
+      , pListLiteral
       , try pRecordConstruction
       , pVar
       , pParens

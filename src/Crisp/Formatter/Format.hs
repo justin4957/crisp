@@ -548,6 +548,9 @@ prettyExpr opts ind = \case
     "for " <> prettyPattern opts pat <> " in " <> prettyExpr opts ind collection <> ":\n"
     <> indent (ind + optIndentWidth opts) <> prettyExpr opts (ind + optIndentWidth opts) body
 
+  EList elems _ ->
+    "[" <> T.intercalate ", " (map (prettyExpr opts ind) elems) <> "]"
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case
@@ -580,6 +583,7 @@ prettyExprAtom opts ind expr = case expr of
   EFieldAccess {} -> prettyExpr opts ind expr
   EMethodCall {} -> prettyExpr opts ind expr
   ERecord {} -> prettyExpr opts ind expr
+  EList {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
 -- | Pretty print a match arm
