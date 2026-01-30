@@ -31,6 +31,7 @@ spec :: Spec
 spec = do
   expressionTests
   recordConstructionTests
+  methodCallTests
   patternTests
   typeTests
   declarationTests
@@ -553,6 +554,68 @@ recordConstructionTests = describe "record construction (issue #173)" $ do
           , "  x"
           ]
     shouldParse $ parseModule "test" src
+
+-- =============================================================================
+-- Method Call Tests
+-- =============================================================================
+
+methodCallTests :: Spec
+methodCallTests = describe "method call syntax (issue #174)" $ do
+  it "parses simple method call" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(items: List) -> List:"
+          , "  items.filter(is_valid)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> case fnDefBody fd of
+          EMethodCall _ method args _ -> do
+            method `shouldBe` "filter"
+            length args `shouldBe` 1
+          _ -> expectationFailure "Expected method call expression"
+        _ -> expectationFailure "Expected function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses method call with multiple args" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(items: List) -> List:"
+          , "  items.slice(0, 10)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> case fnDefBody fd of
+          EMethodCall _ method args _ -> do
+            method `shouldBe` "slice"
+            length args `shouldBe` 2
+          _ -> expectationFailure "Expected method call expression"
+        _ -> expectationFailure "Expected function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses chained method calls" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(items: List) -> Int:"
+          , "  items.filter(is_valid).map(get_id).length()"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses method call with no args" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(items: List) -> Int:"
+          , "  items.length()"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> case fnDefBody fd of
+          EMethodCall _ method args _ -> do
+            method `shouldBe` "length"
+            args `shouldBe` []
+          _ -> expectationFailure "Expected method call expression"
+        _ -> expectationFailure "Expected function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
 -- =============================================================================
 -- Pattern Tests

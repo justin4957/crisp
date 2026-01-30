@@ -533,6 +533,10 @@ prettyExpr opts ind = \case
   EFieldAccess expr field _ ->
     prettyExprAtom opts ind expr <> "." <> field
 
+  EMethodCall receiver method args _ ->
+    prettyExprAtom opts ind receiver <> "." <> method
+    <> "(" <> T.intercalate ", " (map (prettyExpr opts ind) args) <> ")"
+
   EBinOp op left right _ ->
     prettyExprAtom opts ind left <> " " <> prettyBinOp op <> " " <> prettyExprAtom opts ind right
 
@@ -573,6 +577,7 @@ prettyExprAtom opts ind expr = case expr of
   EUnit {} -> prettyExpr opts ind expr
   EQualified {} -> prettyExpr opts ind expr
   EFieldAccess {} -> prettyExpr opts ind expr
+  EMethodCall {} -> prettyExpr opts ind expr
   ERecord {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
