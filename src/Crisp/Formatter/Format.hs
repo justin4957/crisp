@@ -145,6 +145,7 @@ prettyProvides opts provs = T.intercalate "\n" (map prettyProv provs)
     prettyProv (ProvideType name _) = "provides type " <> name
     prettyProv (ProvideEffect name _) = "provides effect " <> name
     prettyProv (ProvideTrait name _) = "provides trait " <> name
+    prettyProv (ProvideHandler name _) = "provides handler " <> name
     prettyProv (ProvideFn name mTy _) = case mTy of
       Just ty -> "provides fn " <> name <> ": " <> prettyType opts 0 ty
       Nothing -> "provides fn " <> name

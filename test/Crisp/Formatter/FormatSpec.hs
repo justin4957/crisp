@@ -280,6 +280,39 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats module with handler in provides block (issue #165)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  effect Database"
+            , "  handler MockDatabase"
+            , "  handler DatabaseResearch"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "provides effect Database"
+          formatted `shouldSatisfy` T.isInfixOf "provides handler MockDatabase"
+          formatted `shouldSatisfy` T.isInfixOf "provides handler DatabaseResearch"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats handler in provides block idempotently (issue #165)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "provides"
+            , "  handler MockAudit"
+            , "  handler PersistentAudit"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats type with named field constructors" $ do
       let src = T.unlines
             [ "module Test"
