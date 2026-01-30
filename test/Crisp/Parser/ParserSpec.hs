@@ -982,6 +982,42 @@ typeDefTests = describe "type definitions" $ do
     let src = "module Test type Always = Int where { True }"
     shouldParse $ parseModule "test" src
 
+  -- Constrained type aliases with 'where field: Pattern' syntax (issue #168)
+  it "parses type alias with where field constraint (issue #168)" $ do
+    let src = "module Test type TrialCourt = Court where level: TrialCourt"
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefTypeAlias ad] -> do
+            typeAliasName ad `shouldBe` "TrialCourt"
+            length (typeAliasConstraints ad) `shouldBe` 1
+          _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type alias with multiple where field constraints (issue #168)" $ do
+    let src = "module Test type ValidRecord = Record where status: Active, verified: True"
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefTypeAlias ad] -> do
+            typeAliasName ad `shouldBe` "ValidRecord"
+            length (typeAliasConstraints ad) `shouldBe` 2
+          _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type alias with where pattern constraint (issue #168)" $ do
+    let src = "module Test type ActiveUser = User where status: Active"
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefTypeAlias ad] -> do
+            typeAliasName ad `shouldBe` "ActiveUser"
+            case typeAliasConstraints ad of
+              [fc] -> fieldConstraintName fc `shouldBe` "status"
+              _ -> expectationFailure "Expected one field constraint"
+          _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 effectDefTests :: Spec
 effectDefTests = describe "effect definitions" $ do
   it "parses simple effect" $ do

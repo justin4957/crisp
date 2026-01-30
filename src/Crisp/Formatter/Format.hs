@@ -365,7 +365,7 @@ prettyTypeAlias opts ind ad =
         ps -> " " <> T.unwords (map (prettyTypeParam opts) ps)
       constraints = case typeAliasConstraints ad of
         [] -> ""
-        cs -> " { " <> T.intercalate ", " (map prettyFieldConstraint cs) <> " }"
+        cs -> " where " <> T.intercalate ", " (map prettyFieldConstraint cs)
   in indent ind <> "type " <> typeAliasName ad <> params <> " = "
      <> prettyType opts 0 (typeAliasBase ad) <> constraints
   where
