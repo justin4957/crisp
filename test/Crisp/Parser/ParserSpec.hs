@@ -32,6 +32,7 @@ spec = do
   expressionTests
   recordConstructionTests
   methodCallTests
+  listLiteralTests
   patternTests
   typeTests
   declarationTests
@@ -616,6 +617,45 @@ methodCallTests = describe "method call syntax (issue #174)" $ do
           _ -> expectationFailure "Expected method call expression"
         _ -> expectationFailure "Expected function definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+-- =============================================================================
+-- List Literal Tests
+-- =============================================================================
+
+listLiteralTests :: Spec
+listLiteralTests = describe "list literals (issue #176)" $ do
+  it "parses empty list" $ do
+    case parseExpr "test" "[]" of
+      Right (EList elems _) -> length elems `shouldBe` 0
+      Right other -> expectationFailure $ "Expected list, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses list with elements" $ do
+    case parseExpr "test" "[1, 2, 3]" of
+      Right (EList elems _) -> length elems `shouldBe` 3
+      Right other -> expectationFailure $ "Expected list, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses nested lists" $ do
+    case parseExpr "test" "[[1, 2], [3, 4]]" of
+      Right (EList elems _) -> do
+        length elems `shouldBe` 2
+        case elems of
+          [EList inner1 _, EList inner2 _] -> do
+            length inner1 `shouldBe` 2
+            length inner2 `shouldBe` 2
+          _ -> expectationFailure "Expected nested lists"
+      Right other -> expectationFailure $ "Expected list, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses list in let binding" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn make() -> Unit:"
+          , "  let items = [1, 2, 3]"
+          , "  items"
+          ]
+    shouldParse $ parseModule "test" src
 
 -- =============================================================================
 -- Pattern Tests
