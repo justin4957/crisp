@@ -90,6 +90,7 @@ data Require
 -- | Module provision declaration
 data Provide
   = ProvideType !Text !Span                 -- ^ Export a type: provides type Name
+  | ProvideTypeProp !Text !Span             -- ^ Export a prop type: provides type prop Name
   | ProvideFn !Text !(Maybe Type) !Span     -- ^ Export a function: provides fn name or provides fn name: Type
   | ProvideExternalFn !Text !(Maybe Type) !Span  -- ^ Export an external function: provides external fn name
   | ProvideEffect !Text !Span               -- ^ Export an effect: provides effect Name

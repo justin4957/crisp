@@ -1458,6 +1458,58 @@ moduleTests = describe "modules" $ do
       Right m -> length (moduleProvides m) `shouldBe` 6
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses provides block with type prop (issue #166)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  type prop BindsOn"
+          , "  type prop IsGoodLaw"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 2
+        case moduleProvides m of
+          [ProvideTypeProp name1 _, ProvideTypeProp name2 _] -> do
+            name1 `shouldBe` "BindsOn"
+            name2 `shouldBe` "IsGoodLaw"
+          _ -> expectationFailure "Expected two ProvideTypeProp"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with mixed type and type prop (issue #166)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  type Court"
+          , "  type prop BindsOn"
+          , "  type Jurisdiction"
+          , "  type prop SameHierarchy"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 4
+        case moduleProvides m of
+          [ProvideType t1 _, ProvideTypeProp p1 _, ProvideType t2 _, ProvideTypeProp p2 _] -> do
+            t1 `shouldBe` "Court"
+            p1 `shouldBe` "BindsOn"
+            t2 `shouldBe` "Jurisdiction"
+            p2 `shouldBe` "SameHierarchy"
+          _ -> expectationFailure "Expected alternating ProvideType and ProvideTypeProp"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides block with all item types including type prop (issue #166)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "provides"
+          , "  type Court"
+          , "  type prop BindsOn"
+          , "  effect Logger"
+          , "  trait Action"
+          , "  fn execute"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleProvides m) `shouldBe` 5
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses requires block with multiple items" $ do
     let src = T.unlines
           [ "module Main"

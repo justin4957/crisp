@@ -143,6 +143,7 @@ prettyProvides _opts [] = ""
 prettyProvides opts provs = T.intercalate "\n" (map prettyProv provs)
   where
     prettyProv (ProvideType name _) = "provides type " <> name
+    prettyProv (ProvideTypeProp name _) = "provides type prop " <> name
     prettyProv (ProvideEffect name _) = "provides effect " <> name
     prettyProv (ProvideTrait name _) = "provides trait " <> name
     prettyProv (ProvideHandler name _) = "provides handler " <> name
