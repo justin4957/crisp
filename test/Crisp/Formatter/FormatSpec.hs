@@ -587,6 +587,30 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats record construction (issue #173)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn make() -> Part:"
+            , "  Part { number = 1, title = \"hello\" }"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "Part { number = 1, title = \"hello\" }"
+
+    it "formats record construction idempotently (issue #173)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn make() -> Arg:"
+            , "  Arg { id = Id { value = 1 }, name = \"test\" }"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"
