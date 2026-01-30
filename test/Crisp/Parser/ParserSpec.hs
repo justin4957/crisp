@@ -909,6 +909,78 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Nullary constructors and enum-style types (issue #170)
+  it "parses pure enum type with all nullary constructors (issue #170)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type ReferenceType:"
+          , "  Citation"
+          , "  Incorporation"
+          , "  Exception"
+          , "  Condition"
+          , "  Definition"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            typeDefName td `shouldBe` "ReferenceType"
+            length (typeDefConstructors td) `shouldBe` 5
+            case typeDefConstructors td of
+              (SimpleConstructor name _ _:_) -> name `shouldBe` "Citation"
+              _ -> expectationFailure "Expected SimpleConstructor"
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multiple enum types in same module (issue #170)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type AnnotationAuthor:"
+          , "  Legislative"
+          , "  Judicial"
+          , "  Editorial"
+          , ""
+          , "type Language:"
+          , "  English"
+          , "  French"
+          , "  German"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleDefinitions m) `shouldBe` 2
+        case moduleDefinitions m of
+          [DefType td1, DefType td2] -> do
+            typeDefName td1 `shouldBe` "AnnotationAuthor"
+            length (typeDefConstructors td1) `shouldBe` 3
+            typeDefName td2 `shouldBe` "Language"
+            length (typeDefConstructors td2) `shouldBe` 3
+          _ -> expectationFailure "Expected two type definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses mixed nullary and record constructors (issue #170)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Shape:"
+          , "  Point"
+          , "  Circle(radius: Int)"
+          , "  Rectangle(width: Int, height: Int)"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefType td] -> do
+            length (typeDefConstructors td) `shouldBe` 3
+            case typeDefConstructors td of
+              [SimpleConstructor n1 args1 _, RecordConstructor n2 _ _, RecordConstructor n3 _ _] -> do
+                n1 `shouldBe` "Point"
+                null args1 `shouldBe` True
+                n2 `shouldBe` "Circle"
+                n3 `shouldBe` "Rectangle"
+              _ -> expectationFailure "Expected Point, Circle, Rectangle constructors"
+          _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   -- Deriving clause tests (issue #167)
   it "parses type with deriving clause (issue #167)" $ do
     let src = T.unlines
