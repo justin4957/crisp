@@ -2203,6 +2203,29 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right _ -> pure ()
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses pair tuple expression (issue #182)" $ do
+    case parseExpr "test" "(x, y)" of
+      Right (ETuple [EVar "x" _, EVar "y" _] _) -> pure ()
+      Right other -> expectationFailure $ "Expected pair tuple, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses triple tuple expression (issue #182)" $ do
+    case parseExpr "test" "(a, b, c)" of
+      Right (ETuple [_, _, _] _) -> pure ()
+      Right other -> expectationFailure $ "Expected triple tuple, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses tuple in let binding (issue #182)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test() -> Tuple:"
+          , "  let pair = (x, y)"
+          , "  pair"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================

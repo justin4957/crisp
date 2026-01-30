@@ -1842,10 +1842,16 @@ pVar = do
 
 pParens :: Parser Expr
 pParens = do
+  start <- getPos
   symbol "("
-  e <- pExpr
+  firstExpr <- pExpr
+  moreExprs <- many (symbol "," *> pExpr)
   symbol ")"
-  pure e
+  case moreExprs of
+    [] -> pure firstExpr                          -- Parenthesized expression
+    _  -> do
+      span' <- spanFrom start
+      pure $ ETuple (firstExpr : moreExprs) span' -- Tuple expression
 
 -- * Pattern parsing
 

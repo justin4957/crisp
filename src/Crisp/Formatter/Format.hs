@@ -561,6 +561,9 @@ prettyExpr opts ind = \case
   ERange start end _ ->
     prettyExprAtom opts ind start <> ".." <> prettyExprAtom opts ind end
 
+  ETuple elems _ ->
+    "(" <> T.intercalate ", " (map (prettyExpr opts ind) elems) <> ")"
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case
@@ -599,6 +602,7 @@ prettyExprAtom opts ind expr = case expr of
   EReturn {} -> prettyExpr opts ind expr
   EIndex {} -> prettyExpr opts ind expr
   ERange {} -> prettyExpr opts ind expr
+  ETuple {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
 -- | Pretty print a match arm
