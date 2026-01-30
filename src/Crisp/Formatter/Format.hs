@@ -553,6 +553,8 @@ prettyExpr opts ind = \case
 
   EBreak _ -> "break"
 
+  EReturn val _ -> "return " <> prettyExprAtom opts ind val
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case
@@ -588,6 +590,7 @@ prettyExprAtom opts ind expr = case expr of
   ERecord {} -> prettyExpr opts ind expr
   EList {} -> prettyExpr opts ind expr
   EBreak {} -> prettyExpr opts ind expr
+  EReturn {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
 -- | Pretty print a match arm

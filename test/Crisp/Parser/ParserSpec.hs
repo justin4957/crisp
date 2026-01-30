@@ -2132,6 +2132,31 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right other -> expectationFailure $ "Expected if with break in then, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses return expression (issue #179)" $ do
+    case parseExpr "test" "return None" of
+      Right (EReturn (ECon "None" _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected return None, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses return with parenthesized expression (issue #179)" $ do
+    case parseExpr "test" "return (Some(x))" of
+      Right (EReturn _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected return expr, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses return in function body (issue #179)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn guard(x: Int) -> Option:"
+          , "  if x == 0 then"
+          , "    return None"
+          , "  else"
+          , "    Some(x)"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================
