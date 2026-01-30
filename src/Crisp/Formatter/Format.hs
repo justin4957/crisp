@@ -185,7 +185,7 @@ prettyTypeDef opts ind td =
       modifiers = if modifierIsProp (typeDefModifiers td) then "prop " else ""
                 <> if modifierIsLinear (typeDefModifiers td) then "linear " else ""
       params = if null (typeDefParams td) then ""
-               else " " <> T.unwords (map (prettyTypeParam opts) (typeDefParams td))
+               else " " <> prettyTypeParamGroups opts (typeDefParams td)
       constraints = prettyConstraints opts (typeDefConstraints td)
       kind = case typeDefKind td of
         Nothing -> ""
@@ -203,6 +203,27 @@ prettyDerivingClause :: DerivingClause -> Text
 prettyDerivingClause dc = case derivingTraits dc of
   [t] -> t
   ts -> "(" <> T.intercalate ", " ts <> ")"
+
+-- | Pretty print type parameters, grouping consecutive DepParams into a single
+-- parenthesized comma-separated group: (j: Jurisdiction, temporal: TemporalRange)
+prettyTypeParamGroups :: FormatOptions -> [TypeParam] -> Text
+prettyTypeParamGroups opts = T.unwords . map formatGroup . groupParams
+  where
+    groupParams [] = []
+    groupParams (DepParam n t s : rest) =
+      let (depParams, remaining) = span isDepParam rest
+      in Left (DepParam n t s : depParams) : groupParams remaining
+    groupParams (p : rest) = Right p : groupParams rest
+
+    isDepParam (DepParam {}) = True
+    isDepParam _             = False
+
+    formatGroup (Right param) = prettyTypeParam opts param
+    formatGroup (Left depParams) =
+      "(" <> T.intercalate ", " (map prettyDepEntry depParams) <> ")"
+
+    prettyDepEntry (DepParam name ty _) = name <> ": " <> prettyType opts 0 ty
+    prettyDepEntry _ = ""  -- unreachable, but satisfies exhaustiveness
 
 -- | Pretty print type parameter
 prettyTypeParam :: FormatOptions -> TypeParam -> Text

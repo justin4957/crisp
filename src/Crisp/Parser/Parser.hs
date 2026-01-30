@@ -303,7 +303,7 @@ pDefinition = do
       keyword "type"
       mods <- pTypeModifiers
       name <- upperIdent
-      params <- many (try pTypeParamNotEq)
+      params <- concat <$> many (try pTypeParamGroupNotEq)
       -- Now decide based on what comes next
       choice
         [ do -- Type alias: has = after name/params
@@ -344,10 +344,10 @@ pDefinition = do
              pure $ DefType $ TypeDef doc name params constraints mKind fixedCons mods deriv span'
         ]
 
-    -- Type parameter that doesn't consume = sign
-    pTypeParamNotEq = do
+    -- Type parameter group that doesn't consume = sign
+    pTypeParamGroupNotEq = do
       notFollowedBy (symbol "=")
-      pTypeParam
+      pTypeParamGroup
 
     pTypeDefKind = symbol ":" *> pKind
 
@@ -357,7 +357,7 @@ pTypeDef = do
   keyword "type"
   mods <- pTypeModifiers
   name <- upperIdent
-  params <- many pTypeParam
+  params <- concat <$> many pTypeParamGroup
   constraints <- option [] pTypeDefConstraints
   -- Kind annotation must be followed by a valid kind keyword, not a constructor
   mKind <- optional (try pTypeDefKind)
@@ -525,6 +525,29 @@ pConstructorField = do
   ty <- pTypeApp  -- Use pTypeApp instead of pType to not consume arrows/effects
   span' <- spanFrom start
   pure $ Field name ty span'
+
+-- | Parse one or more type parameters, supporting comma-separated dependent
+-- parameters in a single paren group: (j: Jurisdiction, temporal: TemporalRange)
+pTypeParamGroup :: Parser [TypeParam]
+pTypeParamGroup = choice
+  [ -- Multiple comma-separated dependent parameters in one paren group:
+    -- (name1: Type1, name2: Type2, ...)
+    try $ do
+      symbol "("
+      params <- pDepParamEntry `sepBy1` symbol ","
+      symbol ")"
+      pure params
+  , -- Single type parameter (original behavior)
+    (:[]) <$> pTypeParam
+  ]
+  where
+    pDepParamEntry = do
+      start <- getPos
+      name <- lowerIdent
+      symbol ":"
+      ty <- pType
+      span' <- spanFrom start
+      pure $ DepParam name ty span'
 
 pTypeParam :: Parser TypeParam
 pTypeParam = choice

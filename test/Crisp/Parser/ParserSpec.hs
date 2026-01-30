@@ -1145,6 +1145,52 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type alias"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses type with multiple dependent parameters (issue #172)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type Provision (j: Jurisdiction, temporal: TemporalRange):"
+          , "  id: ProvisionId"
+          , "  validity: TemporalValidity"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefName td `shouldBe` "Provision"
+          length (typeDefParams td) `shouldBe` 2
+        _ -> expectationFailure "Expected single type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type with single dependent parameter in parens (issue #172)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type Act (j: Jurisdiction):"
+          , "  id: ActId"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefName td `shouldBe` "Act"
+          length (typeDefParams td) `shouldBe` 1
+        _ -> expectationFailure "Expected single type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type with mixed uppercase and dependent parameters (issue #172)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type Container T (n: Nat):"
+          , "  items: List T"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefName td `shouldBe` "Container"
+          length (typeDefParams td) `shouldBe` 2
+        _ -> expectationFailure "Expected single type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 effectDefTests :: Spec
 effectDefTests = describe "effect definitions" $ do
   it "parses simple effect" $ do
