@@ -387,6 +387,7 @@ data Expr
   | EReturn !Expr !Span                                 -- ^ Early return: return expr
   | EIndex !Expr !Expr !Span                            -- ^ Index access: expr[expr]
   | ERange !Expr !Expr !Span                            -- ^ Range expression: expr..expr
+  | ETuple ![Expr] !Span                                -- ^ Tuple expression: (expr, expr, ...)
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators
