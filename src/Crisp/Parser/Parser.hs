@@ -1425,6 +1425,7 @@ pAtom = choice
   , pExternalCall
   , pLazy
   , pForce
+  , pNot
   , pBreak
   , pReturn
   , pLiteral
@@ -1553,6 +1554,7 @@ pLet = do
     pLetAtom = choice
       [ pLazy
       , pForce
+      , pNot
       , pBreak
       , pReturn
       , pLiteral
@@ -1783,6 +1785,14 @@ pReturn = do
   val <- pAtom
   span' <- spanFrom start
   pure $ EReturn val span'
+
+pNot :: Parser Expr
+pNot = do
+  start <- getPos
+  keyword "not"
+  inner <- pAtom
+  span' <- spanFrom start
+  pure $ ENot inner span'
 
 pLiteral :: Parser Expr
 pLiteral = choice

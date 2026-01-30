@@ -388,6 +388,7 @@ data Expr
   | EIndex !Expr !Expr !Span                            -- ^ Index access: expr[expr]
   | ERange !Expr !Expr !Span                            -- ^ Range expression: expr..expr
   | ETuple ![Expr] !Span                                -- ^ Tuple expression: (expr, expr, ...)
+  | ENot !Expr !Span                                    -- ^ Boolean negation: not expr
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators

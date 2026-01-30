@@ -564,6 +564,8 @@ prettyExpr opts ind = \case
   ETuple elems _ ->
     "(" <> T.intercalate ", " (map (prettyExpr opts ind) elems) <> ")"
 
+  ENot inner _ -> "not " <> prettyExprAtom opts ind inner
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case
@@ -603,6 +605,7 @@ prettyExprAtom opts ind expr = case expr of
   EIndex {} -> prettyExpr opts ind expr
   ERange {} -> prettyExpr opts ind expr
   ETuple {} -> prettyExpr opts ind expr
+  ENot {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
 -- | Pretty print a match arm

@@ -193,6 +193,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Index access: parsing, chained indexing, in let binding (issue #180)
 - Range expressions: parsing, with field access, in for loop (issue #181)
 - Tuple expressions: pair, triple, in let binding (issue #182)
+- Not expressions: basic, nested, in let binding (issue #183)
 
 **Pattern Tests (~15 tests)**
 - Wildcard patterns in let
@@ -290,6 +291,7 @@ The formatter test suite covers source code formatting (~51 tests):
 - Index access: formatting and chained idempotency (issue #180)
 - Range expressions: formatting and idempotency (issue #181)
 - Tuple expressions: formatting and idempotency (issue #182)
+- Not expressions: formatting and idempotency (issue #183)
 
 **Module Formatting (~21 tests)**
 - Minimal module, with function/type/effect definitions
