@@ -1281,6 +1281,54 @@ effectDefTests = describe "effect definitions" $ do
         _ -> expectationFailure "Expected single effect definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses effect with single type parameter (issue #171)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect State S:"
+          , "  get: S"
+          , "  put: S -> Unit"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> do
+          effectDefName ed `shouldBe` "State"
+          length (effectDefTypeParams ed) `shouldBe` 1
+          length (effectDefOperations ed) `shouldBe` 2
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses effect with multiple type parameters (issue #171)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect Transform A B:"
+          , "  apply: A -> B"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> do
+          effectDefName ed `shouldBe` "Transform"
+          length (effectDefTypeParams ed) `shouldBe` 2
+          length (effectDefOperations ed) `shouldBe` 1
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses effect without type params still works (issue #171)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , ""
+          , "effect IO:"
+          , "  print: String -> Unit"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> do
+          effectDefName ed `shouldBe` "IO"
+          effectDefTypeParams ed `shouldBe` []
+        _ -> expectationFailure "Expected single effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 handlerDefTests :: Spec
 handlerDefTests = describe "handler definitions" $ do
   it "parses simple handler" $ do

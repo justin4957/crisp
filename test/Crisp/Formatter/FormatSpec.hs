@@ -717,6 +717,35 @@ spec = describe "Crisp.Formatter.Format" $ do
               Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
               Right formatted2 -> formatted1 `shouldBe` formatted2
 
+      it "formats effect with type parameters (issue #171)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "effect State S:"
+              , "  get: S"
+              , "  put: S -> Unit"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted -> do
+            formatted `shouldSatisfy` T.isInfixOf "effect State S:"
+            formatted `shouldSatisfy` T.isInfixOf "get: S"
+
+      it "effect with type parameters is idempotent (issue #171)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "effect State S:"
+              , "  get: S"
+              , "  put: S -> Unit"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted1 ->
+            case formatSource defaultFormatOptions formatted1 of
+              Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+              Right formatted2 -> formatted1 `shouldBe` formatted2
+
     describe "external function definitions" $ do
       it "formats external fn" $ do
         let src = "module Test\n\nexternal fn log(msg: String) -> Unit = (\"console\", \"log\")"

@@ -622,10 +622,11 @@ pEffectDef doc = do
   start <- getPos
   keyword "effect"
   name <- upperIdent
+  typeParams <- many pTypeParam
   symbol ":"
   ops <- many pOperation
   span' <- spanFrom start
-  pure $ EffectDef doc name ops span'
+  pure $ EffectDef doc name typeParams ops span'
 
 pOperation :: Parser Operation
 pOperation = do

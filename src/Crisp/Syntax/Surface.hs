@@ -167,6 +167,7 @@ data Kind
 data EffectDef = EffectDef
   { effectDefDocComment  :: !(Maybe DocComment)
   , effectDefName        :: !Text
+  , effectDefTypeParams  :: ![TypeParam]
   , effectDefOperations  :: ![Operation]
   , effectDefSpan        :: !Span
   } deriving stock (Eq, Show, Generic)
