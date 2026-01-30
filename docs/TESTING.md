@@ -241,6 +241,9 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parses provides block with trait (issue #164)
 - Parses provides block with multiple traits (issue #164)
 - Parses provides block with all item types including trait (issue #164)
+- Parses effect with single type parameter (issue #171)
+- Parses effect with multiple type parameters (issue #171)
+- Parses effect without type params still works (issue #171)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
@@ -293,6 +296,8 @@ The formatter test suite covers source code formatting (~51 tests):
 - Effect with documented operations is idempotent (issue #154)
 - Function-style effect operation formatting (issue #162)
 - Function-style effect operation is idempotent (issue #162)
+- Effect with type parameters formatting (issue #171)
+- Effect with type parameters is idempotent (issue #171)
 
 **Doc Comment Preservation (~11 tests)**
 - Preserves doc comments on function and type definitions

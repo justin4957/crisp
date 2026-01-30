@@ -248,7 +248,10 @@ prettyConstructor opts ind = \case
 -- | Pretty print effect definition
 prettyEffectDef :: FormatOptions -> Int -> EffectDef -> Text
 prettyEffectDef opts ind ed =
-  let header = indent ind <> "effect " <> effectDefName ed <> ":"
+  let params = case effectDefTypeParams ed of
+        [] -> ""
+        ps -> " " <> T.unwords (map (prettyTypeParam opts) ps)
+      header = indent ind <> "effect " <> effectDefName ed <> params <> ":"
       operations = map (prettyOperation opts (ind + optIndentWidth opts)) (effectDefOperations ed)
   in header <> "\n" <> T.intercalate "\n" operations
 
