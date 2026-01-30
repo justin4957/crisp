@@ -379,6 +379,7 @@ data Expr
   | EFieldAccess !Expr !Text !Span                      -- ^ Field access: expr.field
   | EBinOp !BinOp !Expr !Expr !Span                     -- ^ Binary operator: expr op expr
   | ERecord !Text ![(Text, Expr)] !Span                 -- ^ Record construction: Type { field = expr, ... }
+  | EFor !Pattern !Expr !Expr !Span                     -- ^ For loop: for pattern in collection: body
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators

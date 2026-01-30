@@ -1302,6 +1302,7 @@ pApp = choice
   , pMatch
   , pIf
   , pDo
+  , pFor
   , pWith
   , pLambda
   , -- Application of simpler expressions
@@ -1570,6 +1571,18 @@ pDoStmt = choice
        span' <- spanFrom start
        pure $ DoLet pat mTy value span'
   ]
+
+pFor :: Parser Expr
+pFor = do
+  start <- getPos
+  keyword "for"
+  pat <- pPattern
+  keyword "in"
+  collection <- pPostfix
+  symbol ":"
+  body <- pExpr
+  span' <- spanFrom start
+  pure $ EFor pat collection body span'
 
 pWith :: Parser Expr
 pWith = do

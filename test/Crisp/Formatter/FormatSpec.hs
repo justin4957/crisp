@@ -496,6 +496,53 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats basic for loop (issue #169)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn process(items: List(Item)) -> Unit:"
+            , "  for item in items:"
+            , "    log item"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "for item in items:"
+          formatted `shouldSatisfy` T.isInfixOf "log"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats nested for loops (issue #169)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn analyze(ids: List(Int)) -> Unit:"
+            , "  for id in ids:"
+            , "    for item in items:"
+            , "      process item"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "for id in ids:"
+          formatted `shouldSatisfy` T.isInfixOf "for item in items:"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats for loop idempotently (issue #169)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn process(items: List(Item)) -> Unit:"
+            , "  for item in items:"
+            , "    log item"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"
