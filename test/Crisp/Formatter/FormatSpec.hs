@@ -636,6 +636,34 @@ spec = describe "Crisp.Formatter.Format" $ do
           Right formatted ->
             formatted `shouldSatisfy` T.isInfixOf "type Option A"
 
+      it "formats type with multiple dependent parameters (issue #172)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "type Provision (j: Jurisdiction, temporal: TemporalRange):"
+              , "  id: ProvisionId"
+              , "  validity: TemporalValidity"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted -> do
+            formatted `shouldSatisfy` T.isInfixOf "(j: Jurisdiction, temporal: TemporalRange)"
+
+      it "type with multiple dependent parameters is idempotent (issue #172)" $ do
+        let src = T.unlines
+              [ "module Test"
+              , ""
+              , "type Provision (j: Jurisdiction, temporal: TemporalRange):"
+              , "  id: ProvisionId"
+              , "  validity: TemporalValidity"
+              ]
+        case formatSource defaultFormatOptions src of
+          Left err -> expectationFailure $ T.unpack err
+          Right formatted1 ->
+            case formatSource defaultFormatOptions formatted1 of
+              Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+              Right formatted2 -> formatted1 `shouldBe` formatted2
+
     describe "function definitions" $ do
       it "formats simple function" $ do
         let src = "module Test\n\nfn const(x: Int, y: Int) -> Int:\n  x"

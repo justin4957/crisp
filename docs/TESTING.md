@@ -244,6 +244,9 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parses effect with single type parameter (issue #171)
 - Parses effect with multiple type parameters (issue #171)
 - Parses effect without type params still works (issue #171)
+- Parses type with multiple dependent parameters (issue #172)
+- Parses type with single dependent parameter in parens (issue #172)
+- Parses type with mixed uppercase and dependent parameters (issue #172)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
@@ -298,6 +301,8 @@ The formatter test suite covers source code formatting (~51 tests):
 - Function-style effect operation is idempotent (issue #162)
 - Effect with type parameters formatting (issue #171)
 - Effect with type parameters is idempotent (issue #171)
+- Type with multiple dependent parameters formatting (issue #172)
+- Type with multiple dependent parameters is idempotent (issue #172)
 
 **Doc Comment Preservation (~11 tests)**
 - Preserves doc comments on function and type definitions
