@@ -2109,6 +2109,29 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right other -> expectationFailure $ "Expected cons with list, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses break statement (issue #178)" $ do
+    case parseExpr "test" "break" of
+      Right (EBreak _) -> pure ()
+      Right other -> expectationFailure $ "Expected break, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses break in for loop body (issue #178)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn find(xs: List) -> Unit:"
+          , "  for x in xs:"
+          , "    break"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses break as standalone expression (issue #178)" $ do
+    case parseExpr "test" "if done then break else x" of
+      Right (EIf _ (EBreak _) _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected if with break in then, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================
