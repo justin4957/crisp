@@ -1367,7 +1367,7 @@ pAppSimple = do
 pPostfix :: Parser Expr
 pPostfix = do
   base <- pAtom
-  suffixes <- many pDotSuffix
+  suffixes <- many (pDotSuffix <|> pIndexSuffix)
   pure $ foldl applySuffix base suffixes
   where
     -- Parse .field or .method(args)
@@ -1384,10 +1384,24 @@ pPostfix = do
         symbol ")"
         pure args
       span' <- spanFrom s
-      pure (field, mArgs, span')
+      pure $ DotSuffix field mArgs span'
 
-    applySuffix receiver (field, Nothing, s) = EFieldAccess receiver field s
-    applySuffix receiver (method, Just args, s) = EMethodCall receiver method args s
+    -- Parse [expr] indexing
+    pIndexSuffix = try $ do
+      s <- getPos
+      symbol "["
+      idx <- pExpr
+      symbol "]"
+      span' <- spanFrom s
+      pure $ IndexSuffix idx span'
+
+    applySuffix receiver (DotSuffix field Nothing s) = EFieldAccess receiver field s
+    applySuffix receiver (DotSuffix method (Just args) s) = EMethodCall receiver method args s
+    applySuffix receiver (IndexSuffix idx s) = EIndex receiver idx s
+
+data PostfixSuffix
+  = DotSuffix !Text !(Maybe [Expr]) !Span
+  | IndexSuffix !Expr !Span
 
 -- | Parse simple atoms (variables, literals, parenthesized expressions)
 -- These can be targets of function application
@@ -1487,17 +1501,15 @@ pLet = do
         then notFollowedBy (keyword "in") *> pLetPostfix
         else fail "argument on different line"
 
-    -- Parse postfix expressions (field access) for let bindings
+    -- Parse postfix expressions (field access, indexing) for let bindings
     pLetPostfix :: Parser Expr
     pLetPostfix = do
-      start <- getPos
       base <- pLetAtom
-      accesses <- many pLetFieldAccess
-      span' <- spanFrom start
-      pure $ foldl (\e (field, s) -> EFieldAccess e field s) base accesses
+      suffixes <- many (pLetFieldAccess <|> pLetIndexAccess)
+      pure $ foldl applyLetSuffix base suffixes
 
     -- Parse field access, but not followed by 'in' keyword
-    pLetFieldAccess :: Parser (Text, Span)
+    pLetFieldAccess :: Parser PostfixSuffix
     pLetFieldAccess = try $ do
       notFollowedBy (keyword "in")
       s <- getPos
@@ -1505,7 +1517,23 @@ pLet = do
       notFollowedBy upperIdent
       field <- lowerIdent
       span' <- spanFrom s
-      pure (field, span')
+      pure $ DotSuffix field Nothing span'
+
+    -- Parse [expr] indexing in let context
+    pLetIndexAccess :: Parser PostfixSuffix
+    pLetIndexAccess = try $ do
+      notFollowedBy (keyword "in")
+      s <- getPos
+      symbol "["
+      idx <- pExpr
+      symbol "]"
+      span' <- spanFrom s
+      pure $ IndexSuffix idx span'
+
+    applyLetSuffix :: Expr -> PostfixSuffix -> Expr
+    applyLetSuffix receiver (DotSuffix field Nothing s) = EFieldAccess receiver field s
+    applyLetSuffix receiver (DotSuffix method (Just args) s) = EMethodCall receiver method args s
+    applyLetSuffix receiver (IndexSuffix idx s) = EIndex receiver idx s
 
     pLetAtom :: Parser Expr
     pLetAtom = choice

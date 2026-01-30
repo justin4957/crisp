@@ -555,6 +555,9 @@ prettyExpr opts ind = \case
 
   EReturn val _ -> "return " <> prettyExprAtom opts ind val
 
+  EIndex collection idx _ ->
+    prettyExprAtom opts ind collection <> "[" <> prettyExpr opts ind idx <> "]"
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case
@@ -591,6 +594,7 @@ prettyExprAtom opts ind expr = case expr of
   EList {} -> prettyExpr opts ind expr
   EBreak {} -> prettyExpr opts ind expr
   EReturn {} -> prettyExpr opts ind expr
+  EIndex {} -> prettyExpr opts ind expr
   _ -> "(" <> prettyExpr opts ind expr <> ")"
 
 -- | Pretty print a match arm
