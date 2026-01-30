@@ -83,7 +83,7 @@ The lexer test suite covers:
 **Operators (22 tests)**
 - Arrow operators (`->`, `=>`, `<-`)
 - Comparison operators (`<`, `>`, `<=`, `>=`, `==`, `/=`)
-- Arithmetic operators (`+`, `-`, `*`, `/`, `%`)
+- Arithmetic operators (`+`, `-`, `*`, `/`, `%`, `++`)
 - Logical operators (`&&`, `||`)
 - Pipe operators (`|>`, `<|`)
 - Other operators (`:`, `::`, `@`, `&`, `.`, `,`, `$`, `!`)
@@ -185,6 +185,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Pipeline operator: simple, chained, with application
 - Record construction: simple, nested, in let binding (issue #173)
 - Method calls: simple, multiple args, chained, no args (issue #174)
+- Concat operator: parsing, chaining, distinction from + (issue #175)
 
 **Pattern Tests (~15 tests)**
 - Wildcard patterns in let
@@ -274,6 +275,7 @@ The formatter test suite covers source code formatting (~51 tests):
 - Field access: simple and chained
 - Record construction: formatting and idempotency (issue #173)
 - Method calls: formatting and chained idempotency (issue #174)
+- Concat operator: formatting and idempotency (issue #175)
 
 **Module Formatting (~21 tests)**
 - Minimal module, with function/type/effect definitions

@@ -635,6 +635,30 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
+    it "formats ++ concat operator (issue #175)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn greet(name: String) -> String:"
+            , "  \"Hello, \" ++ name"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted ->
+          formatted `shouldSatisfy` T.isInfixOf "++"
+
+    it "formats ++ concat operator idempotently (issue #175)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn greet(name: String) -> String:"
+            , "  (\"Hello, \" ++ name) ++ \"!\""
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"

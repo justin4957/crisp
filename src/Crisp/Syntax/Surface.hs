@@ -399,6 +399,7 @@ data BinOp
   | OpGE          -- ^ >=
   | OpEQ          -- ^ ==
   | OpNE          -- ^ /=
+  | OpConcat      -- ^ ++
   deriving stock (Eq, Show, Generic)
 
 -- | A statement in a block
