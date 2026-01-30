@@ -568,6 +568,7 @@ prettyBinOp = \case
   OpEQ  -> "=="
   OpNE  -> "/="
   OpConcat -> "++"
+  OpCons -> "::"
 
 -- | Pretty print an atomic expression (with parens if needed)
 prettyExprAtom :: FormatOptions -> Int -> Expr -> Text

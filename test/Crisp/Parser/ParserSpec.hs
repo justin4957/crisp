@@ -2090,6 +2090,25 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right other -> expectationFailure $ "Expected add, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses :: cons operator (issue #177)" $ do
+    case parseExpr "test" "x :: xs" of
+      Right (EBinOp OpCons _ _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected cons, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses chained :: right-to-left (issue #177)" $ do
+    -- 1 :: 2 :: xs should be 1 :: (2 :: xs)
+    case parseExpr "test" "1 :: 2 :: xs" of
+      Right (EBinOp OpCons _ (EBinOp OpCons _ _ _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected 1 :: (2 :: xs), got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses :: with list literal (issue #177)" $ do
+    case parseExpr "test" "1 :: [2, 3]" of
+      Right (EBinOp OpCons _ (EList _ _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected cons with list, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================

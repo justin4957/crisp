@@ -187,6 +187,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Method calls: simple, multiple args, chained, no args (issue #174)
 - Concat operator: parsing, chaining, distinction from + (issue #175)
 - List literals: empty, multi-element, nested, in let binding (issue #176)
+- Cons operator: parsing, right-associative chaining, with list literal (issue #177)
 
 **Pattern Tests (~15 tests)**
 - Wildcard patterns in let
@@ -278,6 +279,7 @@ The formatter test suite covers source code formatting (~51 tests):
 - Method calls: formatting and chained idempotency (issue #174)
 - Concat operator: formatting and idempotency (issue #175)
 - List literals: formatting and idempotency (issue #176)
+- Cons operator: formatting and idempotency (issue #177)
 
 **Module Formatting (~21 tests)**
 - Minimal module, with function/type/effect definitions

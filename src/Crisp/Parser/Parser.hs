@@ -1278,7 +1278,7 @@ pExpr = makeExprParser pCompare
 
 -- | Parse comparison expressions
 pCompare :: Parser Expr
-pCompare = makeExprParser pAddSub
+pCompare = makeExprParser pCons
   [ [InfixN pLe, InfixN pLt, InfixN pGe, InfixN pGt, InfixN pEq, InfixN pNe] ]
   where
     pLe = mkBinOp "<=" OpLE
@@ -1287,6 +1287,17 @@ pCompare = makeExprParser pAddSub
     pGt = mkBinOp ">" OpGT
     pEq = mkBinOp "==" OpEQ
     pNe = mkBinOp "/=" OpNE
+
+-- | Parse cons operator (right-associative, between comparison and additive)
+pCons :: Parser Expr
+pCons = makeExprParser pAddSub
+  [ [InfixR pConsOp] ]
+  where
+    pConsOp = do
+      start <- getPos
+      void $ symbol "::"
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp OpCons left right span'
 
 -- | Parse additive expressions
 pAddSub :: Parser Expr
