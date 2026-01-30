@@ -30,6 +30,7 @@ shouldNotParse result = result `shouldSatisfy` isLeft
 spec :: Spec
 spec = do
   expressionTests
+  recordConstructionTests
   patternTests
   typeTests
   declarationTests
@@ -499,6 +500,57 @@ forLoopTests = describe "for loops (issue #169)" $ do
           , "fn process(pairs: List(Pair)) -> Unit:"
           , "  for (Pair x y) in pairs:"
           , "    log x"
+          ]
+    shouldParse $ parseModule "test" src
+
+-- =============================================================================
+-- Record Construction Tests
+-- =============================================================================
+
+recordConstructionTests :: Spec
+recordConstructionTests = describe "record construction (issue #173)" $ do
+  it "parses simple record construction" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn make() -> Part:"
+          , "  Part { number = 1, title = \"hello\" }"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> case fnDefBody fd of
+          ERecord name fields _ -> do
+            name `shouldBe` "Part"
+            length fields `shouldBe` 2
+          _ -> expectationFailure "Expected record construction expression"
+        _ -> expectationFailure "Expected function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses nested record construction" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn make() -> Arg:"
+          , "  Arg { id = Id { value = 1 }, name = \"test\" }"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> case fnDefBody fd of
+          ERecord name fields _ -> do
+            name `shouldBe` "Arg"
+            length fields `shouldBe` 2
+            case fields of
+              ((_, ERecord innerName _ _) : _) ->
+                innerName `shouldBe` "Id"
+              _ -> expectationFailure "Expected nested record"
+          _ -> expectationFailure "Expected record construction expression"
+        _ -> expectationFailure "Expected function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses record construction in let binding" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn make() -> Unit:"
+          , "  let x = Point { x = 1, y = 2 }"
+          , "  x"
           ]
     shouldParse $ parseModule "test" src
 

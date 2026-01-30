@@ -1371,9 +1371,27 @@ pAtom = choice
   , pLazy
   , pForce
   , pLiteral
+  , try pRecordConstruction
   , pVar
   , pParens
   ]
+
+-- | Parse record construction: TypeName { field = expr, ... }
+pRecordConstruction :: Parser Expr
+pRecordConstruction = do
+  start <- getPos
+  name <- upperIdent
+  symbol "{"
+  fields <- pRecordFieldAssign `sepBy1` symbol ","
+  symbol "}"
+  span' <- spanFrom start
+  pure $ ERecord name fields span'
+  where
+    pRecordFieldAssign = do
+      fieldName <- lowerIdent
+      symbol "="
+      value <- pExpr
+      pure (fieldName, value)
 
 pLet :: Parser Expr
 pLet = do
@@ -1454,6 +1472,7 @@ pLet = do
       [ pLazy
       , pForce
       , pLiteral
+      , try pRecordConstruction
       , pVar
       , pParens
       ]
