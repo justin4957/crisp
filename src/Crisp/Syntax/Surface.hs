@@ -385,6 +385,7 @@ data Expr
   | EList ![Expr] !Span                                 -- ^ List literal: [expr, ...]
   | EBreak !Span                                        -- ^ Break statement for loop exit
   | EReturn !Expr !Span                                 -- ^ Early return: return expr
+  | EIndex !Expr !Expr !Span                            -- ^ Index access: expr[expr]
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators

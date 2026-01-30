@@ -756,6 +756,30 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
+    it "formats index access (issue #180)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn first(items: List) -> Int:"
+            , "  items[0]"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted ->
+          formatted `shouldSatisfy` T.isInfixOf "items[0]"
+
+    it "formats chained index access idempotently (issue #180)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn get(matrix: List, i: Int, j: Int) -> Int:"
+            , "  matrix[i][j]"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
   describe "Idempotence" $ do
     it "formatting twice produces same result for simple module" $ do
       let src = "module Test\n\nfn id(x: Int) -> Int:\n  x"

@@ -2157,6 +2157,29 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right _ -> pure ()
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses index access expr[expr] (issue #180)" $ do
+    case parseExpr "test" "items[0]" of
+      Right (EIndex (EVar "items" _) (EIntLit 0 _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected index access, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses chained index access (issue #180)" $ do
+    case parseExpr "test" "matrix[i][j]" of
+      Right (EIndex (EIndex _ _ _) _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected chained index, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses index access in let binding (issue #180)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn get(items: List) -> Int:"
+          , "  let first = items[0]"
+          , "  first"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================

@@ -190,6 +190,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Cons operator: parsing, right-associative chaining, with list literal (issue #177)
 - Break statement: parsing, in for loop body, as standalone expression in if-then-else (issue #178)
 - Return expression: parsing, with parenthesized expression, in function body (issue #179)
+- Index access: parsing, chained indexing, in let binding (issue #180)
 
 **Pattern Tests (~15 tests)**
 - Wildcard patterns in let
@@ -284,6 +285,7 @@ The formatter test suite covers source code formatting (~51 tests):
 - Cons operator: formatting and idempotency (issue #177)
 - Break statement: formatting and idempotency (issue #178)
 - Return expression: formatting and idempotency (issue #179)
+- Index access: formatting and chained idempotency (issue #180)
 
 **Module Formatting (~21 tests)**
 - Minimal module, with function/type/effect definitions
