@@ -2032,6 +2032,24 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right other -> expectationFailure $ "Expected A -> (B -> C), got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses ++ concat operator (issue #175)" $ do
+    case parseExpr "test" "\"hello\" ++ \" world\"" of
+      Right (EBinOp OpConcat _ _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected concat, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses chained ++ left-to-right (issue #175)" $ do
+    case parseExpr "test" "\"a\" ++ \"b\" ++ \"c\"" of
+      Right (EBinOp OpConcat (EBinOp OpConcat _ _ _) _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected (a ++ b) ++ c, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "keeps + and ++ distinct (issue #175)" $ do
+    case parseExpr "test" "x + y" of
+      Right (EBinOp OpAdd _ _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected add, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================

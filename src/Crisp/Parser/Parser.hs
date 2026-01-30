@@ -1291,9 +1291,17 @@ pCompare = makeExprParser pAddSub
 -- | Parse additive expressions
 pAddSub :: Parser Expr
 pAddSub = makeExprParser pMulDiv
-  [ [InfixL pAdd, InfixL pSub] ]
+  [ [InfixL pConcat, InfixL pAdd, InfixL pSub] ]
   where
-    pAdd = mkBinOp "+" OpAdd
+    -- Concat must be tried before Add so ++ isn't consumed as +
+    pConcat = mkBinOp "++" OpConcat
+    -- Add must not match ++ (concat operator)
+    pAdd = do
+      start <- getPos
+      void $ try (string "+" <* notFollowedBy (char '+'))
+      sc
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp OpAdd left right span'
     -- Subtraction operator must not be followed by '>' (arrow) or '--' (doc comment prefix)
     pSub = do
       start <- getPos
