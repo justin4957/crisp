@@ -516,6 +516,10 @@ prettyExpr opts ind = \case
     let fieldStrs = map (\(name, val) -> name <> " = " <> prettyExpr opts ind val) fields
     in conName <> " { " <> T.intercalate ", " fieldStrs <> " }"
 
+  EFor pat collection body _ ->
+    "for " <> prettyPattern opts pat <> " in " <> prettyExpr opts ind collection <> ":\n"
+    <> indent (ind + optIndentWidth opts) <> prettyExpr opts (ind + optIndentWidth opts) body
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case

@@ -56,6 +56,7 @@ expressionTests = describe "expressions" $ do
   lazyForceTests
   pipelineTests
   annotationTests
+  forLoopTests
 
 literalTests :: Spec
 literalTests = describe "literals" $ do
@@ -446,6 +447,60 @@ annotationTests = describe "parentheses" $ do
 
   it "parses complex expression in parens" $ do
     shouldParse $ parseExpr "test" "(f x y)"
+
+forLoopTests :: Spec
+forLoopTests = describe "for loops (issue #169)" $ do
+  it "parses basic for loop in function body" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(items: List(Item)) -> Unit:"
+          , "  for item in items:"
+          , "    log item"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefFn fd] -> case fnDefBody fd of
+            EFor _ _ _ _ -> pure ()
+            other -> expectationFailure $ "Expected EFor, got " ++ show other
+          _ -> expectationFailure "Expected function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses for loop with let binding in body" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(ids: List(Int)) -> Unit:"
+          , "  for id in ids:"
+          , "    let result = compute id"
+          , "    log result"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses nested for loops" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn analyze(ids: List(Int)) -> Unit:"
+          , "  for id in ids:"
+          , "    for item in items:"
+          , "      process item"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        case moduleDefinitions m of
+          [DefFn fd] -> case fnDefBody fd of
+            EFor _ _ (EFor _ _ _ _) _ -> pure ()
+            other -> expectationFailure $ "Expected nested EFor, got " ++ show other
+          _ -> expectationFailure "Expected function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses for loop with constructor pattern" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(pairs: List(Pair)) -> Unit:"
+          , "  for (Pair x y) in pairs:"
+          , "    log x"
+          ]
+    shouldParse $ parseModule "test" src
 
 -- =============================================================================
 -- Pattern Tests
