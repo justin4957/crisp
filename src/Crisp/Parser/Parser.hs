@@ -1347,20 +1347,28 @@ pAppSimple = do
 -- | Parse postfix expressions (field access)
 pPostfix :: Parser Expr
 pPostfix = do
-  start <- getPos
   base <- pAtom
-  accesses <- many pFieldAccess
-  span' <- spanFrom start
-  pure $ foldl (\e (field, s) -> EFieldAccess e field s) base accesses
+  suffixes <- many pDotSuffix
+  pure $ foldl applySuffix base suffixes
   where
-    pFieldAccess = do
+    -- Parse .field or .method(args)
+    pDotSuffix = do
       s <- getPos
       symbol "."
       -- Must be followed by lowercase identifier (field name), not uppercase (qualified name)
       notFollowedBy upperIdent
       field <- lowerIdent
+      -- Try to parse parenthesized arguments for method call
+      mArgs <- optional $ do
+        symbol "("
+        args <- pExpr `sepBy` symbol ","
+        symbol ")"
+        pure args
       span' <- spanFrom s
-      pure (field, span')
+      pure (field, mArgs, span')
+
+    applySuffix receiver (field, Nothing, s) = EFieldAccess receiver field s
+    applySuffix receiver (method, Just args, s) = EMethodCall receiver method args s
 
 -- | Parse simple atoms (variables, literals, parenthesized expressions)
 -- These can be targets of function application
