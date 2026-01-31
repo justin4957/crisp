@@ -169,6 +169,16 @@ prettyDefinition opts ind = \case
   DefImpl id' -> prettyDocComment ind (implDefDocComment id') <> prettyImplDef opts ind id'
   DefExternal ed -> prettyDocComment ind (extFnDefDocComment ed) <> prettyExternalDef opts ind ed
   DefTypeAlias ad -> prettyDocComment ind (typeAliasDocComment ad) <> prettyTypeAlias opts ind ad
+  DefLet ld -> prettyDocComment ind (letDefDocComment ld) <> prettyLetDef opts ind ld
+
+-- | Pretty print a top-level let binding
+prettyLetDef :: FormatOptions -> Int -> LetDef -> Text
+prettyLetDef opts ind ld =
+  let tyStr = case letDefType ld of
+        Nothing -> ""
+        Just ty -> ": " <> prettyType opts 0 ty
+  in indent ind <> "let " <> prettyPattern opts (letDefPattern ld) <> tyStr
+     <> " = " <> prettyExpr opts ind (letDefValue ld)
 
 -- | Pretty print a doc comment, if present
 prettyDocComment :: Int -> Maybe DocComment -> Text
