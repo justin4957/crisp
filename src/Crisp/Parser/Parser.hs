@@ -782,16 +782,41 @@ pTraitConstraint = do
   span' <- spanFrom start
   pure $ TraitConstraint traitName ty span'
 
--- | Parse a trait method signature
+-- | Parse a trait method signature (supports both sig-style and fn-style)
 pTraitMethod :: Parser TraitMethod
-pTraitMethod = try $ do
+pTraitMethod = try pTraitMethodFnStyle <|> try pTraitMethodSigStyle
+
+-- | Parse fn-style trait method: fn name(self, ...) -> Type
+pTraitMethodFnStyle :: Parser TraitMethod
+pTraitMethodFnStyle = do
+  start <- getPos
+  keyword "fn"
+  name <- lowerIdent
+  params <- option [] (between (symbol "(") (symbol ")") (pParamOrSelf `sepBy` symbol ","))
+  retTy <- optional (symbol "->" *> pType)
+  mDefault <- optional (symbol "=" *> pExpr)
+  span' <- spanFrom start
+  let composedType = buildFnType params retTy span'
+  pure $ TraitMethod name composedType mDefault TraitMethodFnStyle params retTy span'
+
+-- | Parse sig-style trait method: name: Type
+pTraitMethodSigStyle :: Parser TraitMethod
+pTraitMethodSigStyle = do
   start <- getPos
   name <- lowerIdent
   symbol ":"
   ty <- pType
   mDefault <- optional (symbol "=" *> pExpr)
   span' <- spanFrom start
-  pure $ TraitMethod name ty mDefault span'
+  pure $ TraitMethod name ty mDefault TraitMethodSigStyle [] Nothing span'
+
+-- | Build a curried function type from parameters and optional return type
+buildFnType :: [Param] -> Maybe Type -> Span -> Type
+buildFnType params mRetTy span' =
+  let retTy = case mRetTy of
+        Just ty -> ty
+        Nothing -> TyName "Unit" span'
+  in foldr (\p acc -> TyFn (paramType p) acc [] span') retTy params
 
 -- | Parse an implementation definition
 -- Example: impl Ord for Int:
@@ -857,7 +882,7 @@ pFunctionDef doc = do
   keyword "fn"
   name <- lowerIdent
   tyParams <- option [] (between (symbol "[") (symbol "]") (pTypeParam `sepBy` symbol ","))
-  params <- option [] (between (symbol "(") (symbol ")") (pParam `sepBy` symbol ","))
+  params <- option [] (between (symbol "(") (symbol ")") (pParamOrSelf `sepBy` symbol ","))
   retTy <- optional (symbol "->" *> pType)
   effs <- option [] (symbol "!" *> pEffectList)
   symbol ":"
@@ -873,6 +898,18 @@ pParam = do
   ty <- pType
   span' <- spanFrom start
   pure $ Param name ty span'
+
+-- | Parse bare @self@ as a parameter with implicit @Self@ type
+pSelfParam :: Parser Param
+pSelfParam = do
+  start <- getPos
+  keyword "self"
+  span' <- spanFrom start
+  pure $ Param "self" (TyName "Self" span') span'
+
+-- | Parse either a bare @self@ parameter or a regular @name: Type@ parameter
+pParamOrSelf :: Parser Param
+pParamOrSelf = pSelfParam <|> pParam
 
 pEffectList :: Parser [EffectRef]
 pEffectList = pEffectRef `sepBy1` symbol ","
@@ -1435,6 +1472,7 @@ pAtom = choice
   , pLiteral
   , pListLiteral
   , try pRecordConstruction
+  , pSelfVar
   , pVar
   , pParens
   ]
@@ -1568,6 +1606,7 @@ pLet = do
       , pLiteral
       , pListLiteral
       , try pRecordConstruction
+      , pSelfVar
       , pVar
       , pParens
       ]
@@ -1654,6 +1693,7 @@ pAssign = do
       , pLiteral
       , pListLiteral
       , try pRecordConstruction
+      , pSelfVar
       , pVar
       , pParens
       ]
@@ -1931,6 +1971,14 @@ pChar = do
   c <- lexeme $ char '\'' *> L.charLiteral <* char '\''
   span' <- spanFrom start
   pure $ ECharLit c span'
+
+-- | Parse @self@ as a variable expression (for use in method bodies)
+pSelfVar :: Parser Expr
+pSelfVar = do
+  start <- getPos
+  keyword "self"
+  span' <- spanFrom start
+  pure $ EVar "self" span'
 
 pVar :: Parser Expr
 pVar = do

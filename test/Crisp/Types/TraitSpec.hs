@@ -150,6 +150,101 @@ traitParsingTests = describe "trait definitions" $ do
         _ -> expectationFailure "Expected single trait definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses fn-style trait method with bare self (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  fn describe(self) -> String"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses fn-style trait method with self and additional params (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  fn implies(self, other: Self) -> Bool"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses mixed sig-style and fn-style in one trait (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  describe: String"
+          , "  fn implies(self, other: Self) -> Bool"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTrait td] -> length (traitDefMethods td) `shouldBe` 2
+        _ -> expectationFailure "Expected single trait definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "fn-style trait method composes correct function type (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  fn describe(self) -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTrait td] -> case traitDefMethods td of
+          [tm] -> do
+            traitMethodName tm `shouldBe` "describe"
+            -- Composed type should be Self -> String
+            case traitMethodType tm of
+              TyFn (TyName "Self" _) (TyName "String" _) _ _ -> pure ()
+              other -> expectationFailure $ "Expected Self -> String, got " ++ show other
+          _ -> expectationFailure "Expected single method"
+        _ -> expectationFailure "Expected single trait definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "fn-style method with multiple params composes curried type (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  fn implies(self, other: Self) -> Bool"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTrait td] -> case traitDefMethods td of
+          [tm] -> do
+            traitMethodName tm `shouldBe` "implies"
+            -- Composed type should be Self -> Self -> Bool
+            case traitMethodType tm of
+              TyFn (TyName "Self" _) (TyFn (TyName "Self" _) (TyName "Bool" _) _ _) _ _ -> pure ()
+              other -> expectationFailure $ "Expected Self -> Self -> Bool, got " ++ show other
+          _ -> expectationFailure "Expected single method"
+        _ -> expectationFailure "Expected single trait definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "preserves fn-style on parsed trait method (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  fn describe(self) -> String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTrait td] -> case traitDefMethods td of
+          [tm] -> traitMethodStyle tm `shouldBe` TraitMethodFnStyle
+          _ -> expectationFailure "Expected single method"
+        _ -> expectationFailure "Expected single trait definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "preserves sig-style on parsed trait method (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  describe: String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTrait td] -> case traitDefMethods td of
+          [tm] -> traitMethodStyle tm `shouldBe` TraitMethodSigStyle
+          _ -> expectationFailure "Expected single method"
+        _ -> expectationFailure "Expected single trait definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Implementation Parsing Tests
 -- =============================================================================
@@ -217,6 +312,44 @@ implParsingTests = describe "impl definitions" $ do
     case parseModule "test" src of
       Right m -> case moduleDefinitions m of
         [DefImpl impl] -> length (implDefMethods impl) `shouldBe` 2
+        _ -> expectationFailure "Expected single impl definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses impl with self parameter (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "impl Action for JudicialAction:"
+          , "  fn describe(self) -> String: \"judicial\""
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses impl with self in match expression (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "impl Action for JudicialAction:"
+          , "  fn describe(self) -> String:"
+          , "    match self"
+          , "      HearCase -> \"hear and decide cases\""
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses impl method self param as first param (issue #213)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "impl Action for JudicialAction:"
+          , "  fn describe(self) -> String: \"judicial\""
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefImpl impl] -> case implDefMethods impl of
+          [fd] -> case fnDefParams fd of
+            [p] -> do
+              paramName p `shouldBe` "self"
+              case paramType p of
+                TyName "Self" _ -> pure ()
+                other -> expectationFailure $ "Expected Self type, got " ++ show other
+            _ -> expectationFailure "Expected single parameter"
+          _ -> expectationFailure "Expected single method"
         _ -> expectationFailure "Expected single impl definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 

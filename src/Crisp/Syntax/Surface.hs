@@ -35,6 +35,7 @@ module Crisp.Syntax.Surface
     -- * Traits
   , TraitDef(..)
   , TraitMethod(..)
+  , TraitMethodStyle(..)
   , ImplDef(..)
   , TraitConstraint(..)
   , DerivingClause(..)
@@ -242,12 +243,21 @@ data TraitDef = TraitDef
   , traitDefSpan       :: !Span
   } deriving stock (Eq, Show, Generic)
 
+-- | Style of trait method declaration (for formatter round-trip fidelity)
+data TraitMethodStyle
+  = TraitMethodSigStyle    -- ^ name: Type
+  | TraitMethodFnStyle     -- ^ fn name(self, ...) -> Type
+  deriving stock (Eq, Show, Generic)
+
 -- | A method signature within a trait
 data TraitMethod = TraitMethod
-  { traitMethodName      :: !Text
-  , traitMethodType      :: !Type
-  , traitMethodDefault   :: !(Maybe Expr)     -- ^ Optional default implementation
-  , traitMethodSpan      :: !Span
+  { traitMethodName       :: !Text
+  , traitMethodType       :: !Type
+  , traitMethodDefault    :: !(Maybe Expr)      -- ^ Optional default implementation
+  , traitMethodStyle      :: !TraitMethodStyle   -- ^ Original syntax style
+  , traitMethodParams     :: ![Param]            -- ^ Parameters (for fn-style round-trip)
+  , traitMethodReturnType :: !(Maybe Type)       -- ^ Return type (for fn-style round-trip)
+  , traitMethodSpan       :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | Implementation of a trait for a type

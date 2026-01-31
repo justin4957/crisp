@@ -1529,6 +1529,108 @@ spec = describe "Crisp.Formatter.Format" $ do
         Right formatted -> do
           formatted `shouldSatisfy` T.isInfixOf "trait Eq A:"
 
+    it "formats fn-style trait method with self (issue #213)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Action:"
+            , "  fn describe(self) -> String"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "fn describe(self) -> String"
+
+    it "formats fn-style trait method with self and extra params (issue #213)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Action:"
+            , "  fn implies(self, other: Self) -> Bool"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "fn implies(self, other: Self) -> Bool"
+
+    it "formats fn-style trait method idempotently (issue #213)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Action:"
+            , "  fn describe(self) -> String"
+            , "  fn implies(self, other: Self) -> Bool"
+            ]
+      case formatSource defaultFormatOptions src of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+
+    it "formats sig-style trait method still works (issue #213 regression)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Eq A:"
+            , "  eq: A -> A -> Bool"
+            ]
+      case formatSource defaultFormatOptions src of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+
+    it "formats impl with self parameter (issue #213)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "impl Action for JudicialAction:"
+            , "  fn describe(self) -> String:"
+            , "    \"judicial\""
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "fn describe(self) -> String:"
+
+    it "formats impl with self parameter idempotently (issue #213)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "impl Action for JudicialAction:"
+            , "  fn describe(self) -> String:"
+            , "    \"judicial\""
+            ]
+      case formatSource defaultFormatOptions src of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+
+    it "formats mixed fn-style and sig-style methods in trait (issue #213)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Action:"
+            , "  describe: String"
+            , "  fn implies(self, other: Self) -> Bool"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "describe: String"
+          formatted `shouldSatisfy` T.isInfixOf "fn implies(self, other: Self) -> Bool"
+
+    it "formats mixed trait methods idempotently (issue #213)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Action:"
+            , "  describe: String"
+            , "  fn implies(self, other: Self) -> Bool"
+            ]
+      case formatSource defaultFormatOptions src of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+
 -- Helper functions
 
 isRight :: Either a b -> Bool
