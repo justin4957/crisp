@@ -98,6 +98,22 @@ desugarDef = \case
   S.DefType _ty -> throwError $ Other "Type definitions not yet implemented"
   S.DefEffect _eff -> throwError $ Other "Effect definitions not yet implemented"
   S.DefHandler _h -> throwError $ Other "Handler definitions not yet implemented"
+  S.DefTrait _t -> throwError $ Other "Trait definitions not yet implemented"
+  S.DefImpl _i -> throwError $ Other "Impl definitions not yet implemented"
+  S.DefExternal _e -> throwError $ Other "External definitions not yet implemented"
+  S.DefTypeAlias _a -> throwError $ Other "Type alias definitions not yet implemented"
+  S.DefLet ld -> desugarLetDef ld
+
+-- | Desugar a top-level let binding to a core term
+desugarLetDef :: S.LetDef -> Desugar C.Term
+desugarLetDef ld = do
+  value <- desugarExpr (S.letDefValue ld)
+  ty <- case S.letDefType ld of
+    Just t  -> desugarType t
+    Nothing -> pure $ C.TyVar "_infer" 0
+  case S.letDefPattern ld of
+    S.PatVar name _ -> pure $ C.TmLet name ty value (C.TmVar name 0)
+    _ -> throwError $ InvalidPattern "Only variable patterns supported in top-level let"
 
 -- | Desugar a function definition
 desugarFn :: S.FunctionDef -> Desugar C.Term

@@ -32,6 +32,7 @@ spec :: Spec
 spec = do
   traitParsingTests
   implParsingTests
+  letDefParsingTests
   derivingParsingTests
   traitContextTests
   preludeTraitTests
@@ -352,6 +353,86 @@ implParsingTests = describe "impl definitions" $ do
           _ -> expectationFailure "Expected single method"
         _ -> expectationFailure "Expected single impl definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+-- =============================================================================
+-- Top-Level Let Binding Parsing Tests
+-- =============================================================================
+
+letDefParsingTests :: Spec
+letDefParsingTests = describe "top-level let bindings" $ do
+  it "parses simple top-level let (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let x = 42"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses top-level let with type annotation (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let x: Int = 42"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses top-level let with string value (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let name = \"hello\""
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses multiple top-level let bindings (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let x = 1"
+          , "let y = 2"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleDefinitions m) `shouldBe` 2
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses top-level let mixed with fn definitions (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let x = 42"
+          , "fn main() -> Int: x"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleDefinitions m) `shouldBe` 2
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "extracts pattern name from top-level let (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let x = 42"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefLet ld] -> case letDefPattern ld of
+          PatVar name _ -> name `shouldBe` "x"
+          other -> expectationFailure $ "Expected PatVar, got " ++ show other
+        _ -> expectationFailure "Expected single DefLet"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "extracts type annotation from top-level let (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let x: Int = 42"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefLet ld] -> case letDefType ld of
+          Just (TyName "Int" _) -> pure ()
+          other -> expectationFailure $ "Expected Just (TyName \"Int\"), got " ++ show other
+        _ -> expectationFailure "Expected single DefLet"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses top-level let with record construction value (issue #215)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let court = Court { name = \"Supreme Court\", level = 9 }"
+          ]
+    shouldParse $ parseModule "test" src
 
 -- =============================================================================
 -- Deriving Clause Parsing Tests

@@ -181,6 +181,10 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Lambda expressions: backslash/unicode, single param, with application body
 - Fn closures: fn(x) -> expr, typed params, multiple params, zero params (issue #214)
 - Backslash lambda preserves LamBackslash style (issue #214)
+- Top-level let: simple, with type annotation, string value, multiple bindings (issue #215)
+- Top-level let mixed with fn definitions (issue #215)
+- Top-level let pattern and type extraction (issue #215)
+- Top-level let with record construction value (issue #215)
 - Do notation: simple result expression (statements pending)
 - Effect operations: perform with Effect.op syntax
 - Lazy/force: both keywords with simple and complex expressions
@@ -287,7 +291,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 
 ### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
 
-The formatter test suite covers source code formatting (~63 tests):
+The formatter test suite covers source code formatting (~67 tests):
 
 **Expression Formatting (~15 tests)**
 - Literals: integer, float, string, unit
@@ -341,6 +345,10 @@ The formatter test suite covers source code formatting (~63 tests):
 - Fn closure with typed param round-trip (issue #214)
 - Fn closure idempotent formatting (issue #214)
 - Backslash lambda regression test (issue #214)
+- Top-level let binding formatting (issue #215)
+- Top-level let with type annotation formatting (issue #215)
+- Top-level let idempotent formatting (issue #215)
+- Top-level let with type annotation idempotent formatting (issue #215)
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions

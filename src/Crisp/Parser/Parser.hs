@@ -293,6 +293,7 @@ pDefinition = do
     , DefTrait <$> pTraitDef doc
     , DefImpl <$> pImplDef doc
     , DefExternal <$> pExternalFnDef doc
+    , DefLet <$> pLetDef doc
     , DefFn <$> pFunctionDef doc
     ]
   where
@@ -889,6 +890,18 @@ pFunctionDef doc = do
   body <- pExpr
   span' <- spanFrom start
   pure $ FunctionDef doc name tyParams params retTy effs body span'
+
+-- | Parse a top-level let binding: @let pattern: Type = expr@
+pLetDef :: Maybe DocComment -> Parser LetDef
+pLetDef doc = do
+  start <- getPos
+  keyword "let"
+  pat <- pPattern
+  mTy <- optional (symbol ":" *> pType)
+  symbol "="
+  value <- pExpr
+  span' <- spanFrom start
+  pure $ LetDef doc pat mTy value span'
 
 pParam :: Parser Param
 pParam = do

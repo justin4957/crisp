@@ -30,6 +30,7 @@ module Crisp.Syntax.Surface
   , HandlerParam(..)
   , HandlerClause(..)
   , FunctionDef(..)
+  , LetDef(..)
   , Param(..)
   , EffectRef(..)
     -- * Traits
@@ -113,6 +114,7 @@ data Definition
   | DefImpl !ImplDef
   | DefExternal !ExternalFnDef
   | DefTypeAlias !TypeAliasDef
+  | DefLet !LetDef
   deriving stock (Eq, Show, Generic)
 
 -- | Type definition (ADT, GADT, record, linear type)
@@ -215,6 +217,15 @@ data FunctionDef = FunctionDef
   , fnDefEffects    :: ![EffectRef]
   , fnDefBody       :: !Expr
   , fnDefSpan       :: !Span
+  } deriving stock (Eq, Show, Generic)
+
+-- | Top-level let binding (module-level constant)
+data LetDef = LetDef
+  { letDefDocComment :: !(Maybe DocComment)
+  , letDefPattern    :: !Pattern
+  , letDefType       :: !(Maybe Type)
+  , letDefValue      :: !Expr
+  , letDefSpan       :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | A value parameter
