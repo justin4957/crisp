@@ -680,7 +680,7 @@ pHandlerDef doc = do
   start <- getPos
   keyword "handler"
   name <- upperIdent
-  params <- many pHandlerParam
+  params <- option [] pHandlerParams
   keyword "for"
   effect <- upperIdent
   intros <- option [] (symbol "!" *> pEffectList)
@@ -689,23 +689,25 @@ pHandlerDef doc = do
   span' <- spanFrom start
   pure $ HandlerDef doc name params effect intros clauses span'
 
-pHandlerParam :: Parser HandlerParam
-pHandlerParam = choice
+-- | Parse handler parameters as a comma-separated list in parentheses
+pHandlerParams :: Parser [HandlerParam]
+pHandlerParams =
+  between (symbol "(") (symbol ")") (pHandlerParamEntry `sepBy1` symbol ",")
+
+-- | Parse a single handler parameter entry (value or type)
+pHandlerParamEntry :: Parser HandlerParam
+pHandlerParamEntry = choice
   [ try $ do
       start <- getPos
-      symbol "("
       name <- lowerIdent
       symbol ":"
       ty <- pType
-      symbol ")"
       span' <- spanFrom start
       pure $ HandlerValueParam name ty span'
   , do start <- getPos
-       symbol "("
        name <- upperIdent
        symbol ":"
        kind <- pKind
-       symbol ")"
        span' <- spanFrom start
        pure $ HandlerTypeParam name (Just kind) span'
   ]

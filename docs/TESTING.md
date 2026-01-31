@@ -216,6 +216,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Type definitions: simple, with parameters, with kind annotation
 - Effect definitions: with operations
 - Handler definitions: with return clause, with introduced effects
+- Handler state parameters: single value param, multiple value params, mixed with parameterless handlers (issue #185)
 
 **Module Tests (~10 tests)**
 - Minimal module, dotted path, authority
@@ -294,6 +295,7 @@ The formatter test suite covers source code formatting (~51 tests):
 - Tuple expressions: formatting and idempotency (issue #182)
 - Not expressions: formatting and idempotency (issue #183)
 - Float arithmetic: formatting and idempotency (issue #184)
+- Handler value parameters: formatting and idempotency (issue #185)
 
 **Module Formatting (~21 tests)**
 - Minimal module, with function/type/effect definitions

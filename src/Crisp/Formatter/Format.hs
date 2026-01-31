@@ -285,8 +285,9 @@ prettyOperation opts ind op =
 -- | Pretty print handler definition
 prettyHandlerDef :: FormatOptions -> Int -> HandlerDef -> Text
 prettyHandlerDef opts ind hd =
-  let params = T.unwords (map (prettyHandlerParam opts) (handlerDefParams hd))
-      paramStr = if T.null params then "" else " " <> params
+  let paramStr = case handlerDefParams hd of
+        [] -> ""
+        ps -> "(" <> T.intercalate ", " (map (prettyHandlerParam opts) ps) <> ")"
       intros = case handlerDefIntroducedEffects hd of
         [] -> ""
         es -> " ! " <> T.intercalate ", " (map prettyEffectRef es)
@@ -299,8 +300,8 @@ prettyHandlerDef opts ind hd =
 prettyHandlerParam :: FormatOptions -> HandlerParam -> Text
 prettyHandlerParam opts = \case
   HandlerTypeParam name Nothing _ -> name
-  HandlerTypeParam name (Just k) _ -> "(" <> name <> ": " <> prettyKind opts k <> ")"
-  HandlerValueParam name ty _ -> "(" <> name <> ": " <> prettyType opts 0 ty <> ")"
+  HandlerTypeParam name (Just k) _ -> name <> ": " <> prettyKind opts k
+  HandlerValueParam name ty _ -> name <> ": " <> prettyType opts 0 ty
 
 -- | Pretty print handler clause
 prettyHandlerClause :: FormatOptions -> Int -> HandlerClause -> Text

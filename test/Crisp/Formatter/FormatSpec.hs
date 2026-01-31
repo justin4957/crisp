@@ -854,6 +854,30 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
+    it "formats handler with value parameter (issue #185)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "handler LoggingReasoning(log: List) for Reasoning:"
+            , "  return x -> x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted ->
+          formatted `shouldSatisfy` T.isInfixOf "handler LoggingReasoning(log: List) for Reasoning:"
+
+    it "formats handler with multiple value parameters idempotently (issue #185)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "handler StateHandler(init: State, count: Int) for Effect:"
+            , "  return x -> x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
     it "formats float arithmetic expression (issue #184)" $ do
       let src = T.unlines
             [ "module Test"
