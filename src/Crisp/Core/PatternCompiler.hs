@@ -213,7 +213,7 @@ elaborateExpr = \case
       , C.Case (C.PatCon "False" []) else'
       ]
 
-  S.ELam params body _ -> do
+  S.ELam _ params body _ -> do
     body' <- elaborateExpr body
     -- Build nested lambdas from inside out
     foldrM wrapLambda body' params

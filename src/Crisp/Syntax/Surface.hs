@@ -52,6 +52,7 @@ module Crisp.Syntax.Surface
   , Type(..)
     -- * Expressions
   , Expr(..)
+  , LambdaStyle(..)
   , BinOp(..)
   , Statement(..)
   , DoStatement(..)
@@ -360,6 +361,13 @@ data Type
   | TyRef !Type !Bool !Span                         -- ^ ref T or ref mut T
   | TyParen !Type !Span                             -- ^ Parenthesized type
   | TyRefinement !Type ![RefinementPredicate] !Span -- ^ Refinement type: T { predicate }
+  | TyHole !Span                                    -- ^ Type hole (omitted annotation, to be inferred)
+  deriving stock (Eq, Show, Generic)
+
+-- | Style of lambda expression (for formatter round-trip fidelity)
+data LambdaStyle
+  = LamBackslash   -- ^ \\x: T. expr
+  | LamFnArrow     -- ^ fn(x) -> expr
   deriving stock (Eq, Show, Generic)
 
 -- | Expressions
@@ -372,7 +380,7 @@ data Expr
   | ECharLit !Char !Span                                -- ^ Character literal
   | EUnit !Span                                         -- ^ Unit literal
   | EApp !Expr ![Expr] !Span                            -- ^ Function application
-  | ELam ![Param] !Expr !Span                           -- ^ Lambda expression
+  | ELam !LambdaStyle ![Param] !Expr !Span               -- ^ Lambda expression
   | ELet !Pattern !(Maybe Type) !Expr !Expr !Span       -- ^ Let binding
   | EMatch !Expr ![MatchArm] !Span                      -- ^ Match expression
   | EIf !Expr !Expr !Expr !Span                         -- ^ If-then-else

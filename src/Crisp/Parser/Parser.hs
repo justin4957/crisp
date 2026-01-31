@@ -1400,6 +1400,7 @@ pApp = choice
   , pDo
   , pFor
   , pWith
+  , pFnClosure
   , pLambda
   , -- Application of simpler expressions
     pAppSimple
@@ -1598,7 +1599,8 @@ pLet = do
 
     pLetAtom :: Parser Expr
     pLetAtom = choice
-      [ pLazy
+      [ pFnClosure
+      , pLazy
       , pForce
       , pNot
       , pBreak
@@ -1685,7 +1687,8 @@ pAssign = do
 
     pAssignAtom :: Parser Expr
     pAssignAtom = choice
-      [ pLazy
+      [ pFnClosure
+      , pLazy
       , pForce
       , pNot
       , pBreak
@@ -1865,7 +1868,30 @@ pLambda = do
   symbol "."
   body <- pExpr
   span' <- spanFrom start
-  pure $ ELam params body span'
+  pure $ ELam LamBackslash params body span'
+
+-- | Parse fn-style closure: @fn(params) -> expr@
+pFnClosure :: Parser Expr
+pFnClosure = try $ do
+  start <- getPos
+  keyword "fn"
+  params <- between (symbol "(") (symbol ")") (pClosureParam `sepBy` symbol ",")
+  symbol "->"
+  body <- pExpr
+  span' <- spanFrom start
+  pure $ ELam LamFnArrow params body span'
+
+-- | Parse a closure parameter: typed (@x: Int@) or untyped (@x@)
+pClosureParam :: Parser Param
+pClosureParam = try pParamOrSelf <|> pUntypedParam
+
+-- | Parse an untyped parameter (name only, type to be inferred)
+pUntypedParam :: Parser Param
+pUntypedParam = do
+  start <- getPos
+  name <- lowerIdent
+  span' <- spanFrom start
+  pure $ Param name (TyHole span') span'
 
 pPerform :: Parser Expr
 pPerform = do
