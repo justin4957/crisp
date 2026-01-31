@@ -542,8 +542,10 @@ prettyExpr opts ind = \case
     prettyExprAtom opts ind left <> " " <> prettyBinOp op <> " " <> prettyExprAtom opts ind right
 
   ERecord conName fields _ ->
-    let fieldStrs = map (\(name, val) -> name <> " = " <> prettyExpr opts ind val) fields
-    in conName <> " { " <> T.intercalate ", " fieldStrs <> " }"
+    case fields of
+      [] -> conName <> " { }"
+      _  -> let fieldStrs = map (\(name, val) -> name <> " = " <> prettyExpr opts ind val) fields
+            in conName <> " { " <> T.intercalate ", " fieldStrs <> " }"
 
   EFor pat collection body _ ->
     "for " <> prettyPattern opts pat <> " in " <> prettyExpr opts ind collection <> ":\n"

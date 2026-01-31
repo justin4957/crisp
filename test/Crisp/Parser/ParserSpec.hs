@@ -2311,6 +2311,28 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right _ -> pure ()
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses empty record construction (issue #186)" $ do
+    case parseExpr "test" "TypeName { }" of
+      Right (ERecord "TypeName" [] _) -> pure ()
+      Right other -> expectationFailure $ "Expected empty record, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses qualified constructor record construction (issue #186)" $ do
+    case parseExpr "test" "GeographicCovers.national_covers_all { }" of
+      Right (ERecord "GeographicCovers.national_covers_all" [] _) -> pure ()
+      Right other -> expectationFailure $ "Expected qualified constructor record, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses qualified constructor in function application (issue #186)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn prove() -> Option:"
+          , "  Some(GeographicCovers.national_covers_all { })"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================
