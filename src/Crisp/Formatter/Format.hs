@@ -343,13 +343,14 @@ prettyParam opts p = paramName p <> ": " <> prettyType opts 0 (paramType p)
 -- | Pretty print trait definition
 prettyTraitDef :: FormatOptions -> Int -> TraitDef -> Text
 prettyTraitDef opts ind td =
-  let paramKind = case traitDefParamKind td of
-        Nothing -> traitDefParam td
-        Just k -> "(" <> traitDefParam td <> ": " <> prettyKind opts k <> ")"
+  let paramStr = case (traitDefParam td, traitDefParamKind td) of
+        (Nothing, _)       -> ""
+        (Just p, Nothing)  -> " " <> p
+        (Just p, Just k)   -> " (" <> p <> ": " <> prettyKind opts k <> ")"
       supers = case traitDefSupers td of
         [] -> ""
         cs -> " where " <> T.intercalate ", " (map prettySuper cs)
-      header = indent ind <> "trait " <> traitDefName td <> " " <> paramKind <> supers <> ":"
+      header = indent ind <> "trait " <> traitDefName td <> paramStr <> supers <> ":"
       methods = map (prettyTraitMethod opts (ind + optIndentWidth opts)) (traitDefMethods td)
   in header <> "\n" <> T.intercalate "\n" methods
   where

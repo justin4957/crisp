@@ -95,7 +95,7 @@ traitParsingTests = describe "trait definitions" $ do
           ]
     case parseModule "test" src of
       Right m -> case moduleDefinitions m of
-        [DefTrait td] -> traitDefParam td `shouldBe` "A"
+        [DefTrait td] -> traitDefParam td `shouldBe` Just "A"
         _ -> expectationFailure "Expected single trait definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
@@ -109,6 +109,44 @@ traitParsingTests = describe "trait definitions" $ do
     case parseModule "test" src of
       Right m -> case moduleDefinitions m of
         [DefTrait td] -> length (traitDefMethods td) `shouldBe` 2
+        _ -> expectationFailure "Expected single trait definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses parameterless trait (issue #212)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  describe: String"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "extracts Nothing param for parameterless trait (issue #212)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Action:"
+          , "  describe: String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTrait td] -> do
+          traitDefName td `shouldBe` "Action"
+          traitDefParam td `shouldBe` Nothing
+          traitDefParamKind td `shouldBe` Nothing
+        _ -> expectationFailure "Expected single trait definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses parameterless trait with multiple methods (issue #212)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "trait Displayable:"
+          , "  display: String"
+          , "  debug: String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTrait td] -> do
+          traitDefParam td `shouldBe` Nothing
+          length (traitDefMethods td) `shouldBe` 2
         _ -> expectationFailure "Expected single trait definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 

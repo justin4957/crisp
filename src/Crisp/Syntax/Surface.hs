@@ -235,7 +235,7 @@ data EffectRef = EffectRef
 data TraitDef = TraitDef
   { traitDefDocComment :: !(Maybe DocComment)
   , traitDefName       :: !Text
-  , traitDefParam      :: !Text               -- ^ The type parameter (e.g., A in "trait Ord A")
+  , traitDefParam      :: !(Maybe Text)       -- ^ The type parameter (e.g., A in "trait Ord A"), Nothing for parameterless traits
   , traitDefParamKind  :: !(Maybe Kind)       -- ^ Optional kind annotation
   , traitDefSupers     :: ![TraitConstraint]  -- ^ Supertraits (e.g., Eq for Ord)
   , traitDefMethods    :: ![TraitMethod]
