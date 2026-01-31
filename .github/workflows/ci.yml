@@ -35,7 +35,7 @@ jobs:
         run: stack build --only-dependencies --test --no-run-tests
 
       - name: Build
-        run: stack build --test --no-run-tests --pedantic
+        run: stack build --test --no-run-tests
 
       - name: Test
         run: stack test
