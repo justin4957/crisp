@@ -2031,7 +2031,7 @@ moduleTests = describe "modules" $ do
     let src = T.unlines
           [ "module Main"
           , "type Unit"
-          , "fn not(x: Bool) -> Bool: x"
+          , "fn negate(x: Bool) -> Bool: x"
           ]
     shouldParse $ parseModule "test" src
 
@@ -2221,6 +2221,29 @@ operatorTests = describe "operator precedence and associativity" $ do
           , "fn test() -> Tuple:"
           , "  let pair = (x, y)"
           , "  pair"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses not expression (issue #183)" $ do
+    case parseExpr "test" "not x" of
+      Right (ENot (EVar "x" _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected not expression, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses nested not expression (issue #183)" $ do
+    case parseExpr "test" "not not flag" of
+      Right (ENot (ENot (EVar "flag" _) _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected nested not, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses not in let binding (issue #183)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn negate(b: Bool) -> Bool:"
+          , "  let result = not b"
+          , "  result"
           ]
     case parseModule "test" src of
       Right _ -> pure ()

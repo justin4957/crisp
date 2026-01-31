@@ -75,6 +75,7 @@ data TokenKind
   | KwExternal
   | KwSelf
   | KwBreak
+  | KwNot
 
   -- Operators and Punctuation
   | Arrow          -- ->
@@ -183,6 +184,7 @@ isKeyword = \case
   KwExternal -> True
   KwSelf -> True
   KwBreak -> True
+  KwNot -> True
   _ -> False
 
 -- | Check if a token is a layout token
@@ -245,6 +247,7 @@ keywordMap = Map.fromList
   , ("external", KwExternal)
   , ("self", KwSelf)
   , ("break", KwBreak)
+  , ("not", KwNot)
   ]
 
 -- | Look up a keyword from its text representation
