@@ -743,14 +743,15 @@ pTraitDef doc = do
   start <- getPos
   keyword "trait"
   name <- upperIdent
-  (param, paramKind) <- pTraitParam
+  (mParam, paramKind) <- option (Nothing, Nothing) pTraitParam
   supers <- option [] pSupertraits
   symbol ":"
   methods <- many pTraitMethod
   span' <- spanFrom start
-  pure $ TraitDef doc name param paramKind supers methods span'
+  pure $ TraitDef doc name mParam paramKind supers methods span'
   where
     -- Parse trait parameter with optional kind annotation in parens
+    -- Returns Nothing for parameterless traits like "trait Action:"
     pTraitParam = choice
       [ try $ do
           symbol "("
@@ -758,10 +759,10 @@ pTraitDef doc = do
           symbol ":"
           k <- pKind
           symbol ")"
-          pure (p, Just k)
-      , do
+          pure (Just p, Just k)
+      , try $ do
           p <- upperIdent
-          pure (p, Nothing)
+          pure (Just p, Nothing)
       ]
 
 -- | Parse supertrait constraints

@@ -1491,6 +1491,44 @@ spec = describe "Crisp.Formatter.Format" $ do
         Right formatted -> do
           formatted `shouldSatisfy` T.isInfixOf "compute(x, y, z)"
 
+    it "formats parameterless trait definition (issue #212)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Action:"
+            , "  describe: String"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "trait Action:"
+          -- Should NOT have a trailing space before colon
+          formatted `shouldSatisfy` (not . T.isInfixOf "trait Action :")
+
+    it "formats parameterless trait idempotently (issue #212)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Action:"
+            , "  describe: String"
+            , "  debug: String"
+            ]
+      case formatSource defaultFormatOptions src of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+
+    it "formats parameterized trait with parameter (issue #212)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "trait Eq A:"
+            , "  eq: A -> A -> Bool"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "trait Eq A:"
+
 -- Helper functions
 
 isRight :: Either a b -> Bool
