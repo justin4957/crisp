@@ -902,6 +902,34 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
+    it "formats mutable assignment (issue #187)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn update(x: Int) -> Int:"
+            , "  let count = 0"
+            , "  count = 1"
+            , "  count"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted ->
+          formatted `shouldSatisfy` T.isInfixOf "count = 1"
+
+    it "formats mutable assignment idempotently (issue #187)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn update(items: List) -> List:"
+            , "  let results = items"
+            , "  results = process(items)"
+            , "  results"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
     it "formats float arithmetic expression (issue #184)" $ do
       let src = T.unlines
             [ "module Test"

@@ -167,6 +167,13 @@ desugarExpr = \case
         pure $ C.TmLet name ty value' body'
       _ -> throwError $ InvalidPattern "Only variable patterns supported in let"
 
+  S.EAssign name value body _ -> do
+    value' <- desugarExpr value
+    let ty = C.TyVar "_infer" 0
+    extendTerm name $ do
+      body' <- desugarExpr body
+      pure $ C.TmLet name ty value' body'
+
   S.EMatch subject arms _ -> do
     subject' <- desugarExpr subject
     arms' <- mapM desugarArm arms
