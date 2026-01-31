@@ -1558,6 +1558,46 @@ handlerDefTests = describe "handler definitions" $ do
     let src = "module Main handler Logged for State ! Log: return x -> x"
     shouldParse $ parseModule "test" src
 
+  it "parses handler with single value parameter (issue #185)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "handler LoggingReasoning(log: List) for Reasoning:"
+          , "  return x -> x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefHandler hd] -> do
+          handlerDefName hd `shouldBe` "LoggingReasoning"
+          length (handlerDefParams hd) `shouldBe` 1
+        _ -> expectationFailure "Expected single handler definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses handler with multiple value parameters (issue #185)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "handler StateHandler(init: State, count: Int) for Effect:"
+          , "  return x -> x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefHandler hd] -> do
+          handlerDefName hd `shouldBe` "StateHandler"
+          length (handlerDefParams hd) `shouldBe` 2
+        _ -> expectationFailure "Expected single handler definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses handler with value parameter in module (issue #185)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "handler LoggingReasoning(log: List) for Reasoning:"
+          , "  return x -> x"
+          , "handler MockReasoning for Reasoning:"
+          , "  return x -> x"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleDefinitions m) `shouldBe` 2
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Module Tests
 -- =============================================================================
