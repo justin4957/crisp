@@ -340,6 +340,12 @@ prettyFunctionDef opts ind fd =
 prettyParam :: FormatOptions -> Param -> Text
 prettyParam opts p = paramName p <> ": " <> prettyType opts 0 (paramType p)
 
+-- | Pretty print closure parameter, omitting type for @TyHole@ (untyped)
+prettyClosureParam :: FormatOptions -> Param -> Text
+prettyClosureParam opts p = case paramType p of
+  TyHole _ -> paramName p
+  ty       -> paramName p <> ": " <> prettyType opts 0 ty
+
 -- | Pretty print parameter, rendering bare @self@ without a type annotation
 prettySelfAwareParam :: FormatOptions -> Param -> Text
 prettySelfAwareParam opts p
@@ -451,6 +457,7 @@ prettyType opts prec = \case
   TyParen inner _ -> "(" <> prettyType opts 0 inner <> ")"
   TyRefinement base preds _ ->
     prettyType opts 10 base <> " { " <> T.intercalate ", " (map (prettyRefinement opts) preds) <> " }"
+  TyHole _ -> "_"
 
 -- | Pretty print refinement predicate
 prettyRefinement :: FormatOptions -> RefinementPredicate -> Text
@@ -492,9 +499,13 @@ prettyExpr opts ind = \case
   EApp func args _ ->
     prettyExpr opts ind func <> " " <> T.unwords (map (prettyExprAtom opts ind) args)
 
-  ELam params body _ ->
+  ELam LamBackslash params body _ ->
     let paramStr = T.intercalate ", " (map (prettyParam opts) params)
     in "\\" <> paramStr <> ". " <> prettyExpr opts ind body
+
+  ELam LamFnArrow params body _ ->
+    let paramStr = T.intercalate ", " (map (prettyClosureParam opts) params)
+    in "fn(" <> paramStr <> ") -> " <> prettyExpr opts ind body
 
   ELet pat mTy val body _ ->
     let tyStr = case mTy of

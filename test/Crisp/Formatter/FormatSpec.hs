@@ -1631,6 +1631,52 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
         Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
 
+    it "formats fn closure expression round-trip (issue #214)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn main() -> Int:"
+            , "  fn(x) -> x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "fn(x) -> x"
+
+    it "formats fn closure with typed param round-trip (issue #214)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn main() -> Int:"
+            , "  fn(x: Int) -> x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "fn(x: Int) -> x"
+
+    it "formats fn closure idempotently (issue #214)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn main() -> Int:"
+            , "  fn(x) -> x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+
+    it "backslash lambda still formats correctly (issue #214 regression)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn main() -> Int:"
+            , "  \\x: Int. x"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ "Format failed: " ++ T.unpack err
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "\\x: Int. x"
+
 -- Helper functions
 
 isRight :: Either a b -> Bool

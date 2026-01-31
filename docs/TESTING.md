@@ -179,6 +179,8 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - If expressions: simple, complex conditions, nested branches
 - Match expressions: keyword and subject (arms pending due to parser limitation)
 - Lambda expressions: backslash/unicode, single param, with application body
+- Fn closures: fn(x) -> expr, typed params, multiple params, zero params (issue #214)
+- Backslash lambda preserves LamBackslash style (issue #214)
 - Do notation: simple result expression (statements pending)
 - Effect operations: perform with Effect.op syntax
 - Lazy/force: both keywords with simple and complex expressions
@@ -285,7 +287,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 
 ### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
 
-The formatter test suite covers source code formatting (~59 tests):
+The formatter test suite covers source code formatting (~63 tests):
 
 **Expression Formatting (~15 tests)**
 - Literals: integer, float, string, unit
@@ -335,6 +337,10 @@ The formatter test suite covers source code formatting (~59 tests):
 - Impl with self parameter idempotent formatting (issue #213)
 - Mixed fn-style and sig-style methods formatting (issue #213)
 - Mixed trait methods idempotent formatting (issue #213)
+- Fn closure expression round-trip (issue #214)
+- Fn closure with typed param round-trip (issue #214)
+- Fn closure idempotent formatting (issue #214)
+- Backslash lambda regression test (issue #214)
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions

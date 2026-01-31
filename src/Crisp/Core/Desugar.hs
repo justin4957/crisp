@@ -146,7 +146,7 @@ desugarExpr = \case
     -- Build nested applications
     pure $ foldl C.TmApp func' args'
 
-  S.ELam params body _ ->
+  S.ELam _ params body _ ->
     foldr wrapParam (desugarExpr body) params
     where
       wrapParam param bodyM = do
@@ -394,6 +394,10 @@ desugarType = \case
     pure $ if mut then C.TyRefMut inner' else C.TyRef inner'
 
   S.TyParen inner _ -> desugarType inner
+
+  S.TyRefinement base _preds _ -> desugarType base  -- Refinement predicates not yet desugared
+
+  S.TyHole _ -> pure $ C.TyVar "_infer" 0  -- Type hole: to be filled by inference
 
 -- | Extract name and kind from type parameter
 typeParamNameKind :: S.TypeParam -> (Text, Maybe S.Kind)

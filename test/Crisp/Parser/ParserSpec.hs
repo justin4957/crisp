@@ -313,7 +313,7 @@ lambdaTests = describe "lambda expressions" $ do
 
   it "creates ELam node" $ do
     case parseExpr "test" "\\x: Int. x" of
-      Right (ELam params _ _) -> length params `shouldSatisfy` (>= 1)
+      Right (ELam _ params _ _) -> length params `shouldSatisfy` (>= 1)
       Right other -> expectationFailure $ "Expected ELam, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
@@ -322,10 +322,43 @@ lambdaTests = describe "lambda expressions" $ do
 
   it "captures param name and type" $ do
     case parseExpr "test" "\\x: Int. x" of
-      Right (ELam [Param { paramName = name, paramType = TyName typeName _ }] _ _) -> do
+      Right (ELam _ [Param { paramName = name, paramType = TyName typeName _ }] _ _) -> do
         name `shouldBe` "x"
         typeName `shouldBe` "Int"
       Right other -> expectationFailure $ "Expected ELam with param, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses fn closure fn(x) -> x (issue #214)" $ do
+    case parseExpr "test" "fn(x) -> x" of
+      Right (ELam LamFnArrow [Param { paramName = name }] _ _) ->
+        name `shouldBe` "x"
+      Right other -> expectationFailure $ "Expected fn closure ELam, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses fn closure with typed param (issue #214)" $ do
+    case parseExpr "test" "fn(x: Int) -> x" of
+      Right (ELam LamFnArrow [Param { paramName = name, paramType = TyName typeName _ }] _ _) -> do
+        name `shouldBe` "x"
+        typeName `shouldBe` "Int"
+      Right other -> expectationFailure $ "Expected typed fn closure, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses fn closure with multiple params (issue #214)" $ do
+    case parseExpr "test" "fn(x, y) -> x" of
+      Right (ELam LamFnArrow params _ _) -> length params `shouldBe` 2
+      Right other -> expectationFailure $ "Expected multi-param fn closure, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses fn closure with zero params (issue #214)" $ do
+    case parseExpr "test" "fn() -> 42" of
+      Right (ELam LamFnArrow params _ _) -> length params `shouldBe` 0
+      Right other -> expectationFailure $ "Expected zero-param fn closure, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "backslash lambda still produces LamBackslash (issue #214)" $ do
+    case parseExpr "test" "\\x: Int. x" of
+      Right (ELam LamBackslash _ _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected LamBackslash, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
 doNotationTests :: Spec
