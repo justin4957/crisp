@@ -259,6 +259,16 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parses parameterless trait (issue #212)
 - Extracts Nothing param for parameterless trait (issue #212)
 - Parses parameterless trait with multiple methods (issue #212)
+- Parses fn-style trait method with bare self (issue #213)
+- Parses fn-style trait method with self and additional params (issue #213)
+- Parses mixed sig-style and fn-style in one trait (issue #213)
+- Fn-style trait method composes correct function type (issue #213)
+- Fn-style method with multiple params composes curried type (issue #213)
+- Preserves fn-style on parsed trait method (issue #213)
+- Preserves sig-style on parsed trait method (issue #213)
+- Parses impl with self parameter (issue #213)
+- Parses impl with self in match expression (issue #213)
+- Parses impl method self param as first param (issue #213)
 - Parses effect with single type parameter (issue #171)
 - Parses effect with multiple type parameters (issue #171)
 - Parses effect without type params still works (issue #171)
@@ -275,7 +285,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 
 ### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
 
-The formatter test suite covers source code formatting (~51 tests):
+The formatter test suite covers source code formatting (~59 tests):
 
 **Expression Formatting (~15 tests)**
 - Literals: integer, float, string, unit
@@ -317,6 +327,14 @@ The formatter test suite covers source code formatting (~51 tests):
 - Parameterless trait definition (issue #212)
 - Parameterless trait idempotent formatting (issue #212)
 - Parameterized trait with parameter preserved (issue #212)
+- Fn-style trait method with self formatting (issue #213)
+- Fn-style trait method with self and extra params formatting (issue #213)
+- Fn-style trait method idempotent formatting (issue #213)
+- Sig-style trait method regression test (issue #213)
+- Impl with self parameter formatting (issue #213)
+- Impl with self parameter idempotent formatting (issue #213)
+- Mixed fn-style and sig-style methods formatting (issue #213)
+- Mixed trait methods idempotent formatting (issue #213)
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions

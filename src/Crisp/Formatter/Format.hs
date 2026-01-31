@@ -326,7 +326,7 @@ prettyFunctionDef opts ind fd =
         ps -> "[" <> T.intercalate ", " (map (prettyTypeParam opts) ps) <> "]"
       params = case fnDefParams fd of
         [] -> "()"
-        ps -> "(" <> T.intercalate ", " (map (prettyParam opts) ps) <> ")"
+        ps -> "(" <> T.intercalate ", " (map (prettySelfAwareParam opts) ps) <> ")"
       retType = case fnDefReturnType fd of
         Nothing -> ""
         Just ty -> " -> " <> prettyType opts 0 ty
@@ -339,6 +339,12 @@ prettyFunctionDef opts ind fd =
 -- | Pretty print parameter
 prettyParam :: FormatOptions -> Param -> Text
 prettyParam opts p = paramName p <> ": " <> prettyType opts 0 (paramType p)
+
+-- | Pretty print parameter, rendering bare @self@ without a type annotation
+prettySelfAwareParam :: FormatOptions -> Param -> Text
+prettySelfAwareParam opts p
+  | paramName p == "self" = "self"
+  | otherwise = prettyParam opts p
 
 -- | Pretty print trait definition
 prettyTraitDef :: FormatOptions -> Int -> TraitDef -> Text
@@ -358,11 +364,23 @@ prettyTraitDef opts ind td =
 
 -- | Pretty print trait method
 prettyTraitMethod :: FormatOptions -> Int -> TraitMethod -> Text
-prettyTraitMethod opts ind tm =
-  let sig = indent ind <> traitMethodName tm <> ": " <> prettyType opts 0 (traitMethodType tm)
-  in case traitMethodDefault tm of
-    Nothing -> sig
-    Just expr -> sig <> " = " <> prettyExpr opts 0 expr
+prettyTraitMethod opts ind tm = case traitMethodStyle tm of
+  TraitMethodSigStyle ->
+    let sig = indent ind <> traitMethodName tm <> ": " <> prettyType opts 0 (traitMethodType tm)
+    in case traitMethodDefault tm of
+      Nothing -> sig
+      Just expr -> sig <> " = " <> prettyExpr opts 0 expr
+  TraitMethodFnStyle ->
+    let paramStr = case traitMethodParams tm of
+          [] -> "()"
+          ps -> "(" <> T.intercalate ", " (map (prettySelfAwareParam opts) ps) <> ")"
+        retStr = case traitMethodReturnType tm of
+          Nothing -> ""
+          Just ty -> " -> " <> prettyType opts 0 ty
+        sig = indent ind <> "fn " <> traitMethodName tm <> paramStr <> retStr
+    in case traitMethodDefault tm of
+      Nothing -> sig
+      Just expr -> sig <> " = " <> prettyExpr opts 0 expr
 
 -- | Pretty print implementation definition
 prettyImplDef :: FormatOptions -> Int -> ImplDef -> Text
