@@ -2249,6 +2249,28 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right _ -> pure ()
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses float literal with leading zero (issue #184)" $ do
+    case parseExpr "test" "0.5" of
+      Right (EFloatLit 0.5 _) -> pure ()
+      Right other -> expectationFailure $ "Expected float 0.5, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses float arithmetic expression (issue #184)" $ do
+    case parseExpr "test" "(prob - 0.5) * 2.0" of
+      Right (EBinOp OpMul _ (EFloatLit 2.0 _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected float multiplication, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses float arithmetic in function body (issue #184)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn score(prob: Float) -> Float:"
+          , "  (prob - 0.5) * 2.0"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================
