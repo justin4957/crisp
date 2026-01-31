@@ -1451,12 +1451,16 @@ pListLiteral = do
 pRecordConstruction :: Parser Expr
 pRecordConstruction = do
   start <- getPos
-  name <- upperIdent
+  baseName <- upperIdent
+  qualParts <- many (try (symbol "." *> lowerIdent))
+  let qualifiedName = case qualParts of
+        [] -> baseName
+        _  -> baseName <> "." <> T.intercalate "." qualParts
   symbol "{"
-  fields <- pRecordFieldAssign `sepBy1` symbol ","
+  fields <- pRecordFieldAssign `sepBy` symbol ","
   symbol "}"
   span' <- spanFrom start
-  pure $ ERecord name fields span'
+  pure $ ERecord qualifiedName fields span'
   where
     pRecordFieldAssign = do
       fieldName <- lowerIdent

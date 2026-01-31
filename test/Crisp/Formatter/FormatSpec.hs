@@ -878,6 +878,30 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
+    it "formats qualified constructor record construction (issue #186)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn prove() -> Option:"
+            , "  Some(GeographicCovers.national_covers_all { })"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted ->
+          formatted `shouldSatisfy` T.isInfixOf "GeographicCovers.national_covers_all { }"
+
+    it "formats qualified constructor record idempotently (issue #186)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn prove() -> Option:"
+            , "  GeographicCovers.national_covers_all { x = 1 }"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
     it "formats float arithmetic expression (issue #184)" $ do
       let src = T.unlines
             [ "module Test"
