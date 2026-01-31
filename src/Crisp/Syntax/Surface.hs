@@ -389,6 +389,7 @@ data Expr
   | ERange !Expr !Expr !Span                            -- ^ Range expression: expr..expr
   | ETuple ![Expr] !Span                                -- ^ Tuple expression: (expr, expr, ...)
   | ENot !Expr !Span                                    -- ^ Boolean negation: not expr
+  | EAssign !Text !Expr !Expr !Span                     -- ^ Mutable assignment: name = value; body
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators

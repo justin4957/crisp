@@ -2333,6 +2333,36 @@ operatorTests = describe "operator precedence and associativity" $ do
       Right _ -> pure ()
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses mutable assignment (issue #187)" $ do
+    case parseExpr "test" "x = 1\nx" of
+      Right (EAssign "x" (EIntLit 1 _) (EVar "x" _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected assignment, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses assignment after let binding (issue #187)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn update(x: Int) -> Int:"
+          , "  let count = 0"
+          , "  count = 1"
+          , "  count"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses assignment with function call value (issue #187)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn update(items: List) -> List:"
+          , "  let results = items"
+          , "  results = process(items)"
+          , "  results"
+          ]
+    case parseModule "test" src of
+      Right _ -> pure ()
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Edge Cases and Error Handling
 -- =============================================================================

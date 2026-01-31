@@ -1356,6 +1356,7 @@ pApp :: Parser Expr
 pApp = choice
   [ -- Complex expressions that shouldn't take arguments
     pLet
+  , try pAssign
   , pMatch
   , pIf
   , pDo
@@ -1558,6 +1559,92 @@ pLet = do
 
     pLetAtom :: Parser Expr
     pLetAtom = choice
+      [ pLazy
+      , pForce
+      , pNot
+      , pBreak
+      , pReturn
+      , pLiteral
+      , pListLiteral
+      , try pRecordConstruction
+      , pVar
+      , pParens
+      ]
+
+-- | Parse mutable assignment: name = expr (followed by continuation body)
+-- Uses same layout rules as let binding for the continuation body.
+-- The value is parsed at application level (same line); for binary operators
+-- in the value, use parentheses: name = (expr + expr)
+pAssign :: Parser Expr
+pAssign = do
+  start <- getPos
+  assignCol <- unPos . sourceColumn <$> getSourcePos
+  name <- lowerIdent
+  -- Must see '=' but NOT '==' (equality)
+  void $ try (symbol "=" <* notFollowedBy (char '='))
+  value <- pAssignValue
+  body <- pAssignBody assignCol
+  span' <- spanFrom start
+  pure $ EAssign name value body span'
+  where
+    pAssignBody :: Int -> Parser Expr
+    pAssignBody assignCol = do
+      col <- unPos . sourceColumn <$> getSourcePos
+      if col >= assignCol
+        then pExpr
+        else fail "layout: body must be indented at least as much as assignment"
+
+    -- Parse the assignment value - application level on same line
+    pAssignValue :: Parser Expr
+    pAssignValue = do
+      startLine <- unPos . sourceLine <$> getSourcePos
+      start <- getPos
+      func <- pAssignPostfix
+      args <- many (try $ pSameLineArg startLine)
+      span' <- spanFrom start
+      case args of
+        [] -> pure func
+        _  -> pure $ EApp func args span'
+
+    pSameLineArg :: Int -> Parser Expr
+    pSameLineArg startLine = do
+      curLine <- unPos . sourceLine <$> getSourcePos
+      if curLine == startLine
+        then pAssignPostfix
+        else fail "argument on different line"
+
+    pAssignPostfix :: Parser Expr
+    pAssignPostfix = do
+      base <- pAssignAtom
+      suffixes <- many (pAssignFieldAccess <|> pAssignIndexAccess)
+      pure $ foldl applyAssignSuffix base suffixes
+
+    pAssignFieldAccess :: Parser PostfixSuffix
+    pAssignFieldAccess = try $ do
+      s <- getPos
+      symbol "."
+      notFollowedBy (char '.')
+      notFollowedBy upperIdent
+      field <- lowerIdent
+      span' <- spanFrom s
+      pure $ DotSuffix field Nothing span'
+
+    pAssignIndexAccess :: Parser PostfixSuffix
+    pAssignIndexAccess = try $ do
+      s <- getPos
+      symbol "["
+      idx <- pExpr
+      symbol "]"
+      span' <- spanFrom s
+      pure $ IndexSuffix idx span'
+
+    applyAssignSuffix :: Expr -> PostfixSuffix -> Expr
+    applyAssignSuffix receiver (DotSuffix field Nothing s) = EFieldAccess receiver field s
+    applyAssignSuffix receiver (DotSuffix method (Just args) s) = EMethodCall receiver method args s
+    applyAssignSuffix receiver (IndexSuffix idx s) = EIndex receiver idx s
+
+    pAssignAtom :: Parser Expr
+    pAssignAtom = choice
       [ pLazy
       , pForce
       , pNot

@@ -569,6 +569,10 @@ prettyExpr opts ind = \case
 
   ENot inner _ -> "not " <> prettyExprAtom opts ind inner
 
+  EAssign name value body _ ->
+    name <> " = " <> prettyExpr opts ind value <> "\n"
+    <> indent ind <> prettyExpr opts ind body
+
 -- | Pretty print a binary operator
 prettyBinOp :: BinOp -> Text
 prettyBinOp = \case
