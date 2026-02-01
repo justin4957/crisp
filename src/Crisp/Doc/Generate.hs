@@ -790,6 +790,8 @@ formatSurfaceType = \case
   TyRef inner isMut _ -> (if isMut then "Ref mut " else "Ref ") <> formatSurfaceTypeAtom inner
   TyParen inner _ -> "(" <> formatSurfaceType inner <> ")"
   TyRefinement base _ _ -> formatSurfaceType base
+  TyHole _ -> "_"
+  TyTuple elems _ -> "(" <> T.intercalate ", " (map formatSurfaceType elems) <> ")"
 
 -- | Format atomic surface type
 formatSurfaceTypeAtom :: Type -> Text

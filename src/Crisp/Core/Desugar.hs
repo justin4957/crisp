@@ -415,6 +415,10 @@ desugarType = \case
 
   S.TyHole _ -> pure $ C.TyVar "_infer" 0  -- Type hole: to be filled by inference
 
+  S.TyTuple elems _ -> do
+    elems' <- mapM desugarType elems
+    pure $ C.TyCon "Tuple" elems'
+
 -- | Extract name and kind from type parameter
 typeParamNameKind :: S.TypeParam -> (Text, Maybe S.Kind)
 typeParamNameKind = \case
