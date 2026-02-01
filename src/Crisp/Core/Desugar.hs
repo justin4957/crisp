@@ -147,7 +147,7 @@ desugarExpr = \case
   S.EFloatLit _ _ ->
     pure $ C.TmCon "Float" [] []  -- Placeholder
 
-  S.EStringLit _ _ ->
+  S.EStringLit _ _ _ ->
     pure $ C.TmCon "String" [] []  -- Placeholder
 
   S.ECharLit _ _ ->

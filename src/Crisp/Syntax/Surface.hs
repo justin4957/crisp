@@ -54,6 +54,7 @@ module Crisp.Syntax.Surface
     -- * Expressions
   , Expr(..)
   , LambdaStyle(..)
+  , StringStyle(..)
   , BinOp(..)
   , Statement(..)
   , DoStatement(..)
@@ -382,13 +383,19 @@ data LambdaStyle
   | LamFnArrow     -- ^ fn(x) -> expr
   deriving stock (Eq, Show, Generic)
 
+-- | Style of string literal (for formatter round-trip fidelity)
+data StringStyle
+  = StringSingle    -- ^ "regular string"
+  | StringTriple    -- ^ \"\"\"triple-quoted string\"\"\"
+  deriving stock (Eq, Show, Generic)
+
 -- | Expressions
 data Expr
   = EVar !Text !Span                                    -- ^ Variable reference
   | ECon !Text !Span                                    -- ^ Constructor reference
   | EIntLit !Integer !Span                              -- ^ Integer literal
   | EFloatLit !Double !Span                             -- ^ Float literal
-  | EStringLit !Text !Span                              -- ^ String literal
+  | EStringLit !StringStyle !Text !Span                  -- ^ String literal
   | ECharLit !Char !Span                                -- ^ Character literal
   | EUnit !Span                                         -- ^ Unit literal
   | EApp !Expr ![Expr] !Span                            -- ^ Function application

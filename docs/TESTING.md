@@ -92,10 +92,11 @@ The lexer test suite covers:
 - Parentheses, brackets, braces
 - Unit literal `()`
 
-**Literals (18 tests)**
+**Literals (~24 tests)**
 - Integer literals (decimal, hex `0xFF`, binary `0b1010`)
 - Float literals (with decimals, exponents, signed exponents)
 - String literals (simple, with escapes, unicode)
+- Triple-quoted strings: basic, multiline with indentation stripping, preserved internal indentation differences, empty, StringSingle node verification (issue #217)
 - Character literals (simple, escape sequences)
 
 **Comments (6 tests)**
@@ -294,8 +295,9 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 
 The formatter test suite covers source code formatting (~67 tests):
 
-**Expression Formatting (~15 tests)**
+**Expression Formatting (~18 tests)**
 - Literals: integer, float, string, unit
+- Triple-quoted string: basic formatting, multiline formatting, regular string regression (issue #217)
 - Variables and constructors
 - Application: simple, multi-arg
 - Let expressions: layout-based style, with type annotation, nested let chains
