@@ -216,6 +216,35 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats total as variable name (issue #222)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn sum_items() -> Int:"
+            , "  let total = 0"
+            , "  total"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "total"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats total as field name idempotently (issue #222)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type AuditMetrics:"
+            , "  total: Int"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats module with provides block followed by definitions" $ do
       let src = T.unlines
             [ "module Test"
