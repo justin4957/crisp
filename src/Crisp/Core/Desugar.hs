@@ -419,6 +419,8 @@ desugarType = \case
     elems' <- mapM desugarType elems
     pure $ C.TyCon "Tuple" elems'
 
+  S.TyWild _ -> pure $ C.TyVar "_wild" 0  -- Wildcard type: to be filled by inference
+
 -- | Extract name and kind from type parameter
 typeParamNameKind :: S.TypeParam -> (Text, Maybe S.Kind)
 typeParamNameKind = \case

@@ -469,6 +469,7 @@ prettyType opts prec = \case
     prettyType opts 10 base <> " { " <> T.intercalate ", " (map (prettyRefinement opts) preds) <> " }"
   TyHole _ -> "_"
   TyTuple elems _ -> "(" <> T.intercalate ", " (map (prettyType opts 0) elems) <> ")"
+  TyWild _ -> "_"
 
 -- | Pretty print refinement predicate
 prettyRefinement :: FormatOptions -> RefinementPredicate -> Text

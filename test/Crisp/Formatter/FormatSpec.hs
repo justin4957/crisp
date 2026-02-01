@@ -1327,6 +1327,30 @@ spec = describe "Crisp.Formatter.Format" $ do
         Right formatted -> formatted `shouldSatisfy` T.isInfixOf "((Int, Bool), String)"
         Left _ -> expectationFailure "Expected Right"
 
+  describe "wildcard type arguments" $ do
+    it "formats wildcard type argument in function parameter" $ do
+      let src = "module Test\n\nfn test(c: Court _) -> Int:\n  0"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "Court _"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats wildcard type in return type" $ do
+      let src = "module Test\n\nfn lookup(c: Citation) -> Option _:\n  None"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "Option _"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "wildcard type round-trips idempotently" $ do
+      let src = "module Test\n\nfn test(c: Court _) -> Int:\n  0"
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> formatSource defaultFormatOptions formatted `shouldBe` Right formatted
+        Left err -> expectationFailure $ "First format failed: " ++ show err
+
   describe "prettyPattern function" $ do
     it "formats simple variable patterns" $ do
       -- Test via lambda parameter which includes pattern
