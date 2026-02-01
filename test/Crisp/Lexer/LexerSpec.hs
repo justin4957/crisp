@@ -125,8 +125,8 @@ spec = do
     it "lexes prop keyword" $ do
       lexKinds "prop" `shouldBe` Right [KwProp]
 
-    it "lexes total keyword" $ do
-      lexKinds "total" `shouldBe` Right [KwTotal]
+    it "lexes total as identifier (no longer keyword, issue #222)" $ do
+      lexKinds "total" `shouldBe` Right [LowerIdent "total"]
 
     it "lexes mut keyword" $ do
       lexKinds "mut" `shouldBe` Right [KwMut]
@@ -469,7 +469,6 @@ spec = do
       isKeyword KwQualified `shouldBe` True
       isKeyword KwDo `shouldBe` True
       isKeyword KwProp `shouldBe` True
-      isKeyword KwTotal `shouldBe` True
       isKeyword KwMut `shouldBe` True
       isKeyword KwRef `shouldBe` True
 
@@ -533,7 +532,7 @@ spec = do
       lookupKeyword "qualified" `shouldBe` Just KwQualified
       lookupKeyword "do" `shouldBe` Just KwDo
       lookupKeyword "prop" `shouldBe` Just KwProp
-      lookupKeyword "total" `shouldBe` Just KwTotal
+      lookupKeyword "total" `shouldBe` Nothing
       lookupKeyword "mut" `shouldBe` Just KwMut
       lookupKeyword "ref" `shouldBe` Just KwRef
 

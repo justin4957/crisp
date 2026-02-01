@@ -64,7 +64,6 @@ data TokenKind
   | KwExport
   | KwDo
   | KwProp
-  | KwTotal
   | KwMut
   | KwRef
   | KwTrait
@@ -172,7 +171,6 @@ isKeyword = \case
   KwExport -> True
   KwDo -> True
   KwProp -> True
-  KwTotal -> True
   KwMut -> True
   KwRef -> True
   KwTrait -> True
@@ -234,7 +232,6 @@ keywordMap = Map.fromList
   , ("export", KwExport)
   , ("do", KwDo)
   , ("prop", KwProp)
-  , ("total", KwTotal)
   , ("mut", KwMut)
   , ("ref", KwRef)
   , ("trait", KwTrait)

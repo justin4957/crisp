@@ -2294,6 +2294,40 @@ moduleTests = describe "modules" $ do
       Right m -> moduleAuthority m `shouldBe` Nothing
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- total as identifier (issue #222)
+  it "parses total as variable name (issue #222)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn sum_items() -> Int:"
+          , "  let total = 0"
+          , "  total"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses total as field name (issue #222)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type AuditMetrics:"
+          , "  total: Int"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses total as parameter name (issue #222)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn compute(total: Int) -> Int:"
+          , "  total"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses total as function name (issue #222)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn total(items: Int) -> Int:"
+          , "  items"
+          ]
+    shouldParse $ parseModule "test" src
+
 -- =============================================================================
 -- Operator Precedence and Associativity Tests
 -- =============================================================================
