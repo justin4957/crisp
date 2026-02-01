@@ -1198,6 +1198,7 @@ pRefinementExprBase :: Parser Expr
 pRefinementExprBase = choice
   [ pRefinementMatch
   , pRefinementIf
+  , try pRefinementFloat  -- Must come before pRefinementInt since "0.0" starts with digits
   , pRefinementInt
   , pRefinementBool
   , pRefinementSelf
@@ -1287,6 +1288,14 @@ pFieldAccessChain base = do
       span' <- spanFrom start
       let accessed = EFieldAccess base field span'
       pFieldAccessChain accessed
+
+-- | Parse a float literal in a refinement
+pRefinementFloat :: Parser Expr
+pRefinementFloat = do
+  start <- getPos
+  n <- lexeme L.float
+  span' <- spanFrom start
+  pure $ EFloatLit n span'
 
 -- | Parse an integer literal in a refinement
 pRefinementInt :: Parser Expr
