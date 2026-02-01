@@ -341,7 +341,7 @@ literalPatternTests = describe "literal patterns" $ do
   it "elaborates integer literal pattern" $ do
     -- match n: 0 -> "zero"
     let subject = sVar "n"
-        arm = sArm (pLit (sInt 0)) (S.EStringLit "zero" dummySpan)
+        arm = sArm (pLit (sInt 0)) (S.EStringLit S.StringSingle "zero" dummySpan)
         matchExpr = sMatch subject [arm]
     -- Literal patterns compile to equality checks
     shouldElaborate $ elaborateMatch matchExpr
@@ -349,8 +349,8 @@ literalPatternTests = describe "literal patterns" $ do
   it "elaborates multiple literal alternatives" $ do
     -- match n: 0 -> "zero", 1 -> "one"
     let subject = sVar "n"
-        arm1 = sArm (pLit (sInt 0)) (S.EStringLit "zero" dummySpan)
-        arm2 = sArm (pLit (sInt 1)) (S.EStringLit "one" dummySpan)
+        arm1 = sArm (pLit (sInt 0)) (S.EStringLit S.StringSingle "zero" dummySpan)
+        arm2 = sArm (pLit (sInt 1)) (S.EStringLit S.StringSingle "one" dummySpan)
         matchExpr = sMatch subject [arm1, arm2]
     shouldElaborate $ elaborateMatch matchExpr
 

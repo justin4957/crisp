@@ -140,7 +140,7 @@ elaboratePattern = \case
         -- Integer literals become a constructor pattern for the Int type
         -- In a full implementation, this would involve equality checking
         pure $ C.PatCon ("Lit_Int_" <> T.pack (show n)) []
-      S.EStringLit s _ ->
+      S.EStringLit _ s _ ->
         pure $ C.PatCon ("Lit_String_" <> s) []
       S.ECharLit c _ ->
         pure $ C.PatCon ("Lit_Char_" <> T.singleton c) []
@@ -171,7 +171,7 @@ elaborateExpr = \case
   S.EFloatLit f _ ->
     pure $ C.TmCon ("Float_" <> T.pack (show f)) [] []
 
-  S.EStringLit s _ ->
+  S.EStringLit _ s _ ->
     pure $ C.TmCon ("String_" <> s) [] []
 
   S.ECharLit c _ ->

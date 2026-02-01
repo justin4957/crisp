@@ -31,6 +31,28 @@ spec = describe "Crisp.Formatter.Format" $ do
       it "formats string literals" $ do
         formatExpr defaultFormatOptions "\"hello\"" `shouldBe` Right "\"hello\""
 
+      it "formats triple-quoted string" $ do
+        let src = "\"\"\"hello world\"\"\""
+            result = formatExpr defaultFormatOptions src
+        result `shouldSatisfy` isRight
+        case result of
+          Right formatted -> formatted `shouldSatisfy` T.isInfixOf "\"\"\""
+          Left _ -> expectationFailure "Expected Right"
+
+      it "formats triple-quoted multiline string" $ do
+        let src = "\"\"\"\n  line 1\n  line 2\n\"\"\""
+            result = formatExpr defaultFormatOptions src
+        result `shouldSatisfy` isRight
+        case result of
+          Right formatted -> do
+            formatted `shouldSatisfy` T.isInfixOf "\"\"\""
+            formatted `shouldSatisfy` T.isInfixOf "line 1"
+            formatted `shouldSatisfy` T.isInfixOf "line 2"
+          Left _ -> expectationFailure "Expected Right"
+
+      it "regular string formatting unchanged" $ do
+        formatExpr defaultFormatOptions "\"hello\\nworld\"" `shouldBe` Right "\"hello\\nworld\""
+
       it "formats unit literal" $ do
         formatExpr defaultFormatOptions "()" `shouldBe` Right "()"
 

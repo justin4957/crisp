@@ -93,6 +93,42 @@ literalTests = describe "literals" $ do
   it "parses string with unicode" $ do
     shouldParse $ parseExpr "test" "\"hello 世界\""
 
+  it "parses triple-quoted string" $ do
+    shouldParse $ parseExpr "test" "\"\"\"hello world\"\"\""
+
+  it "parses triple-quoted multiline string" $ do
+    let src = "\"\"\"\n  line 1\n  line 2\n\"\"\""
+    case parseExpr "test" src of
+      Right (EStringLit StringTriple content _) -> do
+        content `shouldBe` "line 1\nline 2"
+      Right other -> expectationFailure $ "Expected EStringLit StringTriple, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "strips common indentation from triple-quoted string" $ do
+    let src = "\"\"\"\n    SELECT *\n    FROM users\n    WHERE active\n\"\"\""
+    case parseExpr "test" src of
+      Right (EStringLit StringTriple content _) -> do
+        content `shouldBe` "SELECT *\nFROM users\nWHERE active"
+      Right other -> expectationFailure $ "Expected triple-quoted string, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "triple-quoted string preserves internal indentation differences" $ do
+    let src = "\"\"\"\n  if x:\n    then y\n  else z\n\"\"\""
+    case parseExpr "test" src of
+      Right (EStringLit StringTriple content _) ->
+        content `shouldBe` "if x:\n  then y\nelse z"
+      Right other -> expectationFailure $ "Expected triple-quoted string, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses empty triple-quoted string" $ do
+    shouldParse $ parseExpr "test" "\"\"\"\"\"\""
+
+  it "regular string creates StringSingle node" $ do
+    case parseExpr "test" "\"hello\"" of
+      Right (EStringLit StringSingle "hello" _) -> pure ()
+      Right other -> expectationFailure $ "Expected EStringLit StringSingle, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses character literals" $ do
     shouldParse $ parseExpr "test" "'a'"
 

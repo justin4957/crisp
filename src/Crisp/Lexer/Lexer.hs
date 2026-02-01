@@ -464,12 +464,18 @@ lexNumber = do
       digits <- some digitChar
       pure $ [e] ++ maybe "" (:[]) sign ++ digits
 
--- | Lex a string literal
+-- | Lex a string literal (triple-quoted or single-quoted)
 lexString :: Lexer TokenKind
-lexString = do
-  void $ char '"'
-  content <- manyTill L.charLiteral (char '"')
-  pure $ StringLit (T.pack content)
+lexString = try lexTripleString <|> lexSingleString
+  where
+    lexSingleString = do
+      void $ char '"'
+      content <- manyTill L.charLiteral (char '"')
+      pure $ StringLit (T.pack content)
+    lexTripleString = do
+      void $ string "\"\"\""
+      content <- manyTill anySingle (string "\"\"\"")
+      pure $ StringLit (T.pack content)
 
 -- | Lex a character literal
 lexChar :: Lexer TokenKind

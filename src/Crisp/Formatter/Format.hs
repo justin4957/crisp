@@ -503,7 +503,8 @@ prettyExpr opts ind = \case
   ECon name _ -> name
   EIntLit n _ -> T.pack (show n)
   EFloatLit f _ -> T.pack (show f)
-  EStringLit s _ -> "\"" <> escapeString s <> "\""
+  EStringLit StringSingle s _ -> "\"" <> escapeString s <> "\""
+  EStringLit StringTriple s _ -> "\"\"\"\n" <> s <> "\n\"\"\""
   ECharLit c _ -> "'" <> escapeChar c <> "'"
   EUnit _ -> "()"
 

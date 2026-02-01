@@ -1978,6 +1978,7 @@ pLiteral = choice
   [ pUnit
   , try pFloat  -- Try float first (with backtracking) so "42" doesn't consume "4" expecting decimal
   , pInt
+  , try pTripleQuotedString  -- Must come before pString since """ starts with "
   , pString
   , pChar
   ]
@@ -2003,12 +2004,50 @@ pFloat = do
   span' <- spanFrom start
   pure $ EFloatLit n span'
 
+-- | Parse a triple-quoted string literal: """..."""
+-- Content is taken literally (no escape processing).
+-- Leading/trailing blank lines and common indentation are stripped.
+pTripleQuotedString :: Parser Expr
+pTripleQuotedString = do
+  start <- getPos
+  rawContent <- lexeme $ do
+    _ <- string "\"\"\""
+    content <- manyTill anySingle (string "\"\"\"")
+    pure content
+  span' <- spanFrom start
+  let strippedContent = stripTripleQuoteIndent (T.pack rawContent)
+  pure $ EStringLit StringTriple strippedContent span'
+
+-- | Strip common leading whitespace from triple-quoted string content.
+-- Follows Python's textwrap.dedent convention:
+-- 1. Remove leading blank line (if content starts with newline)
+-- 2. Remove trailing blank lines
+-- 3. Find minimum indentation among non-empty lines
+-- 4. Strip that many spaces from each line
+stripTripleQuoteIndent :: Text -> Text
+stripTripleQuoteIndent rawContent =
+  let contentLines = T.lines rawContent
+      -- Drop leading empty line (common after opening """)
+      trimmedLeading = case contentLines of
+        (firstLine : rest) | T.null (T.strip firstLine) -> rest
+        other -> other
+      -- Drop trailing empty lines
+      trimmedTrailing = reverse $ dropWhile (T.null . T.strip) (reverse trimmedLeading)
+      -- Compute minimum indentation of non-empty lines
+      nonEmptyLines = filter (not . T.null . T.strip) trimmedTrailing
+      minIndent = case nonEmptyLines of
+        [] -> 0
+        ls -> minimum (map (T.length . T.takeWhile (== ' ')) ls)
+      -- Strip the common indentation
+      strippedLines = map (T.drop minIndent) trimmedTrailing
+  in T.intercalate "\n" strippedLines
+
 pString :: Parser Expr
 pString = do
   start <- getPos
   s <- lexeme $ char '"' *> manyTill L.charLiteral (char '"')
   span' <- spanFrom start
-  pure $ EStringLit (T.pack s) span'
+  pure $ EStringLit StringSingle (T.pack s) span'
 
 pChar :: Parser Expr
 pChar = do
