@@ -792,6 +792,7 @@ formatSurfaceType = \case
   TyRefinement base _ _ -> formatSurfaceType base
   TyHole _ -> "_"
   TyTuple elems _ -> "(" <> T.intercalate ", " (map formatSurfaceType elems) <> ")"
+  TyWild _ -> "_"
 
 -- | Format atomic surface type
 formatSurfaceTypeAtom :: Type -> Text

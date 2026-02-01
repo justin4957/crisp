@@ -804,6 +804,7 @@ typeTests = describe "types" $ do
   effectTypeTests
   specialTypeTests
   tupleTypeTests
+  wildcardTypeTests
 
 simpleTypeTests :: Spec
 simpleTypeTests = describe "simple types" $ do
@@ -972,6 +973,35 @@ tupleTypeTests = describe "tuple types" $ do
 
   it "parses tuple type as function return type" $ do
     let src = "module Main fn swap(x: Int, y: Bool) -> (Bool, Int): (y, x)"
+    shouldParse $ parseModule "test" src
+
+wildcardTypeTests :: Spec
+wildcardTypeTests = describe "wildcard type arguments" $ do
+  it "parses wildcard type _" $ do
+    shouldParse $ parseType "test" "_"
+
+  it "creates TyWild node" $ do
+    case parseType "test" "_" of
+      Right (TyWild _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyWild, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses wildcard as type argument: Court(_)" $ do
+    case parseType "test" "Court _" of
+      Right (TyApp (TyName "Court" _) [TyWild _] _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyApp Court [TyWild], got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multiple wildcard type arguments: Decision(_, _)" $ do
+    let src = "module Main fn test(d: Decision _ _) -> Int: 0"
+    shouldParse $ parseModule "test" src
+
+  it "parses wildcard in parenthesized type argument: List(Court(_))" $ do
+    let src = "module Main fn test(xs: List (Court _)) -> Int: 0"
+    shouldParse $ parseModule "test" src
+
+  it "parses wildcard in function return type" $ do
+    let src = "module Main fn lookup(c: Citation) -> Option _: None"
     shouldParse $ parseModule "test" src
 
 -- =============================================================================

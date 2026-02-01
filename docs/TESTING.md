@@ -220,6 +220,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Effect types: single effect, multiple effects, with authority
 - Special types: Lazy, ref, ref mut, parenthesized
 - Tuple types: pair, triple, empty, nested, TyParen vs TyTuple distinction, in function params and return types (issue #216)
+- Wildcard type arguments: standalone _, as type argument (Court _), multiple wildcards, in parenthesized args, in return types (issue #219)
 
 **Declaration Tests (~20 tests)**
 - Function definitions: with/without params, type params, effects, return types
@@ -361,6 +362,7 @@ The formatter test suite covers source code formatting (~67 tests):
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions
 - OR pattern field constraint: formatting, idempotency, triple alternative (issue #218)
+- Wildcard type argument: in parameter, in return type, idempotent round-trip (issue #219)
 - External function definitions
 
 **Idempotence (~3 tests)**

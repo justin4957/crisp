@@ -998,6 +998,10 @@ pTypeApp = do
            span' <- spanFrom start'
            pure $ TyRef ty mut span'
       , do start' <- getPos
+           symbol "_"
+           span' <- spanFrom start'
+           pure $ TyWild span'
+      , do start' <- getPos
            -- Only consume uppercase identifiers as type arguments
            name <- upperIdent
            span' <- spanFrom start'
@@ -1025,6 +1029,10 @@ pTypeAppNoRefinement = do
            pure $ case types of
              [ty] -> TyParen ty span'
              _    -> TyTuple types span'
+      , do start' <- getPos
+           symbol "_"
+           span' <- spanFrom start'
+           pure $ TyWild span'
       , do start' <- getPos
            -- Only consume uppercase identifiers as type arguments
            name <- upperIdent
@@ -1070,6 +1078,10 @@ pTypeAtomBase = choice
        body <- pType
        span' <- spanFrom start
        pure $ TyForall param body span'
+  , do start <- getPos
+       symbol "_"
+       span' <- spanFrom start
+       pure $ TyWild span'
   , do start <- getPos
        name <- identifier
        span' <- spanFrom start
