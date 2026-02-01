@@ -381,15 +381,16 @@ pFieldConstraintBlock = do
   symbol "}"
   pure constraints
 
--- | Parse a single field constraint: field: Pattern
+-- | Parse a single field constraint: field: Pattern | Pattern | ...
+-- Supports OR patterns separated by @|@
 pFieldConstraint :: Parser FieldConstraint
 pFieldConstraint = do
   start <- getPos
   fieldName <- lowerIdent
   symbol ":"
-  pat <- pPattern
+  patterns <- pPattern `sepBy1` symbol "|"
   span' <- spanFrom start
-  pure $ FieldConstraint fieldName pat span'
+  pure $ FieldConstraint fieldName patterns span'
 
 -- | Parse where clause constraints for type definitions
 -- Example: where A: Action, B: Serializable

@@ -330,11 +330,12 @@ data TypeAliasDef = TypeAliasDef
   } deriving stock (Eq, Show, Generic)
 
 -- | A constraint on a field value in a type alias
--- Example: action: Judicial(_) or status: Active
+-- Supports OR patterns: field: Pat1 | Pat2 | Pat3
+-- Example: opinion_type: Dissent | DissentInPart
 data FieldConstraint = FieldConstraint
-  { fieldConstraintName    :: !Text         -- ^ Field name being constrained
-  , fieldConstraintPattern :: !Pattern      -- ^ Pattern the field must match
-  , fieldConstraintSpan    :: !Span
+  { fieldConstraintName     :: !Text         -- ^ Field name being constrained
+  , fieldConstraintPatterns :: ![Pattern]    -- ^ Patterns the field must match (OR alternatives)
+  , fieldConstraintSpan     :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | Comparison operators for refinement predicates

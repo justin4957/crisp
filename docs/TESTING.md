@@ -360,6 +360,7 @@ The formatter test suite covers source code formatting (~67 tests):
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions
+- OR pattern field constraint: formatting, idempotency, triple alternative (issue #218)
 - External function definitions
 
 **Idempotence (~3 tests)**
