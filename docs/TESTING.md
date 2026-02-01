@@ -284,6 +284,12 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parses type with multiple dependent parameters (issue #172)
 - Parses type with single dependent parameter in parens (issue #172)
 - Parses type with mixed uppercase and dependent parameters (issue #172)
+- Float literal in refinement predicate (issue #220)
+- Float comparison in refinement predicate (issue #220)
+- Float literal with decimal places in refinement (issue #220)
+- Float with integer comparison in refinement (issue #220)
+- Float equality in refinement predicate (issue #220)
+- Integer refinement still works with float support (issue #220)
 
 **Known Parser Limitations (documented via pending tests)**
 - Match arms don't parse correctly due to greedy pExpr
@@ -361,6 +367,9 @@ The formatter test suite covers source code formatting (~67 tests):
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions
+- Float literal in refinement predicate formatting (issue #220)
+- Float with decimal places in refinement formatting (issue #220)
+- Integer refinement unchanged with float support (issue #220)
 - OR pattern field constraint: formatting, idempotency, triple alternative (issue #218)
 - Wildcard type argument: in parameter, in return type, idempotent round-trip (issue #219)
 - External function definitions

@@ -1410,6 +1410,31 @@ typeDefTests = describe "type definitions" $ do
     let src = "module Test type Always = Int where { True }"
     shouldParse $ parseModule "test" src
 
+  -- Float literals in refinement predicates (issue #220)
+  it "parses float literal in refinement predicate (issue #220)" $ do
+    let src = "module Test type PositiveFloat = Float where { self > 0.0 }"
+    shouldParse $ parseModule "test" src
+
+  it "parses float comparison in refinement predicate (issue #220)" $ do
+    let src = "module Test type UnitInterval = Float where { self >= 0.0 && self <= 1.0 }"
+    shouldParse $ parseModule "test" src
+
+  it "parses float literal with decimal places in refinement (issue #220)" $ do
+    let src = "module Test type SmallFloat = Float where { self < 3.14159 }"
+    shouldParse $ parseModule "test" src
+
+  it "parses float with integer comparison in refinement (issue #220)" $ do
+    let src = "module Test type BoundedFloat = Float where { self > 0.0 && self < 100.0 }"
+    shouldParse $ parseModule "test" src
+
+  it "parses float equality in refinement predicate (issue #220)" $ do
+    let src = "module Test type HalfFloat = Float where { self == 0.5 }"
+    shouldParse $ parseModule "test" src
+
+  it "integer refinement still works with float support (issue #220)" $ do
+    let src = "module Test type PositiveInt = Int where { self > 0 }"
+    shouldParse $ parseModule "test" src
+
   -- Constrained type aliases with 'where field: Pattern' syntax (issue #168)
   it "parses type alias with where field constraint (issue #168)" $ do
     let src = "module Test type TrialCourt = Court where level: TrialCourt"

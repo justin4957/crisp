@@ -542,6 +542,33 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "else"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats float literal in refinement predicate (issue #220)" $ do
+      let src = "module Test type PositiveFloat = Float where { self > 0.0 }"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "self > 0.0"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats float with decimal places in refinement (issue #220)" $ do
+      let src = "module Test type SmallFloat = Float where { self < 3.14159 }"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "3.14159"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats integer refinement unchanged with float support (issue #220)" $ do
+      let src = "module Test type PositiveInt = Int where { self > 0 }"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "self > 0"
+        Left _ -> expectationFailure "Expected Right"
+
     it "formats type alias with where field constraint (issue #168)" $ do
       let src = "module Test type TrialCourt = Court where level: TrialCourt"
           result = formatSource defaultFormatOptions src
