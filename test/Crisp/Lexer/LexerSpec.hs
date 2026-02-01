@@ -89,8 +89,8 @@ spec = do
     it "lexes provides keyword" $ do
       lexKinds "provides" `shouldBe` Right [KwProvides]
 
-    it "lexes authority keyword" $ do
-      lexKinds "authority" `shouldBe` Right [KwAuthority]
+    it "lexes authority as identifier (context-sensitive, issue #221)" $ do
+      lexKinds "authority" `shouldBe` Right [LowerIdent "authority"]
 
     it "lexes linear keyword" $ do
       lexKinds "linear" `shouldBe` Right [KwLinear]
@@ -458,7 +458,6 @@ spec = do
       isKeyword KwModule `shouldBe` True
       isKeyword KwRequires `shouldBe` True
       isKeyword KwProvides `shouldBe` True
-      isKeyword KwAuthority `shouldBe` True
       isKeyword KwLinear `shouldBe` True
       isKeyword KwLazy `shouldBe` True
       isKeyword KwPerform `shouldBe` True
@@ -522,7 +521,7 @@ spec = do
       lookupKeyword "module" `shouldBe` Just KwModule
       lookupKeyword "requires" `shouldBe` Just KwRequires
       lookupKeyword "provides" `shouldBe` Just KwProvides
-      lookupKeyword "authority" `shouldBe` Just KwAuthority
+      lookupKeyword "authority" `shouldBe` Nothing
       lookupKeyword "linear" `shouldBe` Just KwLinear
       lookupKeyword "lazy" `shouldBe` Just KwLazy
       lookupKeyword "perform" `shouldBe` Just KwPerform

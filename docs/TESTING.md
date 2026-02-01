@@ -71,9 +71,10 @@ spec = do
 
 The lexer test suite covers:
 
-**Keywords (31 tests)**
+**Keywords (30 tests)**
 - All language keywords (`fn`, `let`, `type`, `effect`, `handler`, `match`, etc.)
 - Keyword/identifier disambiguation (`fn` vs `fn_helper`)
+- `authority` lexes as identifier, not keyword (context-sensitive, issue #221)
 
 **Identifiers (7 tests)**
 - Lowercase identifiers (`foo`, `camelCase`)
@@ -233,6 +234,11 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Minimal module, dotted path, authority
 - Requires (effects, types), provides (type, fn)
 - Multiple definitions
+- Authority as field name (issue #221)
+- Authority as parameter name (issue #221)
+- Authority as variable in let binding (issue #221)
+- Module with authority annotation still works (issue #221)
+- Module without authority still works (issue #221)
 
 **Doc Comment Tests (~14 tests)**
 - Multi-line doc comment with pipe on continuation lines parsed correctly
@@ -333,6 +339,9 @@ The formatter test suite covers source code formatting (~67 tests):
 **Module Formatting (~21 tests)**
 - Minimal module, with function/type/effect definitions
 - Provides block: with types, typed functions, followed by definitions
+- Authority as field name formatting (issue #221)
+- Module with authority annotation formatting (issue #221)
+- Authority as identifier idempotent formatting (issue #221)
 - Provides block: with external fn (issue #156)
 - Provides block: external fn with type annotation (issue #156)
 - Provides block: external fn idempotent formatting (issue #156)

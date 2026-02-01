@@ -179,6 +179,43 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "requires Utils.Helpers"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats authority as field name (issue #221)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type AuthorityCited:"
+            , "  authority: AuthorityRef"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "authority"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats module with authority annotation (issue #221)" $ do
+      let src = "module Treasury.Audit authority Treasury"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "authority Treasury"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats authority as identifier idempotently (issue #221)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn evaluate(authority: Int) -> Int:"
+            , "  authority"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats module with provides block followed by definitions" $ do
       let src = T.unlines
             [ "module Test"

@@ -113,6 +113,12 @@ keyword kw = lexeme $ try $ do
   void $ string kw
   notFollowedBy alphaNumChar
 
+-- | Parse a context-sensitive keyword (a word that acts as keyword only in specific positions)
+contextKeyword :: Text -> Parser ()
+contextKeyword kw = lexeme $ try $ do
+  void $ string kw
+  notFollowedBy (alphaNumChar <|> char '_' <|> char '\'')
+
 -- | Parse a lower-case identifier
 lowerIdent :: Parser Text
 lowerIdent = lexeme $ try $ do
@@ -142,7 +148,7 @@ pModule = do
   doc <- optional (try pDocComment)
   keyword "module"
   name <- pModulePath
-  auth <- optional (keyword "authority" *> upperIdent)
+  auth <- optional (try (contextKeyword "authority") *> upperIdent)
   reqLists <- many pRequires
   provLists <- many pProvides
   defs <- many pDefinition

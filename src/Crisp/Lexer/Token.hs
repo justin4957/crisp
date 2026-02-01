@@ -51,7 +51,6 @@ data TokenKind
   | KwModule
   | KwRequires
   | KwProvides
-  | KwAuthority
   | KwLinear
   | KwLazy
   | KwPerform
@@ -160,7 +159,6 @@ isKeyword = \case
   KwModule -> True
   KwRequires -> True
   KwProvides -> True
-  KwAuthority -> True
   KwLinear -> True
   KwLazy -> True
   KwPerform -> True
@@ -223,7 +221,6 @@ keywordMap = Map.fromList
   , ("module", KwModule)
   , ("requires", KwRequires)
   , ("provides", KwProvides)
-  , ("authority", KwAuthority)
   , ("linear", KwLinear)
   , ("lazy", KwLazy)
   , ("perform", KwPerform)
