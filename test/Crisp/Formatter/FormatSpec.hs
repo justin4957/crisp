@@ -1236,6 +1236,46 @@ spec = describe "Crisp.Formatter.Format" $ do
         Right formatted -> formatted `shouldSatisfy` T.isInfixOf "List Int"
         Left _ -> expectationFailure "Expected Right"
 
+  describe "tuple types" $ do
+    it "formats tuple type in function parameter" $ do
+      let src = "module Test\n\nfn first(pair: (Int, Bool)) -> Int:\n  0"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "(Int, Bool)"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats tuple type as return type" $ do
+      let src = "module Test\n\nfn swap(x: Int, y: Bool) -> (Bool, Int):\n  (y, x)"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "(Bool, Int)"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "tuple type round-trips idempotently" $ do
+      let src = "module Test\n\nfn first(pair: (Int, Bool)) -> Int:\n  0"
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> formatSource defaultFormatOptions formatted `shouldBe` Right formatted
+        Left err -> expectationFailure $ "First format failed: " ++ show err
+
+    it "formats triple tuple type" $ do
+      let src = "module Test\n\nfn test(t: (Int, Bool, String)) -> Int:\n  0"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "(Int, Bool, String)"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats nested tuple type" $ do
+      let src = "module Test\n\nfn test(t: ((Int, Bool), String)) -> Int:\n  0"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "((Int, Bool), String)"
+        Left _ -> expectationFailure "Expected Right"
+
   describe "prettyPattern function" $ do
     it "formats simple variable patterns" $ do
       -- Test via lambda parameter which includes pattern

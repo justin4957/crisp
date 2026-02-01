@@ -979,10 +979,12 @@ pTypeApp = do
     pTypeArgAtom = choice
       [ do start' <- getPos
            symbol "("
-           ty <- pType
+           types <- pType `sepBy` symbol ","
            symbol ")"
            span' <- spanFrom start'
-           pure $ TyParen ty span'
+           pure $ case types of
+             [ty] -> TyParen ty span'
+             _    -> TyTuple types span'
       , do start' <- getPos
            keyword "Lazy"
            ty <- pTypeAtom
@@ -1016,10 +1018,12 @@ pTypeAppNoRefinement = do
     pTypeArgAtomNoRefinement = choice
       [ do start' <- getPos
            symbol "("
-           ty <- pType
+           types <- pType `sepBy` symbol ","
            symbol ")"
            span' <- spanFrom start'
-           pure $ TyParen ty span'
+           pure $ case types of
+             [ty] -> TyParen ty span'
+             _    -> TyTuple types span'
       , do start' <- getPos
            -- Only consume uppercase identifiers as type arguments
            name <- upperIdent
@@ -1041,10 +1045,12 @@ pTypeAtomBase :: Parser Type
 pTypeAtomBase = choice
   [ do start <- getPos
        symbol "("
-       ty <- pType
+       types <- pType `sepBy` symbol ","
        symbol ")"
        span' <- spanFrom start
-       pure $ TyParen ty span'
+       pure $ case types of
+         [ty] -> TyParen ty span'
+         _    -> TyTuple types span'
   , do start <- getPos
        keyword "Lazy"
        ty <- pTypeAtom

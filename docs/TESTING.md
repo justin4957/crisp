@@ -211,13 +211,14 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Tuple patterns: pairs, triples, nested
 - (Match patterns pending due to parser limitation)
 
-**Type Tests (~25 tests)**
+**Type Tests (~34 tests)**
 - Simple types: variables, constructors
 - Function types: simple, multi-argument, right-associativity, with parens
 - Type applications: single, multiple, nested
 - Forall types: simple, with kind annotation, nested
 - Effect types: single effect, multiple effects, with authority
 - Special types: Lazy, ref, ref mut, parenthesized
+- Tuple types: pair, triple, empty, nested, TyParen vs TyTuple distinction, in function params and return types (issue #216)
 
 **Declaration Tests (~20 tests)**
 - Function definitions: with/without params, type params, effects, return types
@@ -349,6 +350,11 @@ The formatter test suite covers source code formatting (~67 tests):
 - Top-level let with type annotation formatting (issue #215)
 - Top-level let idempotent formatting (issue #215)
 - Top-level let with type annotation idempotent formatting (issue #215)
+- Tuple type in function parameter formatting (issue #216)
+- Tuple type as return type formatting (issue #216)
+- Tuple type round-trip idempotent formatting (issue #216)
+- Triple tuple type formatting (issue #216)
+- Nested tuple type formatting (issue #216)
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions

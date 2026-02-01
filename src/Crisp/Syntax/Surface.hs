@@ -373,6 +373,7 @@ data Type
   | TyParen !Type !Span                             -- ^ Parenthesized type
   | TyRefinement !Type ![RefinementPredicate] !Span -- ^ Refinement type: T { predicate }
   | TyHole !Span                                    -- ^ Type hole (omitted annotation, to be inferred)
+  | TyTuple ![Type] !Span                           -- ^ Tuple type: (T1, T2, ...)
   deriving stock (Eq, Show, Generic)
 
 -- | Style of lambda expression (for formatter round-trip fidelity)

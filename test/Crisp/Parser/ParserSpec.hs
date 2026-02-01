@@ -767,6 +767,7 @@ typeTests = describe "types" $ do
   forallTypeTests
   effectTypeTests
   specialTypeTests
+  tupleTypeTests
 
 simpleTypeTests :: Spec
 simpleTypeTests = describe "simple types" $ do
@@ -890,6 +891,52 @@ specialTypeTests = describe "special types" $ do
       Right (TyRef _ True _) -> pure ()
       Right other -> expectationFailure $ "Expected TyRef mut, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+tupleTypeTests :: Spec
+tupleTypeTests = describe "tuple types" $ do
+  it "parses pair type (Int, Bool)" $ do
+    shouldParse $ parseType "test" "(Int, Bool)"
+
+  it "parses triple type (Int, Bool, String)" $ do
+    shouldParse $ parseType "test" "(Int, Bool, String)"
+
+  it "creates TyTuple node for pair" $ do
+    case parseType "test" "(Int, Bool)" of
+      Right (TyTuple [TyName "Int" _, TyName "Bool" _] _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyTuple, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "creates TyTuple node for triple" $ do
+    case parseType "test" "(Int, Bool, String)" of
+      Right (TyTuple [TyName "Int" _, TyName "Bool" _, TyName "String" _] _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyTuple, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "single type in parens is TyParen not TyTuple" $ do
+    case parseType "test" "(Int)" of
+      Right (TyParen _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyParen, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses empty tuple type ()" $ do
+    case parseType "test" "()" of
+      Right (TyTuple [] _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyTuple [], got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses nested tuple type ((Int, Bool), String)" $ do
+    case parseType "test" "((Int, Bool), String)" of
+      Right (TyTuple [TyTuple [TyName "Int" _, TyName "Bool" _] _, TyName "String" _] _) -> pure ()
+      Right other -> expectationFailure $ "Expected nested TyTuple, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses tuple type in function parameter" $ do
+    let src = "module Main fn first(pair: (Int, Bool)) -> Int: 0"
+    shouldParse $ parseModule "test" src
+
+  it "parses tuple type as function return type" $ do
+    let src = "module Main fn swap(x: Int, y: Bool) -> (Bool, Int): (y, x)"
+    shouldParse $ parseModule "test" src
 
 -- =============================================================================
 -- Declaration Tests
