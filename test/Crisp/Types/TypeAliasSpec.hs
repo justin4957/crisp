@@ -149,9 +149,9 @@ fieldConstraintTests = describe "field constraint parsing" $ do
     case parseModule "test" src of
       Right m -> case moduleDefinitions m of
         [DefTypeAlias alias] -> case typeAliasConstraints alias of
-          [fc] -> case fieldConstraintPattern fc of
-            PatCon "Active" [] _ -> pure ()
-            other -> expectationFailure $ "Expected PatCon Active, got " ++ show other
+          [fc] -> case fieldConstraintPatterns fc of
+            [PatCon "Active" [] _] -> pure ()
+            other -> expectationFailure $ "Expected [PatCon Active], got " ++ show other
           _ -> expectationFailure "Expected single field constraint"
         _ -> expectationFailure "Expected single type alias definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
@@ -167,6 +167,83 @@ fieldConstraintTests = describe "field constraint parsing" $ do
           length (typeAliasConstraints alias) `shouldBe` 2
         _ -> expectationFailure "Expected single type alias definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses OR pattern in field constraint (issue #218)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type DissentOpinion = Opinion where opinion_type: Dissent | DissentInPart"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "extracts OR pattern alternatives (issue #218)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type DissentOpinion = Opinion where opinion_type: Dissent | DissentInPart"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias alias] -> case typeAliasConstraints alias of
+          [fc] -> do
+            fieldConstraintName fc `shouldBe` "opinion_type"
+            length (fieldConstraintPatterns fc) `shouldBe` 2
+            case fieldConstraintPatterns fc of
+              [PatCon "Dissent" [] _, PatCon "DissentInPart" [] _] -> pure ()
+              other -> expectationFailure $ "Expected [Dissent, DissentInPart], got " ++ show other
+          _ -> expectationFailure "Expected single field constraint"
+        _ -> expectationFailure "Expected single type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses triple OR pattern in field constraint (issue #218)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type StrongInterpretation = Interpretation where strength: Strong | Definitive | Binding"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias alias] -> case typeAliasConstraints alias of
+          [fc] -> length (fieldConstraintPatterns fc) `shouldBe` 3
+          _ -> expectationFailure "Expected single field constraint"
+        _ -> expectationFailure "Expected single type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses OR pattern with constructor arguments (issue #218)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type MandatoryBinding = BindingForce where force: Mandatory(_) | Required(_)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias alias] -> case typeAliasConstraints alias of
+          [fc] -> do
+            length (fieldConstraintPatterns fc) `shouldBe` 2
+            case fieldConstraintPatterns fc of
+              [PatCon "Mandatory" [PatWildcard _] _, PatCon "Required" [PatWildcard _] _] -> pure ()
+              other -> expectationFailure $ "Expected [Mandatory(_), Required(_)], got " ++ show other
+          _ -> expectationFailure "Expected single field constraint"
+        _ -> expectationFailure "Expected single type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "single pattern field constraint still works (issue #218 regression)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type MandatoryBinding = BindingForce where force: Mandatory"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias alias] -> case typeAliasConstraints alias of
+          [fc] -> case fieldConstraintPatterns fc of
+            [PatCon "Mandatory" [] _] -> pure ()
+            other -> expectationFailure $ "Expected [Mandatory], got " ++ show other
+          _ -> expectationFailure "Expected single field constraint"
+        _ -> expectationFailure "Expected single type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses OR pattern with brace-style field constraints (issue #218)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type DissentOpinion = Opinion { opinion_type: Dissent | DissentInPart }"
+          ]
+    shouldParse $ parseModule "test" src
 
 -- =============================================================================
 -- Parameterized Type Alias Tests

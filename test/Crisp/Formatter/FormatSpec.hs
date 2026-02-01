@@ -562,6 +562,35 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats OR pattern field constraint (issue #218)" $ do
+      let src = "module Test type DissentOpinion = Opinion where opinion_type: Dissent | DissentInPart"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "Dissent | DissentInPart"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats OR pattern field constraint idempotently (issue #218)" $ do
+      let src = "module Test type DissentOpinion = Opinion where opinion_type: Dissent | DissentInPart"
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
+    it "formats triple OR pattern field constraint (issue #218)" $ do
+      let src = "module Test type StrongInterp = Interpretation where strength: Strong | Definitive | Binding"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "Strong | Definitive | Binding"
+        Left _ -> expectationFailure "Expected Right"
+
     it "formats basic for loop (issue #169)" $ do
       let src = T.unlines
             [ "module Test"
