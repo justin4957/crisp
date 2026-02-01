@@ -2256,6 +2256,44 @@ moduleTests = describe "modules" $ do
       Right m -> moduleAuthority m `shouldBe` Just "System"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- authority as identifier (issue #221)
+  it "parses authority as field name (issue #221)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type AuthorityCited:"
+          , "  authority: AuthorityRef"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses authority as parameter name (issue #221)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn evaluate(authority: AuthorityCited) -> Score:"
+          , "  authority"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses authority as variable in let binding (issue #221)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test() -> Int:"
+          , "  let authority = 42"
+          , "  authority"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses module with authority still works (issue #221)" $ do
+    let src = "module Treasury.Audit authority Treasury"
+    case parseModule "test" src of
+      Right m -> moduleAuthority m `shouldBe` Just "Treasury"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses module without authority still works (issue #221)" $ do
+    let src = "module Test"
+    case parseModule "test" src of
+      Right m -> moduleAuthority m `shouldBe` Nothing
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Operator Precedence and Associativity Tests
 -- =============================================================================
