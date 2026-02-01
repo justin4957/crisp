@@ -430,7 +430,7 @@ prettyTypeAlias opts ind ad =
      <> prettyType opts 0 (typeAliasBase ad) <> constraints
   where
     prettyFieldConstraint fc =
-      fieldConstraintName fc <> ": " <> prettyPattern opts (fieldConstraintPattern fc)
+      fieldConstraintName fc <> ": " <> T.intercalate " | " (map (prettyPattern opts) (fieldConstraintPatterns fc))
 
 --------------------------------------------------------------------------------
 -- Pretty Printing - Types
