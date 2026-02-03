@@ -51,6 +51,7 @@ expressionTests = describe "expressions" $ do
   variableTests
   applicationTests
   letExpressionTests
+  matchInLetTests
   ifExpressionTests
   matchExpressionTests
   lambdaTests
@@ -253,6 +254,55 @@ letExpressionTests = describe "let expressions" $ do
           Right (ELet _ _ _ _ _) -> pure ()
           Right other -> expectationFailure $ "Expected ELet, got " ++ show other
           Left err -> expectationFailure $ "Re-parse failed: " ++ show err
+
+matchInLetTests :: Spec
+matchInLetTests = describe "match in let-binding value (issue #236)" $ do
+  it "parses match as let value with explicit in" $ do
+    shouldParse $ parseExpr "test" "let x = match c in x"
+
+  it "parses match with arms as let value with explicit in" $ do
+    shouldParse $ parseExpr "test" "let x = match c\n  0 -> 10\n  1 -> 20\nin x"
+
+  it "parses match in let value in function body (layout-based)" $ do
+    let src = "module Main\nfn test(c: Int) -> Int:\n  let x = match c\n    0 -> 10\n    1 -> 20\n  x"
+    shouldParse $ parseModule "test" src
+
+  it "creates ELet with EMatch value" $ do
+    case parseExpr "test" "let x = match c in x" of
+      Right (ELet _ _ (EMatch _ _ _) _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected ELet with EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "match arms are correctly parsed in let value" $ do
+    let src = "module Main\nfn test(c: Int) -> Int:\n  let x = match c\n    0 -> 10\n    1 -> 20\n  x"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fn'] ->
+          case fnDefBody fn' of
+            ELet _ _ (EMatch _ arms _) _ _ ->
+              length arms `shouldBe` 2
+            other -> expectationFailure $ "Expected ELet with EMatch body, got " ++ show other
+        _ -> expectationFailure $ "Expected single DefFn"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "let body is not consumed as match arm" $ do
+    let src = "module Main\nfn test(c: Int) -> Int:\n  let x = match c\n    0 -> 10\n  x"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fn'] ->
+          case fnDefBody fn' of
+            ELet _ _ (EMatch _ arms _) body _ -> do
+              length arms `shouldBe` 1
+              case body of
+                EVar name _ -> name `shouldBe` "x"
+                other -> expectationFailure $ "Expected EVar for let body, got " ++ show other
+            other -> expectationFailure $ "Expected ELet with EMatch body, got " ++ show other
+        _ -> expectationFailure $ "Expected single DefFn"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses match in mutable assignment value" $ do
+    let src = "module Main\nfn test(c: Int) -> Int:\n  x = match c\n    0 -> 10\n    1 -> 20\n  x"
+    shouldParse $ parseModule "test" src
 
 ifExpressionTests :: Spec
 ifExpressionTests = describe "if expressions" $ do

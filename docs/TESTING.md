@@ -188,6 +188,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Top-level let mixed with fn definitions (issue #215)
 - Top-level let pattern and type extraction (issue #215)
 - Top-level let with record construction value (issue #215)
+- Match in let-binding value: explicit `in`, with arms and explicit `in`, layout-based in function body, ELet/EMatch node verification, match arm count verification, let body not consumed as match arm, match in mutable assignment value (issue #236)
 - Do notation: simple result expression (statements pending)
 - Effect operations: perform with Effect.op syntax, perform in let-binding value (explicit `in` and layout-based), perform with args in let-binding value, ELet with EPerform node verification, perform in mutable assignment value (issue #235)
 - Lazy/force: both keywords with simple and complex expressions

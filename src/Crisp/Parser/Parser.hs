@@ -1564,7 +1564,7 @@ pLet = do
   pat <- pPattern
   mTy <- optional (symbol ":" *> pType)
   _ <- symbol "="
-  value <- pLetValue  -- Parse value up to 'in' or newline
+  value <- pLetValue letCol  -- Parse value up to 'in' or newline
   -- Try explicit 'in', or use layout-based implicit 'in'
   body <- pLetBody letCol
   span' <- spanFrom start
@@ -1589,9 +1589,19 @@ pLet = do
         then pExpr  -- Parse the rest as the body
         else fail "layout: body must be indented at least as much as let"
 
-    -- Parse a let value - stop at end of line for layout-based let
-    pLetValue :: Parser Expr
-    pLetValue = do
+    -- Parse a let value - stop at end of line for layout-based let.
+    -- Match is tried first since it consumes multi-line arm structures.
+    -- Uses pMatchIndented so match arms don't consume the let body.
+    -- Atom-based parsing is the fallback.
+    pLetValue :: Int -> Parser Expr
+    pLetValue enclosingCol = choice
+      [ pMatchIndented enclosingCol
+      , pLetValueSimple
+      ]
+
+    -- Parse a simple let value (atom-based with same-line args)
+    pLetValueSimple :: Parser Expr
+    pLetValueSimple = do
       startLine <- unPos . sourceLine <$> getSourcePos
       start <- getPos
       func <- pLetPostfix
@@ -1673,7 +1683,7 @@ pAssign = do
   name <- lowerIdent
   -- Must see '=' but NOT '==' (equality)
   void $ try (symbol "=" <* notFollowedBy (char '='))
-  value <- pAssignValue
+  value <- pAssignValue assignCol
   body <- pAssignBody assignCol
   span' <- spanFrom start
   pure $ EAssign name value body span'
@@ -1685,9 +1695,18 @@ pAssign = do
         then pExpr
         else fail "layout: body must be indented at least as much as assignment"
 
-    -- Parse the assignment value - application level on same line
-    pAssignValue :: Parser Expr
-    pAssignValue = do
+    -- Parse the assignment value. Match is tried first since it consumes
+    -- multi-line arm structures. Uses pMatchIndented so match arms don't
+    -- consume the assignment body. Atom-based parsing is the fallback.
+    pAssignValue :: Int -> Parser Expr
+    pAssignValue enclosingCol = choice
+      [ pMatchIndented enclosingCol
+      , pAssignValueSimple
+      ]
+
+    -- Parse a simple assignment value (atom-based with same-line args)
+    pAssignValueSimple :: Parser Expr
+    pAssignValueSimple = do
       startLine <- unPos . sourceLine <$> getSourcePos
       start <- getPos
       func <- pAssignPostfix
@@ -1762,6 +1781,25 @@ pMatch = do
   arms <- many pMatchArm  -- Zero or more arms allowed
   span' <- spanFrom start
   pure $ EMatch subject arms span'
+
+-- | Column-aware variant of pMatch for use in let-binding and assignment values.
+-- Only consumes match arms that are indented past the given baseline column,
+-- so that the enclosing let body or assignment continuation is not consumed.
+pMatchIndented :: Int -> Parser Expr
+pMatchIndented baseCol = do
+  start <- getPos
+  keyword "match"
+  subject <- pMatchSubject
+  arms <- many (try $ pIndentedMatchArm baseCol)
+  span' <- spanFrom start
+  pure $ EMatch subject arms span'
+  where
+    pIndentedMatchArm :: Int -> Parser MatchArm
+    pIndentedMatchArm minCol = do
+      armCol <- unPos . sourceColumn <$> getSourcePos
+      if armCol > minCol
+        then pMatchArm
+        else fail "match arm not indented past enclosing binding"
 
 -- | Parse a match subject - restricted to avoid ambiguity with arms
 -- Only allows a single postfix expression (no application consuming multiple tokens)
