@@ -1646,7 +1646,9 @@ pLet = do
 
     pLetAtom :: Parser Expr
     pLetAtom = choice
-      [ pFnClosure
+      [ pPerformSameLine
+      , pExternalCallSameLine
+      , pFnClosure
       , pLazy
       , pForce
       , pNot
@@ -1734,7 +1736,9 @@ pAssign = do
 
     pAssignAtom :: Parser Expr
     pAssignAtom = choice
-      [ pFnClosure
+      [ pPerformSameLine
+      , pExternalCallSameLine
+      , pFnClosure
       , pLazy
       , pForce
       , pNot
@@ -1951,6 +1955,28 @@ pPerform = do
   span' <- spanFrom start
   pure $ EPerform effect op args span'
 
+-- | Same-line variant of pPerform for let-binding and assignment values.
+-- Only consumes arguments that appear on the same line as the perform keyword,
+-- preventing greedy consumption of the let body or assignment continuation.
+pPerformSameLine :: Parser Expr
+pPerformSameLine = do
+  startLine <- unPos . sourceLine <$> getSourcePos
+  start <- getPos
+  keyword "perform"
+  effect <- upperIdent
+  symbol "."
+  op <- lowerIdent
+  args <- many (try $ pSameLineAtom startLine)
+  span' <- spanFrom start
+  pure $ EPerform effect op args span'
+  where
+    pSameLineAtom :: Int -> Parser Expr
+    pSameLineAtom startLine = do
+      curLine <- unPos . sourceLine <$> getSourcePos
+      if curLine == startLine
+        then pAtom
+        else fail "argument on different line than perform"
+
 -- | Parse an external function call expression
 -- Example: external("console", "log") "Hello"
 --          external("postgres", "query") sql_string
@@ -1961,6 +1987,23 @@ pExternalCall = do
   args <- many pAtom
   span' <- spanFrom start
   pure $ EExternal extRef args span'
+
+-- | Same-line variant of pExternalCall for let-binding and assignment values.
+pExternalCallSameLine :: Parser Expr
+pExternalCallSameLine = do
+  startLine <- unPos . sourceLine <$> getSourcePos
+  start <- getPos
+  extRef <- pExternalRef
+  args <- many (try $ pSameLineAtom startLine)
+  span' <- spanFrom start
+  pure $ EExternal extRef args span'
+  where
+    pSameLineAtom :: Int -> Parser Expr
+    pSameLineAtom startLine = do
+      curLine <- unPos . sourceLine <$> getSourcePos
+      if curLine == startLine
+        then pAtom
+        else fail "argument on different line than external call"
 
 pLazy :: Parser Expr
 pLazy = do
