@@ -453,6 +453,28 @@ effectTests = describe "effect operations" $ do
       Right other -> expectationFailure $ "Expected EPerform, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses perform in let-binding value" $ do
+    shouldParse $ parseExpr "test" "let x = perform State.get in x"
+
+  it "parses perform in let-binding value (layout-based)" $ do
+    shouldParse $ parseExpr "test" "let x = perform State.get\nx"
+
+  it "parses perform with args in let-binding value" $ do
+    shouldParse $ parseExpr "test" "let x = perform Log.info msg in x"
+
+  it "creates ELet with EPerform value" $ do
+    case parseExpr "test" "let x = perform State.get in x" of
+      Right (ELet _ _ (EPerform effect op _ _) _ _) -> do
+        effect `shouldBe` "State"
+        op `shouldBe` "get"
+      Right other -> expectationFailure $ "Expected ELet with EPerform, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses perform in mutable assignment value" $ do
+    -- Assignment needs a function body context; test via a module with function
+    let src = "module Main\nfn test() -> Int:\n  x = perform State.get\n  x"
+    shouldParse $ parseModule "test" src
+
   -- Known parser limitation: with expression consumes both handler and body
   it "parses with handler expression" $ do
     pendingWith "Parser limitation: pExpr consumes body as handler arguments"
