@@ -317,26 +317,34 @@ pDefinition = do
              symbol "="
              -- Use pTypeAppNoRefinement so { field: Pattern } isn't parsed as refinement
              baseType <- pTypeAppNoRefinement
-             -- Support 'where { predicate }' for refinement types,
+             -- Support 'extended with:' for record extension,
+             -- 'where { predicate }' for refinement types,
              -- 'where field: Pattern' for field constraints without braces,
              -- and '{ field: Pattern }' for field constraints with braces
-             (finalType, constraints) <- choice
-               [ do -- where clause: refinement or field constraint
+             (finalType, constraints, extFields) <- choice
+               [ do -- Extended record: type Name = Base extended with:
+                    --   field: Type
+                    contextKeyword "extended"
+                    keyword "with"
+                    symbol ":"
+                    fields <- some pField
+                    pure (baseType, [], fields)
+               , do -- where clause: refinement or field constraint
                     keyword "where"
                     choice
                       [ do -- Refinement type: type Name = Base where { predicate }
                            (preds, refinementSpan) <- pRefinementBlock
-                           pure (TyRefinement baseType preds refinementSpan, [])
+                           pure (TyRefinement baseType preds refinementSpan, [], [])
                       , do -- Field constraint without braces: type Name = Base where field: Pattern
                            fieldConstraints <- pFieldConstraint `sepBy1` symbol ","
-                           pure (baseType, fieldConstraints)
+                           pure (baseType, fieldConstraints, [])
                       ]
                , do -- Field constraints with braces: type Name = Base { field: Pattern }
                     fieldConstraints <- option [] pFieldConstraintBlock
-                    pure (baseType, fieldConstraints)
+                    pure (baseType, fieldConstraints, [])
                ]
              span' <- spanFrom start
-             pure $ DefTypeAlias $ TypeAliasDef doc name params finalType constraints span'
+             pure $ DefTypeAlias $ TypeAliasDef doc name params finalType constraints extFields span'
         , do -- Regular type definition
              constraints <- option [] pTypeDefConstraints
              mKind <- optional (try pTypeDefKind)
