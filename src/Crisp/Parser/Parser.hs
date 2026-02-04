@@ -536,6 +536,7 @@ pConstructorField = do
 
 -- | Parse one or more type parameters, supporting comma-separated dependent
 -- parameters in a single paren group: (j: Jurisdiction, temporal: TemporalRange)
+-- Also supports parenthesized bare type variables: (A) or (A, B)
 pTypeParamGroup :: Parser [TypeParam]
 pTypeParamGroup = choice
   [ -- Multiple comma-separated dependent parameters in one paren group:
@@ -543,6 +544,12 @@ pTypeParamGroup = choice
     try $ do
       symbol "("
       params <- pDepParamEntry `sepBy1` symbol ","
+      symbol ")"
+      pure params
+  , -- Parenthesized bare type variables without kind: (A) or (A, B)
+    try $ do
+      symbol "("
+      params <- pBareTypeVarEntry `sepBy1` symbol ","
       symbol ")"
       pure params
   , -- Single type parameter (original behavior)
@@ -556,6 +563,11 @@ pTypeParamGroup = choice
       ty <- pType
       span' <- spanFrom start
       pure $ DepParam name ty span'
+    pBareTypeVarEntry = do
+      start <- getPos
+      name <- upperIdent
+      span' <- spanFrom start
+      pure $ TypeVar name Nothing span'
 
 pTypeParam :: Parser TypeParam
 pTypeParam = choice

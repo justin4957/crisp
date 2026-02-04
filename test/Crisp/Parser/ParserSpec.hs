@@ -1484,6 +1484,63 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type alias definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Parameterized type aliases with parenthesized type params (issue #238)
+  it "parses parameterized type alias with parenthesized param (issue #238)" $ do
+    let src = "module Test type Wrapper(A) = List(A)"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> do
+          typeAliasName td `shouldBe` "Wrapper"
+          length (typeAliasParams td) `shouldBe` 1
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses parameterized type alias with refinement (issue #238)" $ do
+    let src = "module Test type NonEmpty(A) = List(A) where { self.length > 0 }"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias _] -> pure ()
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multi-param parenthesized type alias (issue #238)" $ do
+    let src = "module Test type Mapping(K, V) = Map(K, V)"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> length (typeAliasParams td) `shouldBe` 2
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parameterized type alias params are TypeVar nodes (issue #238)" $ do
+    let src = "module Test type Wrapper(A) = List(A)"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> case typeAliasParams td of
+          [TypeVar name Nothing _] -> name `shouldBe` "A"
+          _ -> expectationFailure "Expected single TypeVar param"
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "bare param type alias still works (issue #238)" $ do
+    let src = "module Test type Wrapper A = List(A)"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> length (typeAliasParams td) `shouldBe` 1
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses parenthesized params on regular type definition (issue #238)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Box(A):"
+          , "  Wrap(value: A)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> length (typeDefParams td) `shouldBe` 1
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses type alias with chained field access in where" $ do
     let src = "module Test type Valid = Record where { self.field.inner > 0 }"
     shouldParse $ parseModule "test" src
