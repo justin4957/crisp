@@ -871,6 +871,7 @@ typeTests :: Spec
 typeTests = describe "types" $ do
   simpleTypeTests
   functionTypeTests
+  fnTypeTests
   typeApplicationTests
   forallTypeTests
   effectTypeTests
@@ -914,6 +915,46 @@ functionTypeTests = describe "function types" $ do
 
   it "parses function returning function" $ do
     shouldParse $ parseType "test" "Int -> (Int -> Int)"
+
+fnTypeTests :: Spec
+fnTypeTests = describe "fn type syntax (issue #237)" $ do
+  it "parses fn(A) -> B as function type" $ do
+    shouldParse $ parseType "test" "fn(Int) -> Bool"
+
+  it "parses fn with multiple params" $ do
+    shouldParse $ parseType "test" "fn(Int, String) -> Bool"
+
+  it "parses fn with no params" $ do
+    shouldParse $ parseType "test" "fn() -> Int"
+
+  it "creates TyFn for fn(A) -> B" $ do
+    case parseType "test" "fn(Int) -> Bool" of
+      Right (TyFn (TyName "Int" _) (TyName "Bool" _) _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyFn Int -> Bool, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "creates TyTuple for fn(A, B) -> C params" $ do
+    case parseType "test" "fn(Int, String) -> Bool" of
+      Right (TyFn (TyTuple params _) (TyName "Bool" _) _ _) ->
+        length params `shouldBe` 2
+      Right other -> expectationFailure $ "Expected TyFn with TyTuple params, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "creates Unit for fn() -> A params" $ do
+    case parseType "test" "fn() -> Int" of
+      Right (TyFn (TyName "Unit" _) (TyName "Int" _) _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected TyFn Unit -> Int, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses nested fn types" $ do
+    shouldParse $ parseType "test" "fn(fn(Int) -> Int) -> Int"
+
+  it "parses fn type in parameter annotation" $ do
+    let src = "module Main\nfn apply(f: fn(Int) -> Int, x: Int) -> Int:\n  0"
+    shouldParse $ parseModule "test" src
+
+  it "parses fn type with type constructor return" $ do
+    shouldParse $ parseType "test" "fn(Int) -> Option(Int)"
 
 typeApplicationTests :: Spec
 typeApplicationTests = describe "type applications" $ do

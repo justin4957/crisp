@@ -1058,7 +1058,9 @@ pTypeAtom = do
 -- | Parse the base type atom (without refinement)
 pTypeAtomBase :: Parser Type
 pTypeAtomBase = choice
-  [ do start <- getPos
+  [ -- fn(A, B) -> C type syntax for function types
+    try pFnType
+  , do start <- getPos
        symbol "("
        types <- pType `sepBy` symbol ","
        symbol ")"
@@ -1093,6 +1095,26 @@ pTypeAtomBase = choice
        span' <- spanFrom start
        pure $ TyName name span'
   ]
+
+-- | Parse fn(A, B) -> C function type syntax.
+-- fn(A) -> B   parses as   A -> B
+-- fn(A, B) -> C   parses as   (A, B) -> C
+-- fn() -> A   parses as   Unit -> A
+pFnType :: Parser Type
+pFnType = do
+  start <- getPos
+  keyword "fn"
+  symbol "("
+  paramTypes <- pType `sepBy` symbol ","
+  symbol ")"
+  symbol "->"
+  returnType <- pType
+  span' <- spanFrom start
+  let fromType = case paramTypes of
+        []  -> TyName "Unit" span'
+        [t] -> t
+        _   -> TyTuple paramTypes span'
+  pure $ TyFn fromType returnType [] span'
 
 -- * Refinement type parsing
 

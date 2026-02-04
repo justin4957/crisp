@@ -215,9 +215,10 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Tuple patterns: pairs, triples, nested
 - (Match patterns pending due to parser limitation)
 
-**Type Tests (~34 tests)**
+**Type Tests (~43 tests)**
 - Simple types: variables, constructors
 - Function types: simple, multi-argument, right-associativity, with parens
+- Fn type syntax: `fn(A) -> B` single param, `fn(A, B) -> C` multi-param, `fn() -> A` no-param, TyFn/TyTuple/Unit node verification, nested fn types, fn type in parameter annotation, fn type with type constructor return (issue #237)
 - Type applications: single, multiple, nested
 - Forall types: simple, with kind annotation, nested
 - Effect types: single effect, multiple effects, with authority
