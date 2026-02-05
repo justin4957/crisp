@@ -1541,6 +1541,72 @@ typeDefTests = describe "type definitions" $ do
         _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Extended type aliases with 'extended with:' syntax (issue #239)
+  it "parses type alias with extended with (issue #239)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Extended = Base extended with:"
+          , "  extra: Int"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> do
+          typeAliasName td `shouldBe` "Extended"
+          length (typeAliasExtendedFields td) `shouldBe` 1
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses extended with multiple fields (issue #239)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Extended = Base extended with:"
+          , "  extra: Int"
+          , "  another: String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> length (typeAliasExtendedFields td) `shouldBe` 2
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses extended with parameterized base type (issue #239)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAuth = Authority(JudicialAction) extended with:"
+          , "  court_level: CourtLevel"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> do
+          length (typeAliasExtendedFields td) `shouldBe` 1
+          typeAliasConstraints td `shouldBe` []
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "extended fields have correct names and types (issue #239)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Extended = Base extended with:"
+          , "  level: Int"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> case typeAliasExtendedFields td of
+          [f] -> fieldName f `shouldBe` "level"
+          _ -> expectationFailure "Expected one extended field"
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "type alias without extended still works (issue #239)" $ do
+    let src = "module Test type Simple = Int"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> do
+          typeAliasExtendedFields td `shouldBe` []
+          typeAliasConstraints td `shouldBe` []
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses type alias with chained field access in where" $ do
     let src = "module Test type Valid = Record where { self.field.inner > 0 }"
     shouldParse $ parseModule "test" src

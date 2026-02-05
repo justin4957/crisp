@@ -226,10 +226,11 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Tuple types: pair, triple, empty, nested, TyParen vs TyTuple distinction, in function params and return types (issue #216)
 - Wildcard type arguments: standalone _, as type argument (Court _), multiple wildcards, in parenthesized args, in return types (issue #219)
 
-**Declaration Tests (~26 tests)**
+**Declaration Tests (~31 tests)**
 - Function definitions: with/without params, type params, effects, return types
 - Type definitions: simple, with parameters, with kind annotation
 - Parameterized type aliases: parenthesized single param `(A)`, with refinement, multi-param `(K, V)`, TypeVar node verification, bare param regression, parenthesized params on regular type definitions (issue #238)
+- Extended type aliases: `extended with:` single field, multiple fields, parameterized base type, field name/type verification, non-extended alias regression (issue #239)
 - Effect definitions: with operations
 - Handler definitions: with return clause, with introduced effects
 - Handler state parameters: single value param, multiple value params, mixed with parameterless handlers (issue #185)
@@ -386,6 +387,7 @@ The formatter test suite covers source code formatting (~67 tests):
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Type alias with where refinement, field access, match, if expressions
+- Type alias with `extended with:` formatting (issue #239)
 - Float literal in refinement predicate formatting (issue #220)
 - Float with decimal places in refinement formatting (issue #220)
 - Integer refinement unchanged with float support (issue #220)

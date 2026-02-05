@@ -568,6 +568,22 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "self > 0"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats type alias with extended with (issue #239)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type Extended = Base extended with:"
+            , "  extra: Int"
+            , "  another: String"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "extended with:"
+          formatted `shouldSatisfy` T.isInfixOf "extra: Int"
+          formatted `shouldSatisfy` T.isInfixOf "another: String"
+        Left _ -> expectationFailure "Expected Right"
+
     it "formats type alias with where and field access" $ do
       let src = "module Test type ValidRange = Range where { self.start <= self.end }"
           result = formatSource defaultFormatOptions src

@@ -423,11 +423,17 @@ prettyTypeAlias opts ind ad =
   let params = case typeAliasParams ad of
         [] -> ""
         ps -> " " <> T.unwords (map (prettyTypeParam opts) ps)
+      extended = case typeAliasExtendedFields ad of
+        [] -> ""
+        fs -> " extended with:\n"
+              <> T.intercalate "\n"
+                   (map (\f -> indent (ind + 2) <> fieldName f <> ": "
+                               <> prettyType opts 0 (fieldType f)) fs)
       constraints = case typeAliasConstraints ad of
         [] -> ""
         cs -> " where " <> T.intercalate ", " (map prettyFieldConstraint cs)
   in indent ind <> "type " <> typeAliasName ad <> params <> " = "
-     <> prettyType opts 0 (typeAliasBase ad) <> constraints
+     <> prettyType opts 0 (typeAliasBase ad) <> extended <> constraints
   where
     prettyFieldConstraint fc =
       fieldConstraintName fc <> ": " <> T.intercalate " | " (map (prettyPattern opts) (fieldConstraintPatterns fc))

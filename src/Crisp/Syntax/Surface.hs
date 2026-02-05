@@ -318,15 +318,18 @@ data ExternalFnDef = ExternalFnDef
   , extFnDefSpan        :: !Span
   } deriving stock (Eq, Show, Generic)
 
--- | Type alias definition with optional field constraints
+-- | Type alias definition with optional field constraints and extension fields
 -- Example: type JudicialAuthority = Authority { action: Judicial(_) }
+-- Example: type Extended = Base extended with:
+--            extra_field: Int
 data TypeAliasDef = TypeAliasDef
-  { typeAliasDocComment  :: !(Maybe DocComment)
-  , typeAliasName        :: !Text           -- ^ Name of the alias (e.g., "JudicialAuthority")
-  , typeAliasParams      :: ![TypeParam]    -- ^ Type parameters
-  , typeAliasBase        :: !Type           -- ^ Base type (e.g., "Authority")
-  , typeAliasConstraints :: ![FieldConstraint]  -- ^ Field constraints
-  , typeAliasSpan        :: !Span
+  { typeAliasDocComment     :: !(Maybe DocComment)
+  , typeAliasName           :: !Text           -- ^ Name of the alias (e.g., "JudicialAuthority")
+  , typeAliasParams         :: ![TypeParam]    -- ^ Type parameters
+  , typeAliasBase           :: !Type           -- ^ Base type (e.g., "Authority")
+  , typeAliasConstraints    :: ![FieldConstraint]  -- ^ Field constraints
+  , typeAliasExtendedFields :: ![Field]        -- ^ Fields added via @extended with:@
+  , typeAliasSpan           :: !Span
   } deriving stock (Eq, Show, Generic)
 
 -- | A constraint on a field value in a type alias
