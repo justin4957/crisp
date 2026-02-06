@@ -1493,6 +1493,70 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Deriving clause after record fields (issue #241)
+  it "parses deriving after record fields (issue #241)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type MyId:"
+          , "  id: String"
+          , "  deriving (Eq, Ord)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> case typeDefDeriving td of
+          Just dc -> derivingTraits dc `shouldBe` ["Eq", "Ord"]
+          Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses single deriving after record fields (issue #241)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Status:"
+          , "  code: Int"
+          , "  deriving Eq"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> case typeDefDeriving td of
+          Just dc -> derivingTraits dc `shouldBe` ["Eq"]
+          Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses deriving after multiple record fields (issue #241)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Date:"
+          , "  year: Int"
+          , "  month: Int"
+          , "  day: Int"
+          , "  deriving (Eq, Ord, Show)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          length (typeDefConstructors td) `shouldBe` 1
+          case typeDefDeriving td of
+            Just dc -> derivingTraits dc `shouldBe` ["Eq", "Ord", "Show"]
+            Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "deriving before colon still works (issue #241)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type MyId deriving Eq:"
+          , "  id: String"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> case typeDefDeriving td of
+          Just dc -> derivingTraits dc `shouldBe` ["Eq"]
+          Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   -- Type alias with 'where' refinement tests (issue #118)
   it "parses type alias with where refinement" $ do
     let src = "module Test type PositiveInt = Int where { self > 0 }"

@@ -348,8 +348,11 @@ pDefinition = do
         , do -- Regular type definition
              constraints <- option [] pTypeDefConstraints
              mKind <- optional (try pTypeDefKind)
-             deriv <- optional pDerivingClause
+             derivBefore <- optional pDerivingClause
              cons <- optional (symbol ":" *> pConstructors)
+             -- Support deriving after record fields (issue #241)
+             derivAfter <- optional pDerivingClause
+             let deriv = derivAfter <|> derivBefore
              span' <- spanFrom start
              -- Fix up record constructor names (replace empty name with type name)
              let fixedCons = case cons of
@@ -376,8 +379,11 @@ pTypeDef = do
   constraints <- option [] pTypeDefConstraints
   -- Kind annotation must be followed by a valid kind keyword, not a constructor
   mKind <- optional (try pTypeDefKind)
-  deriv <- optional pDerivingClause
+  derivBefore <- optional pDerivingClause
   cons <- optional (symbol ":" *> pConstructors)
+  -- Support deriving after record fields (issue #241)
+  derivAfter <- optional pDerivingClause
+  let deriv = derivAfter <|> derivBefore
   span' <- spanFrom start
   pure $ TypeDef Nothing name params constraints mKind (maybe [] id cons) mods deriv span'
   where

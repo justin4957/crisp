@@ -227,9 +227,10 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Tuple types: pair, triple, empty, nested, TyParen vs TyTuple distinction, in function params and return types (issue #216)
 - Wildcard type arguments: standalone _, as type argument (Court _), multiple wildcards, in parenthesized args, in return types (issue #219)
 
-**Declaration Tests (~31 tests)**
+**Declaration Tests (~35 tests)**
 - Function definitions: with/without params, type params, effects, return types
 - Type definitions: simple, with parameters, with kind annotation
+- Deriving clause position: after record fields single/multiple traits, after multiple fields, before colon regression (issue #241)
 - Parameterized type aliases: parenthesized single param `(A)`, with refinement, multi-param `(K, V)`, TypeVar node verification, bare param regression, parenthesized params on regular type definitions (issue #238)
 - Extended type aliases: `extended with:` single field, multiple fields, parameterized base type, field name/type verification, non-extended alias regression (issue #239)
 - Effect definitions: with operations
