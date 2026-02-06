@@ -1014,6 +1014,31 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
             Right formatted2 -> formatted1 `shouldBe` formatted2
 
+    it "formats as cast expression (issue #240)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn cast(x: Int) -> Bool:"
+            , "  x as Bool"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> formatted `shouldSatisfy` T.isInfixOf "x as Bool"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats as cast expression idempotently (issue #240)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn cast(x: Int) -> Bool:"
+            , "  x as Bool"
+            ]
+      case formatSource defaultFormatOptions src of
+        Left err -> expectationFailure $ T.unpack err
+        Right formatted1 ->
+          case formatSource defaultFormatOptions formatted1 of
+            Left err -> expectationFailure $ "Re-format failed: " ++ T.unpack err
+            Right formatted2 -> formatted1 `shouldBe` formatted2
+
     it "formats handler with value parameter (issue #185)" $ do
       let src = T.unlines
             [ "module Test"
