@@ -432,6 +432,7 @@ data Expr
   | ETuple ![Expr] !Span                                -- ^ Tuple expression: (expr, expr, ...)
   | ENot !Expr !Span                                    -- ^ Boolean negation: not expr
   | EAssign !Text !Expr !Expr !Span                     -- ^ Mutable assignment: name = value; body
+  | ECast !Expr !Type !Span                             -- ^ Type cast: expr as Type
   deriving stock (Eq, Show, Generic)
 
 -- | Binary operators

@@ -1407,7 +1407,7 @@ pExpr = makeExprParser pCompare
 
 -- | Parse comparison expressions
 pCompare :: Parser Expr
-pCompare = makeExprParser pCons
+pCompare = makeExprParser pCast
   [ [InfixN pLe, InfixN pLt, InfixN pGe, InfixN pGt, InfixN pEq, InfixN pNe] ]
   where
     pLe = mkBinOp "<=" OpLE
@@ -1416,6 +1416,17 @@ pCompare = makeExprParser pCons
     pGt = mkBinOp ">" OpGT
     pEq = mkBinOp "==" OpEQ
     pNe = mkBinOp "/=" OpNE
+
+-- | Parse type cast expressions: expr as Type (non-associative)
+pCast :: Parser Expr
+pCast = do
+  start <- getPos
+  left <- pCons
+  option left $ do
+    keyword "as"
+    ty <- pType
+    span' <- spanFrom start
+    pure $ ECast left ty span'
 
 -- | Parse cons operator (right-associative, between comparison and additive)
 pCons :: Parser Expr

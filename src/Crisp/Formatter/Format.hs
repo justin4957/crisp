@@ -568,6 +568,9 @@ prettyExpr opts ind = \case
   EAnnot expr ty _ ->
     prettyExprAtom opts ind expr <> ": " <> prettyType opts 0 ty
 
+  ECast expr ty _ ->
+    prettyExprAtom opts ind expr <> " as " <> prettyType opts 0 ty
+
   EBlock stmts result _ ->
     let stmtStrs = map (prettyStatement opts (ind + optIndentWidth opts)) stmts
         resultStr = indent (ind + optIndentWidth opts) <> prettyExpr opts (ind + optIndentWidth opts) result

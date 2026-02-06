@@ -60,6 +60,7 @@ expressionTests = describe "expressions" $ do
   lazyForceTests
   pipelineTests
   annotationTests
+  castExpressionTests
   forLoopTests
 
 literalTests :: Spec
@@ -591,6 +592,44 @@ annotationTests = describe "parentheses" $ do
 
   it "parses complex expression in parens" $ do
     shouldParse $ parseExpr "test" "(f x y)"
+
+castExpressionTests :: Spec
+castExpressionTests = describe "type cast expressions (issue #240)" $ do
+  it "parses simple as cast" $ do
+    shouldParse $ parseExpr "test" "x as Int"
+
+  it "parses as cast with type constructor" $ do
+    shouldParse $ parseExpr "test" "x as List(Int)"
+
+  it "parses as cast in function body" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn cast_it(n: Int) -> Bool:"
+          , "  n as Bool"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "creates ECast node for as expression" $ do
+    case parseExpr "test" "x as Int" of
+      Right (ECast (EVar "x" _) (TyName "Int" _) _) -> pure ()
+      Right other -> expectationFailure $ "Expected ECast, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses as cast with refinement type" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Positive = Int where { self > 0 }"
+          , "fn cast(n: Int) -> Positive:"
+          , "  n as Positive"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "as cast has lower precedence than arithmetic" $ do
+    -- x + 1 as Int should parse as (x + 1) as Int
+    case parseExpr "test" "x + 1 as Int" of
+      Right (ECast (EBinOp OpAdd _ _ _) _ _) -> pure ()
+      Right other -> expectationFailure $ "Expected ECast of EBinOp, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
 forLoopTests :: Spec
 forLoopTests = describe "for loops (issue #169)" $ do
