@@ -19,6 +19,7 @@ import Crisp.Syntax.Span
 import Crisp.Lexer.Token (lookupKeyword)
 
 import Control.Monad (void)
+import Data.Maybe (fromMaybe)
 import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -1951,9 +1952,10 @@ pIf = do
   cond <- pExpr
   keyword "then"
   then' <- pExpr
-  keyword "else"
-  else' <- pExpr
+  -- else branch is optional (issue #242) - defaults to Unit
+  mElse <- optional (keyword "else" *> pExpr)
   span' <- spanFrom start
+  let else' = fromMaybe (EUnit span') mElse
   pure $ EIf cond then' else' span'
 
 pDo :: Parser Expr

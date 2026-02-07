@@ -325,6 +325,33 @@ ifExpressionTests = describe "if expressions" $ do
       Right other -> expectationFailure $ "Expected EIf, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- If without else (issue #242)
+  it "parses if without else (issue #242)" $ do
+    shouldParse $ parseExpr "test" "if True then 1"
+
+  it "if without else defaults to Unit (issue #242)" $ do
+    case parseExpr "test" "if True then 1" of
+      Right (EIf _ _ (EUnit _) _) -> pure ()
+      Right (EIf _ _ other _) -> expectationFailure $ "Expected EUnit for else, got " ++ show other
+      Right other -> expectationFailure $ "Expected EIf, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses if without else in function body (issue #242)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(x: Int) -> Unit:"
+          , "  if x > 0 then"
+          , "    x"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "if-then-else still works with optional else (issue #242)" $ do
+    case parseExpr "test" "if True then 1 else 0" of
+      Right (EIf _ _ (EIntLit 0 _) _) -> pure ()
+      Right (EIf _ _ other _) -> expectationFailure $ "Expected EIntLit 0 for else, got " ++ show other
+      Right other -> expectationFailure $ "Expected EIf, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 matchExpressionTests :: Spec
 matchExpressionTests = describe "match expressions" $ do
   -- Note: The current parser has a known limitation where match expressions

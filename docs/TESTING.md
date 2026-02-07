@@ -174,12 +174,12 @@ The lexer error test suite covers error recovery and reporting:
 
 The parser test suite covers (~155 passing tests, ~27 pending for known limitations):
 
-**Expression Tests (~86 tests)**
+**Expression Tests (~90 tests)**
 - Literals: integers, floats, strings (with escapes, unicode), characters, unit
 - Variables and constructors: lowercase/uppercase, with underscores/primes/numbers
 - Function application: single/multiple args, nested, with literals
 - Let expressions: simple, with type annotation, nested, with patterns, layout-based round-trip formatting
-- If expressions: simple, complex conditions, nested branches
+- If expressions: simple, complex conditions, nested branches, if without else defaults to Unit, in function body, else branch still works (issue #242)
 - Match expressions: keyword and subject (arms pending due to parser limitation)
 - Lambda expressions: backslash/unicode, single param, with application body
 - Fn closures: fn(x) -> expr, typed params, multiple params, zero params (issue #214)
