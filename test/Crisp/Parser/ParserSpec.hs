@@ -1837,6 +1837,68 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type alias"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Layout-based field constraints (issue #245)
+  it "parses multi-line field constraints with layout (issue #245)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type AuthoritativeInterp = Interpretation where"
+          , "    superseded_by: None"
+          , "    strength: Moderate"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias ad] -> do
+          typeAliasName ad `shouldBe` "AuthoritativeInterp"
+          length (typeAliasConstraints ad) `shouldBe` 2
+          case typeAliasConstraints ad of
+            [fc1, fc2] -> do
+              fieldConstraintName fc1 `shouldBe` "superseded_by"
+              fieldConstraintName fc2 `shouldBe` "strength"
+            _ -> expectationFailure "Expected two field constraints"
+        _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multi-line field constraints with OR patterns (issue #245)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type StrongInterp = Interpretation where"
+          , "    superseded_by: None"
+          , "    strength: Moderate | Strong | Definitive"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias ad] -> do
+          length (typeAliasConstraints ad) `shouldBe` 2
+          case typeAliasConstraints ad of
+            [_, fc2] -> length (fieldConstraintPatterns fc2) `shouldBe` 3
+            _ -> expectationFailure "Expected two field constraints"
+        _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses comma-separated field constraints still works (issue #245)" $ do
+    let src = "module Test type T = Base where f1: P1, f2: P2"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias ad] -> length (typeAliasConstraints ad) `shouldBe` 2
+        _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses mixed comma and newline field constraints (issue #245)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type T = Base where"
+          , "    f1: P1, f2: P2"
+          , "    f3: P3"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias ad] -> length (typeAliasConstraints ad) `shouldBe` 3
+        _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   -- Constructor-level where constraints (issue #243)
   it "parses type alias with constructor-level where constraint (issue #243)" $ do
     let src = T.unlines

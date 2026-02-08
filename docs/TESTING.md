@@ -235,6 +235,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parameterized type aliases: parenthesized single param `(A)`, with refinement, multi-param `(K, V)`, TypeVar node verification, bare param regression, parenthesized params on regular type definitions (issue #238)
 - Extended type aliases: `extended with:` single field, multiple fields, parameterized base type, field name/type verification, non-extended alias regression (issue #239)
 - Constructor-level where constraints: `type RedOnly = Color where Red`, pattern with args `Mandatory(_)`, OR patterns `Red | Orange | Yellow` (issue #243)
+- Layout-based field constraints: multi-line with layout, OR patterns, comma-separated, mixed comma and newline (issue #245)
 - Effect definitions: with operations
 - Handler definitions: with return clause, with introduced effects
 - Handler state parameters: single value param, multiple value params, mixed with parameterless handlers (issue #185)

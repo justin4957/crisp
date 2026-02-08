@@ -339,10 +339,11 @@ pDefinition = do
                       , do -- Constructor constraint: type Name = Base where ConstructorPattern
                            -- Must try this before field constraints since both can start with identifiers
                            try $ do
-                             constructorConstraints <- pConstructorConstraint `sepBy1` symbol ","
+                             constructorConstraints <- pConstructorConstraintList
                              pure (baseType, constructorConstraints, [])
                       , do -- Field constraint without braces: type Name = Base where field: Pattern
-                           fieldConstraints <- pFieldConstraint `sepBy1` symbol ","
+                           -- Supports both comma-separated and layout-based (newline) separation
+                           fieldConstraints <- pFieldConstraintList
                            pure (baseType, fieldConstraints, [])
                       ]
                , do -- Field constraints with braces: type Name = Base { field: Pattern }
@@ -414,9 +415,73 @@ pFieldConstraint = do
   start <- getPos
   fieldName <- lowerIdent
   symbol ":"
-  patterns <- pPattern `sepBy1` symbol "|"
+  patterns <- pConstraintPattern `sepBy1` symbol "|"
   span' <- spanFrom start
   pure $ FieldConstraint fieldName patterns span'
+
+-- | Parse a pattern in a field constraint context
+-- This is like pPattern but stops before consuming a lowerIdent followed by ':'
+-- which would indicate the start of a new field constraint
+pConstraintPattern :: Parser Pattern
+pConstraintPattern = choice
+  [ pConstraintPatternCon
+  , pConstraintPatternAtom
+  ]
+
+-- | Parse a constructor pattern in constraint context
+-- Uses pConstraintPatternAtom to avoid consuming field names
+pConstraintPatternCon :: Parser Pattern
+pConstraintPatternCon = do
+  start <- getPos
+  con <- upperIdent
+  args <- many pConstraintPatternAtom
+  span' <- spanFrom start
+  pure $ PatCon con args span'
+
+-- | Parse an atomic pattern in constraint context
+-- Does NOT consume lowerIdent followed by ':' (which starts a new field constraint)
+pConstraintPatternAtom :: Parser Pattern
+pConstraintPatternAtom = choice
+  [ -- Wildcard pattern
+    do start <- getPos
+       symbol "_"
+       span' <- spanFrom start
+       pure $ PatWildcard span'
+  , -- Tuple or parenthesized pattern
+    do start <- getPos
+       symbol "("
+       pats <- pConstraintPattern `sepBy` symbol ","
+       symbol ")"
+       span' <- spanFrom start
+       case pats of
+         [p] -> pure p
+         _   -> pure $ PatTuple pats span'
+  , -- Literal patterns (integers, strings, etc.)
+    try $ do
+       start <- getPos
+       lit <- pLiteral
+       span' <- spanFrom start
+       pure $ PatLit lit span'
+  , -- Variable pattern - but NOT if followed by ':' (which starts a new constraint)
+    try $ do
+       start <- getPos
+       name <- lowerIdent
+       notFollowedBy (symbol ":")
+       span' <- spanFrom start
+       pure $ PatVar name span'
+  ]
+
+-- | Parse a list of field constraints with layout-aware separation
+-- Supports both comma-separated (inline) and newline-separated (layout) forms:
+--   where field1: Pattern, field2: Pattern  -- comma-separated
+--   where
+--     field1: Pattern
+--     field2: Pattern                        -- layout-separated
+pFieldConstraintList :: Parser [FieldConstraint]
+pFieldConstraintList = do
+  first <- pFieldConstraint
+  rest <- many (optional (symbol ",") *> pFieldConstraint)
+  pure (first : rest)
 
 -- | Parse a constructor-level constraint: ConstructorPattern | ConstructorPattern | ...
 -- Used for type aliases like: type RedOnly = Color where Red
@@ -437,6 +502,14 @@ pConstructorConstraint = do
       args <- many pPatternAtom
       span'' <- spanFrom start'
       pure $ PatCon name args span''
+
+-- | Parse a list of constructor constraints with layout-aware separation
+-- Supports both comma-separated and newline-separated forms
+pConstructorConstraintList :: Parser [FieldConstraint]
+pConstructorConstraintList = do
+  first <- pConstructorConstraint
+  rest <- many (optional (symbol ",") *> pConstructorConstraint)
+  pure (first : rest)
 
 -- | Parse where clause constraints for type definitions
 -- Example: where A: Action, B: Serializable
