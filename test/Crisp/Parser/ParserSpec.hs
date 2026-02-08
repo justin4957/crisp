@@ -2759,6 +2759,68 @@ moduleTests = describe "modules" $ do
           ]
     shouldParse $ parseModule "test" src
 
+  -- effect as identifier (issue #244)
+  it "parses effect as field name (issue #244)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Thing:"
+          , "  effect: String"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses effect as parameter name (issue #244)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(effect: String) -> String:"
+          , "  effect"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses effect as variable in let binding (issue #244)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test() -> String:"
+          , "  let effect = \"none\""
+          , "  effect"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses effect definition still works (issue #244)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "effect IO:"
+          , "  print: String -> Unit"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefEffect ed] -> effectDefName ed `shouldBe` "IO"
+        _ -> expectationFailure "Expected effect definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses provides effect still works (issue #244)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "  provides"
+          , "    effect IO"
+          , "effect IO:"
+          , "  print: String -> Unit"
+          ]
+    case parseModule "test" src of
+      Right m -> do
+        length (moduleProvides m) `shouldBe` 1
+        case moduleProvides m of
+          [ProvideEffect name _] -> name `shouldBe` "IO"
+          _ -> expectationFailure "Expected effect provide"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses effect in constructor arguments (issue #244)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type EffectDifference:"
+          , "  EffectDiff(effect: String)"
+          ]
+    shouldParse $ parseModule "test" src
+
 -- =============================================================================
 -- Operator Precedence and Associativity Tests
 -- =============================================================================

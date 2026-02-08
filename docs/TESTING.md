@@ -72,10 +72,11 @@ spec = do
 The lexer test suite covers:
 
 **Keywords (29 tests)**
-- All language keywords (`fn`, `let`, `type`, `effect`, `handler`, `match`, etc.)
+- All language keywords (`fn`, `let`, `type`, `handler`, `match`, etc.)
 - Keyword/identifier disambiguation (`fn` vs `fn_helper`)
 - `authority` lexes as identifier, not keyword (context-sensitive, issue #221)
 - `total` lexes as identifier, not keyword (removed, issue #222)
+- `effect` lexes as identifier, not keyword (context-sensitive, issue #244)
 
 **Identifiers (7 tests)**
 - Lowercase identifiers (`foo`, `camelCase`)
@@ -251,6 +252,12 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Total as field name (issue #222)
 - Total as parameter name (issue #222)
 - Total as function name (issue #222)
+- Effect as field name (issue #244)
+- Effect as parameter name (issue #244)
+- Effect as variable in let binding (issue #244)
+- Effect definition still works (issue #244)
+- Provides effect still works (issue #244)
+- Effect in constructor arguments (issue #244)
 
 **Doc Comment Tests (~14 tests)**
 - Multi-line doc comment with pipe on continuation lines parsed correctly
