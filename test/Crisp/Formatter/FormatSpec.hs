@@ -700,6 +700,48 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "Strong | Definitive | Binding"
         Left _ -> expectationFailure "Expected Right"
 
+    -- Constructor-level where constraints (issue #243)
+    it "formats constructor-level where constraint (issue #243)" $ do
+      let src = "module Test type RedOnly = Color where Red"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          -- Constructor constraint should not have field: prefix
+          formatted `shouldSatisfy` T.isInfixOf "where Red"
+          formatted `shouldSatisfy` (not . T.isInfixOf ": Red")
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats constructor-level where constraint with args (issue #243)" $ do
+      let src = "module Test type MandatoryBinding = BindingForce where Mandatory(_)"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          -- Formatter outputs constructor patterns with spaces: Mandatory _
+          formatted `shouldSatisfy` T.isInfixOf "where Mandatory _"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats OR constructor constraints (issue #243)" $ do
+      let src = "module Test type WarmColor = Color where Red | Orange | Yellow"
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "where Red | Orange | Yellow"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats constructor-level where constraint idempotently (issue #243)" $ do
+      let src = "module Test type RedOnly = Color where Red"
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats basic for loop (issue #169)" $ do
       let src = T.unlines
             [ "module Test"

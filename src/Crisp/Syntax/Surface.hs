@@ -335,8 +335,10 @@ data TypeAliasDef = TypeAliasDef
 -- | A constraint on a field value in a type alias
 -- Supports OR patterns: field: Pat1 | Pat2 | Pat3
 -- Example: opinion_type: Dissent | DissentInPart
+-- Also supports constructor-level constraints (empty field name):
+-- Example: type RedOnly = Color where Red
 data FieldConstraint = FieldConstraint
-  { fieldConstraintName     :: !Text         -- ^ Field name being constrained
+  { fieldConstraintName     :: !Text         -- ^ Field name being constrained (empty for constructor constraints)
   , fieldConstraintPatterns :: ![Pattern]    -- ^ Patterns the field must match (OR alternatives)
   , fieldConstraintSpan     :: !Span
   } deriving stock (Eq, Show, Generic)

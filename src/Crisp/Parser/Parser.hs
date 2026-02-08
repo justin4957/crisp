@@ -330,12 +330,17 @@ pDefinition = do
                     symbol ":"
                     fields <- some pField
                     pure (baseType, [], fields)
-               , do -- where clause: refinement or field constraint
+               , do -- where clause: refinement, constructor constraint, or field constraint
                     keyword "where"
                     choice
                       [ do -- Refinement type: type Name = Base where { predicate }
                            (preds, refinementSpan) <- pRefinementBlock
                            pure (TyRefinement baseType preds refinementSpan, [], [])
+                      , do -- Constructor constraint: type Name = Base where ConstructorPattern
+                           -- Must try this before field constraints since both can start with identifiers
+                           try $ do
+                             constructorConstraints <- pConstructorConstraint `sepBy1` symbol ","
+                             pure (baseType, constructorConstraints, [])
                       , do -- Field constraint without braces: type Name = Base where field: Pattern
                            fieldConstraints <- pFieldConstraint `sepBy1` symbol ","
                            pure (baseType, fieldConstraints, [])
@@ -412,6 +417,26 @@ pFieldConstraint = do
   patterns <- pPattern `sepBy1` symbol "|"
   span' <- spanFrom start
   pure $ FieldConstraint fieldName patterns span'
+
+-- | Parse a constructor-level constraint: ConstructorPattern | ConstructorPattern | ...
+-- Used for type aliases like: type RedOnly = Color where Red
+-- The field name is empty to indicate this is a constructor constraint
+pConstructorConstraint :: Parser FieldConstraint
+pConstructorConstraint = do
+  start <- getPos
+  -- Parse constructor patterns (uppercase identifier with optional args)
+  patterns <- pConstructorPattern `sepBy1` symbol "|"
+  span' <- spanFrom start
+  pure $ FieldConstraint "" patterns span'
+  where
+    -- Parse a constructor pattern without allowing lowercase variable patterns
+    -- This prevents ambiguity with field constraints
+    pConstructorPattern = do
+      start' <- getPos
+      name <- upperIdent
+      args <- many pPatternAtom
+      span'' <- spanFrom start'
+      pure $ PatCon name args span''
 
 -- | Parse where clause constraints for type definitions
 -- Example: where A: Action, B: Serializable

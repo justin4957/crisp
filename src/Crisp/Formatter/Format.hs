@@ -435,8 +435,13 @@ prettyTypeAlias opts ind ad =
   in indent ind <> "type " <> typeAliasName ad <> params <> " = "
      <> prettyType opts 0 (typeAliasBase ad) <> extended <> constraints
   where
-    prettyFieldConstraint fc =
-      fieldConstraintName fc <> ": " <> T.intercalate " | " (map (prettyPattern opts) (fieldConstraintPatterns fc))
+    prettyFieldConstraint fc
+      -- Constructor constraint (empty field name): just the patterns
+      | T.null (fieldConstraintName fc) =
+          T.intercalate " | " (map (prettyPattern opts) (fieldConstraintPatterns fc))
+      -- Field constraint: field: patterns
+      | otherwise =
+          fieldConstraintName fc <> ": " <> T.intercalate " | " (map (prettyPattern opts) (fieldConstraintPatterns fc))
 
 --------------------------------------------------------------------------------
 -- Pretty Printing - Types

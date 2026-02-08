@@ -1837,6 +1837,71 @@ typeDefTests = describe "type definitions" $ do
           _ -> expectationFailure "Expected type alias"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Constructor-level where constraints (issue #243)
+  it "parses type alias with constructor-level where constraint (issue #243)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type Color:"
+          , "  Red"
+          , "  Blue"
+          , ""
+          , "type RedOnly = Color where Red"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [_, DefTypeAlias ad] -> do
+          typeAliasName ad `shouldBe` "RedOnly"
+          typeAliasBase ad `shouldSatisfy` \case
+            TyName "Color" _ -> True
+            _ -> False
+          case typeAliasConstraints ad of
+            [fc] -> do
+              -- Constructor constraints have empty field name
+              fieldConstraintName fc `shouldBe` ""
+              length (fieldConstraintPatterns fc) `shouldBe` 1
+            _ -> expectationFailure "Expected one constructor constraint"
+        _ -> expectationFailure "Expected type definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type alias with constructor pattern with args (issue #243)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type MandatoryBinding = BindingForce where Mandatory(_)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias ad] -> do
+          typeAliasName ad `shouldBe` "MandatoryBinding"
+          case typeAliasConstraints ad of
+            [fc] -> do
+              fieldConstraintName fc `shouldBe` ""
+              case fieldConstraintPatterns fc of
+                [PatCon name [PatWildcard _] _] -> name `shouldBe` "Mandatory"
+                _ -> expectationFailure "Expected Mandatory(_) pattern"
+            _ -> expectationFailure "Expected one constructor constraint"
+        _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type alias with OR constructor constraints (issue #243)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "type WarmColor = Color where Red | Orange | Yellow"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias ad] -> do
+          typeAliasName ad `shouldBe` "WarmColor"
+          case typeAliasConstraints ad of
+            [fc] -> do
+              fieldConstraintName fc `shouldBe` ""
+              length (fieldConstraintPatterns fc) `shouldBe` 3
+            _ -> expectationFailure "Expected one constructor constraint with 3 patterns"
+        _ -> expectationFailure "Expected type alias"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses type with multiple dependent parameters (issue #172)" $ do
     let src = T.unlines
           [ "module Test"
