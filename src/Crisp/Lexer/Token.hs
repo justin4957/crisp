@@ -39,7 +39,6 @@ data TokenKind
   = KwFn
   | KwLet
   | KwType
-  | KwEffect
   | KwHandler
   | KwMatch
   | KwIf
@@ -146,7 +145,6 @@ isKeyword = \case
   KwFn -> True
   KwLet -> True
   KwType -> True
-  KwEffect -> True
   KwHandler -> True
   KwMatch -> True
   KwIf -> True
@@ -207,7 +205,6 @@ keywordMap = Map.fromList
   [ ("fn", KwFn)
   , ("let", KwLet)
   , ("type", KwType)
-  , ("effect", KwEffect)
   , ("handler", KwHandler)
   , ("match", KwMatch)
   , ("if", KwIf)

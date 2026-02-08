@@ -262,7 +262,7 @@ pProvideItem start = choice
        name <- upperIdent
        span' <- spanFrom start
        pure $ ProvideType name span'
-  , do keyword "effect"
+  , do contextKeyword "effect"
        name <- upperIdent
        span' <- spanFrom start
        pure $ ProvideEffect name span'
@@ -703,7 +703,7 @@ pKind = do
 pEffectDef :: Maybe DocComment -> Parser EffectDef
 pEffectDef doc = do
   start <- getPos
-  keyword "effect"
+  contextKeyword "effect"
   name <- upperIdent
   typeParams <- many pTypeParam
   symbol ":"

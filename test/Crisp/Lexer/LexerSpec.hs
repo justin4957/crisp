@@ -53,8 +53,9 @@ spec = do
     it "lexes type keyword" $ do
       lexKinds "type" `shouldBe` Right [KwType]
 
-    it "lexes effect keyword" $ do
-      lexKinds "effect" `shouldBe` Right [KwEffect]
+    -- effect is now context-sensitive (issue #244)
+    it "lexes effect as identifier" $ do
+      lexKinds "effect" `shouldBe` Right [LowerIdent "effect"]
 
     it "lexes handler keyword" $ do
       lexKinds "handler" `shouldBe` Right [KwHandler]
@@ -446,7 +447,7 @@ spec = do
       isKeyword KwFn `shouldBe` True
       isKeyword KwLet `shouldBe` True
       isKeyword KwType `shouldBe` True
-      isKeyword KwEffect `shouldBe` True
+      -- KwEffect removed - effect is now context-sensitive (issue #244)
       isKeyword KwHandler `shouldBe` True
       isKeyword KwMatch `shouldBe` True
       isKeyword KwIf `shouldBe` True
@@ -508,7 +509,7 @@ spec = do
       lookupKeyword "fn" `shouldBe` Just KwFn
       lookupKeyword "let" `shouldBe` Just KwLet
       lookupKeyword "type" `shouldBe` Just KwType
-      lookupKeyword "effect" `shouldBe` Just KwEffect
+      lookupKeyword "effect" `shouldBe` Nothing  -- context-sensitive (issue #244)
       lookupKeyword "handler" `shouldBe` Just KwHandler
       lookupKeyword "match" `shouldBe` Just KwMatch
       lookupKeyword "if" `shouldBe` Just KwIf
