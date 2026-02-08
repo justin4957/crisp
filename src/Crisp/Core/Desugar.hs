@@ -394,6 +394,54 @@ desugarExpr = \case
     fields' <- mapM (\(_, e) -> desugarExpr e) fields
     pure $ C.TmCon conName [] fields'
 
+  S.EFor _pat _iter _body _ ->
+    -- For loops need more sophisticated desugaring
+    throwError $ Other "For loops not yet implemented in desugarer"
+
+  S.EList elems _ -> do
+    -- List literals desugar to nested Cons applications
+    elems' <- mapM desugarExpr elems
+    pure $ foldr (\e acc -> C.TmCon "Cons" [] [e, acc]) (C.TmCon "Nil" [] []) elems'
+
+  S.EBreak _ ->
+    throwError $ Other "Break not supported outside of loop context"
+
+  S.EReturn expr _ -> do
+    -- Early return - for now just evaluate the expression
+    desugarExpr expr
+
+  S.EIndex expr idx _ -> do
+    -- Index access desugars to function call: index expr idx
+    expr' <- desugarExpr expr
+    idx' <- desugarExpr idx
+    pure $ C.TmApp (C.TmApp (C.TmVar "index" 0) expr') idx'
+
+  S.ERange start end _ -> do
+    -- Range expression desugars to function call: range start end
+    start' <- desugarExpr start
+    end' <- desugarExpr end
+    pure $ C.TmApp (C.TmApp (C.TmVar "range" 0) start') end'
+
+  S.ETuple elems _ -> do
+    -- Tuple desugars to a Tuple constructor
+    elems' <- mapM desugarExpr elems
+    pure $ C.TmCon "Tuple" [] elems'
+
+  S.ENot expr _ -> do
+    -- Boolean negation desugars to function call
+    expr' <- desugarExpr expr
+    pure $ C.TmApp (C.TmVar "not" 0) expr'
+
+  S.ECast expr _ty _ -> do
+    -- Type cast - for now just pass through the expression
+    desugarExpr expr
+
+  S.EMethodCall obj method args _ -> do
+    -- Method call desugars to function application: method(obj, args...)
+    obj' <- desugarExpr obj
+    args' <- mapM desugarExpr args
+    pure $ foldl C.TmApp (C.TmVar method 0) (obj' : args')
+
 -- | Convert binary operator to function name
 binOpToName :: S.BinOp -> T.Text
 binOpToName = \case
