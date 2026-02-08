@@ -233,6 +233,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Deriving clause position: after record fields single/multiple traits, after multiple fields, before colon regression (issue #241)
 - Parameterized type aliases: parenthesized single param `(A)`, with refinement, multi-param `(K, V)`, TypeVar node verification, bare param regression, parenthesized params on regular type definitions (issue #238)
 - Extended type aliases: `extended with:` single field, multiple fields, parameterized base type, field name/type verification, non-extended alias regression (issue #239)
+- Constructor-level where constraints: `type RedOnly = Color where Red`, pattern with args `Mandatory(_)`, OR patterns `Red | Orange | Yellow` (issue #243)
 - Effect definitions: with operations
 - Handler definitions: with return clause, with introduced effects
 - Handler state parameters: single value param, multiple value params, mixed with parameterless handlers (issue #185)
@@ -395,6 +396,7 @@ The formatter test suite covers source code formatting (~67 tests):
 - Float with decimal places in refinement formatting (issue #220)
 - Integer refinement unchanged with float support (issue #220)
 - OR pattern field constraint: formatting, idempotency, triple alternative (issue #218)
+- Constructor-level where constraint: simple `where Red`, with args `where Mandatory _`, OR patterns `where Red | Orange | Yellow`, idempotency (issue #243)
 - Wildcard type argument: in parameter, in return type, idempotent round-trip (issue #219)
 - External function definitions
 
