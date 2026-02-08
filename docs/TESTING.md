@@ -1007,6 +1007,34 @@ The CPS transformation test suite covers continuation-passing style transformati
 - Type abstraction erased
 - Type application erased
 
+### Desugaring Tests (`test/Crisp/Core/DesugarSpec.hs`)
+
+The desugaring test suite covers surface-to-core transformation (~16 tests):
+
+**Type Definition Tests (issue #246)**
+- Simple enum types: `Red | Green | Blue`
+- Types with type parameters: `Maybe A`
+- Record types with named fields
+- Multiple constructors: `Either A B`
+- Positional constructor args: `Pair(A, B)`
+- Unit-like constructors (no args)
+- Multiple type definitions in one module
+
+**Type Alias Tests (issue #246)**
+- Simple type alias: `type MyInt = Int`
+- Type alias with constraint: `where status: Active`
+- Type alias with extended fields: `extended with:`
+
+**Function Tests**
+- Simple function with parameter
+- Function with multiple parameters
+
+**Expression Tests**
+- Let expressions
+- If expressions
+- Match expressions
+- Binary operators
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):

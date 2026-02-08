@@ -17,6 +17,7 @@ import qualified Crisp.Effects.PolymorphismSpec
 import qualified Crisp.Effects.HandlerSpec
 import qualified Crisp.Types.ConstructorSpec
 import qualified Crisp.Core.PatternSpec
+import qualified Crisp.Core.DesugarSpec
 import qualified Crisp.IR.CPSSpec
 import qualified Crisp.IR.LLIRSpec
 import qualified Crisp.IR.ENIRSpec
@@ -60,6 +61,7 @@ main = hspec $ do
   describe "Crisp.Effects.Handler" Crisp.Effects.HandlerSpec.spec
   describe "Crisp.Types.Constructor" Crisp.Types.ConstructorSpec.spec
   describe "Crisp.Core.Pattern" Crisp.Core.PatternSpec.spec
+  describe "Crisp.Core.Desugar" Crisp.Core.DesugarSpec.spec
   describe "Crisp.IR.CPS" Crisp.IR.CPSSpec.spec
   describe "Crisp.IR.LLIR" Crisp.IR.LLIRSpec.spec
   describe "Crisp.IR.ENIR" Crisp.IR.ENIRSpec.spec

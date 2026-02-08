@@ -95,13 +95,13 @@ desugarModule m = runDesugar $ mapM desugarDef (S.moduleDefinitions m)
 desugarDef :: S.Definition -> Desugar C.Term
 desugarDef = \case
   S.DefFn fn -> desugarFn fn
-  S.DefType _ty -> throwError $ Other "Type definitions not yet implemented"
+  S.DefType ty -> desugarTypeDef ty
   S.DefEffect _eff -> throwError $ Other "Effect definitions not yet implemented"
   S.DefHandler _h -> throwError $ Other "Handler definitions not yet implemented"
   S.DefTrait _t -> throwError $ Other "Trait definitions not yet implemented"
   S.DefImpl _i -> throwError $ Other "Impl definitions not yet implemented"
   S.DefExternal _e -> throwError $ Other "External definitions not yet implemented"
-  S.DefTypeAlias _a -> throwError $ Other "Type alias definitions not yet implemented"
+  S.DefTypeAlias a -> desugarTypeAlias a
   S.DefLet ld -> desugarLetDef ld
 
 -- | Desugar a top-level let binding to a core term
@@ -115,20 +115,130 @@ desugarLetDef ld = do
     S.PatVar name _ -> pure $ C.TmLet name ty value (C.TmVar name 0)
     _ -> throwError $ InvalidPattern "Only variable patterns supported in top-level let"
 
+-- | Desugar a type definition
+-- Type definitions are desugared to a sequence of constructor functions.
+-- Each constructor becomes a lambda that constructs a value of the type.
+--
+-- For example:
+--   type Maybe A:
+--     Nothing
+--     Just(value: A)
+--
+-- Becomes (conceptually):
+--   Nothing : Maybe A
+--   Just : A -> Maybe A
+desugarTypeDef :: S.TypeDef -> Desugar C.Term
+desugarTypeDef td = do
+  let typeName = S.typeDefName td
+      params = S.typeDefParams td
+      constructors = S.typeDefConstructors td
+
+  -- Build the result type (the type being defined, applied to its parameters)
+  resultType <- buildResultType typeName params
+
+  -- Generate constructor terms
+  -- For now, we emit a placeholder term that binds all constructors
+  -- Each constructor is represented as a TmCon wrapped in appropriate lambdas
+  conTerms <- mapM (desugarConstructor typeName resultType) constructors
+
+  -- Combine all constructor definitions into a single term
+  -- We use nested let bindings to introduce each constructor
+  let combined = foldr combineConstructor (C.TmCon typeName [] []) conTerms
+  pure combined
+  where
+    -- Build the result type: TypeName param1 param2 ...
+    buildResultType name params = do
+      let paramTypes = map paramToType params
+      pure $ C.TyCon name paramTypes
+
+    -- Convert a type parameter to a core type
+    paramToType = \case
+      S.TypeVar n _ _ -> C.TyVar n 0
+      S.DepParam n _ _ -> C.TyVar n 0
+      S.BoundedTypeVar n _ _ _ -> C.TyVar n 0
+
+    -- Combine constructor terms using let bindings
+    combineConstructor (conName, conTerm, conType) rest =
+      C.TmLet conName conType conTerm rest
+
+-- | Desugar a single constructor
+-- Returns (constructor name, constructor term, constructor type)
+desugarConstructor :: Text -> C.Type -> S.Constructor -> Desugar (Text, C.Term, C.Type)
+desugarConstructor typeName resultType = \case
+  S.SimpleConstructor name argTypes _ -> do
+    -- For a constructor like Just(A), create a lambda: \(x: A) -> Just x
+    argTypes' <- mapM desugarType argTypes
+    let conTerm = buildConstructorLambda name argTypes'
+        conType = buildConstructorType argTypes' resultType
+    pure (name, conTerm, conType)
+
+  S.GadtConstructor name ty _ -> do
+    -- GADT constructor - the type is explicitly given
+    ty' <- desugarType ty
+    let conTerm = C.TmCon name [] []
+    pure (name, conTerm, ty')
+
+  S.RecordConstructor name fields _ -> do
+    -- Record constructor: each field becomes a parameter
+    let fieldNames = map S.fieldName fields
+        fieldTypes = map S.fieldType fields
+    fieldTypes' <- mapM desugarType fieldTypes
+    let conTerm = buildRecordConstructorLambda name fieldNames fieldTypes'
+        conType = buildConstructorType fieldTypes' resultType
+    pure (name, conTerm, conType)
+  where
+    -- Build nested lambdas for constructor arguments
+    buildConstructorLambda :: Text -> [C.Type] -> C.Term
+    buildConstructorLambda name [] = C.TmCon name [] []
+    buildConstructorLambda name argTypes =
+      let argNames = zipWith (\_ i -> "_arg" <> T.pack (show i)) argTypes [0::Int ..]
+          args = zipWith (\n _ -> C.TmVar n 0) argNames [0::Int ..]
+          innerCon = C.TmCon name [] args
+      in foldr (\(argName, argTy) body -> C.TmLam argName argTy body)
+               innerCon
+               (zip argNames argTypes)
+
+    -- Build nested lambdas for record constructor
+    buildRecordConstructorLambda :: Text -> [Text] -> [C.Type] -> C.Term
+    buildRecordConstructorLambda name fieldNames fieldTypes =
+      let args = zipWith (\n _ -> C.TmVar n 0) fieldNames [0::Int ..]
+          innerCon = C.TmCon name [] args
+      in foldr (\(fieldName, fieldTy) body -> C.TmLam fieldName fieldTy body)
+               innerCon
+               (zip fieldNames fieldTypes)
+
+    -- Build the type of a constructor: arg1 -> arg2 -> ... -> ResultType
+    buildConstructorType :: [C.Type] -> C.Type -> C.Type
+    buildConstructorType [] result = result
+    buildConstructorType (argTy:argTys) result =
+      C.simpleFnType argTy (buildConstructorType argTys result) C.EffEmpty
+
+-- | Desugar a type alias definition
+-- Type aliases are mostly transparent - they just give a name to a type
+desugarTypeAlias :: S.TypeAliasDef -> Desugar C.Term
+desugarTypeAlias ta = do
+  let aliasName = S.typeAliasName ta
+  baseType <- desugarType (S.typeAliasBase ta)
+  -- For now, emit a simple annotation that represents the alias
+  -- The alias name is bound to its base type
+  pure $ C.TmAnnot (C.TmCon aliasName [] []) baseType
+
 -- | Desugar a function definition
+-- Parameters must be bound in the environment before desugaring the body
 desugarFn :: S.FunctionDef -> Desugar C.Term
 desugarFn fn = do
-  -- Desugar the body
-  body <- desugarExpr (S.fnDefBody fn)
-
-  -- Wrap in lambdas for each parameter (in reverse order)
   let params = S.fnDefParams fn
-  foldrM wrapParam body params
+  -- Build nested lambdas with parameters in scope for body desugaring
+  buildLambdas params
   where
-    wrapParam param body = do
+    buildLambdas [] = desugarExpr (S.fnDefBody fn)
+    buildLambdas (param:rest) = do
       ty <- desugarType (S.paramType param)
       let name = S.paramName param
-      extendTerm name $ pure $ C.TmLam name ty body
+      -- Extend environment with this parameter, then build rest
+      extendTerm name $ do
+        body <- buildLambdas rest
+        pure $ C.TmLam name ty body
 
 -- | Desugar an expression
 desugarExpr :: S.Expr -> Desugar C.Term
