@@ -230,8 +230,9 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Tuple types: pair, triple, empty, nested, TyParen vs TyTuple distinction, in function params and return types (issue #216)
 - Wildcard type arguments: standalone _, as type argument (Court _), multiple wildcards, in parenthesized args, in return types (issue #219)
 
-**Declaration Tests (~39 tests)**
+**Declaration Tests (~44 tests)**
 - Function definitions: with/without params, type params, effects, return types
+- Generic function parenthesis type params: `fn name(A)(x: A)` single param, `fn name(A, B)(...)` multiple params, extracts params correctly, no value params, bracket syntax still works (issue #266)
 - Type definitions: simple, with parameters, with kind annotation
 - Deriving clause position: after record fields single/multiple traits, after multiple fields, before colon regression (issue #241)
 - Trait implementation: `type X deriving (Eq): Trait` with constructors, without deriving, regular types without trait, kind keyword rejection (issue #261)
@@ -378,6 +379,8 @@ The formatter test suite covers source code formatting (~67 tests):
 - Total as field name idempotent formatting (issue #222)
 - Resume as parameter name formatting (issue #265)
 - Resume as field name idempotent formatting (issue #265)
+- Function with paren type params formats to bracket syntax (issue #266)
+- Function with multiple paren type params formatting (issue #266)
 - Provides block: with external fn (issue #156)
 - Provides block: external fn with type annotation (issue #156)
 - Provides block: external fn idempotent formatting (issue #156)

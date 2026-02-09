@@ -1068,7 +1068,10 @@ pFunctionDef doc = do
   start <- getPos
   keyword "fn"
   name <- lowerIdent
-  tyParams <- option [] (between (symbol "[") (symbol "]") (pTypeParam `sepBy` symbol ","))
+  -- Support both type parameter syntaxes:
+  -- 1. fn name[A, B](params) - bracket syntax
+  -- 2. fn name(A, B)(params) - parenthesis syntax (issue #266)
+  tyParams <- pFnTypeParams
   params <- option [] (between (symbol "(") (symbol ")") (pParamOrSelf `sepBy` symbol ","))
   retTy <- optional (symbol "->" *> pType)
   effs <- option [] (symbol "!" *> pEffectList)
@@ -1076,6 +1079,34 @@ pFunctionDef doc = do
   body <- pExpr
   span' <- spanFrom start
   pure $ FunctionDef doc name tyParams params retTy effs body span'
+  where
+    -- Parse type parameters in either bracket or parenthesis syntax
+    pFnTypeParams :: Parser [TypeParam]
+    pFnTypeParams = choice
+      [ -- Bracket syntax: [A, B] or [A: Type]
+        between (symbol "[") (symbol "]") (pTypeParam `sepBy` symbol ",")
+      , -- Parenthesis syntax: (A, B) followed by another (...)
+        -- Only if we see (UpperIdent, ...) and then another (
+        try pParenTypeParams
+      , -- No type parameters
+        pure []
+      ]
+    -- Parse parenthesized type params only if followed by another paren group
+    pParenTypeParams :: Parser [TypeParam]
+    pParenTypeParams = do
+      symbol "("
+      -- Parse comma-separated uppercase identifiers (type vars)
+      params <- pTypeVarEntry `sepBy1` symbol ","
+      symbol ")"
+      -- Must be followed by another ( for value params, or -> or : for no value params
+      lookAhead (symbol "(" <|> symbol "->" <|> symbol ":")
+      pure params
+    pTypeVarEntry :: Parser TypeParam
+    pTypeVarEntry = do
+      start <- getPos
+      name <- upperIdent
+      span' <- spanFrom start
+      pure $ TypeVar name Nothing span'
 
 -- | Parse a top-level let binding: @let pattern: Type = expr@
 pLetDef :: Maybe DocComment -> Parser LetDef

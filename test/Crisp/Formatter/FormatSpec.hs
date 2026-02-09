@@ -290,6 +290,34 @@ spec = describe "Crisp.Formatter.Format" $ do
           formatted `shouldSatisfy` T.isInfixOf "type Foo"
         Left _ -> expectationFailure "Expected Right"
 
+    it "formats function with paren type params to bracket syntax (issue #266)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn identity(A)(x: A) -> A:"
+            , "  x"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          -- Should normalize to bracket syntax
+          formatted `shouldSatisfy` T.isInfixOf "fn identity[A](x: A)"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats function with multiple paren type params (issue #266)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn map_fn(A, B)(list: List(A), f: fn(A) -> B) -> List(B):"
+            , "  list"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          -- Should normalize to bracket syntax
+          formatted `shouldSatisfy` T.isInfixOf "fn map_fn[A, B]"
+        Left _ -> expectationFailure "Expected Right"
+
     it "formats module with external fn in provides block (issue #156)" $ do
       let src = T.unlines
             [ "module Test"
