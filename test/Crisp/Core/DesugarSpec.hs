@@ -199,3 +199,93 @@ expressionTests = describe "expressions" $ do
           , "  x + y"
           ]
     shouldDesugar src
+
+  forLoopDesugarTests
+
+-- =============================================================================
+-- For Loop Desugaring Tests (issue #263)
+-- =============================================================================
+
+forLoopDesugarTests :: Spec
+forLoopDesugarTests = describe "for loop desugaring (issue #263)" $ do
+  it "desugars basic for loop" $ do
+    -- Use the loop variable in the body to avoid unbound variable errors
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(items: List(Int)) -> Unit:"
+          , "  for item in items:"
+          , "    item"
+          ]
+    shouldDesugar src
+
+  it "desugars for loop with let binding in body" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn process(ids: List(Int)) -> Unit:"
+          , "  for id in ids:"
+          , "    let result = id"
+          , "    result"
+          ]
+    shouldDesugar src
+
+  it "desugars nested for loops" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn analyze(ids: List(Int), items: List(String)) -> Unit:"
+          , "  for id in ids:"
+          , "    for item in items:"
+          , "      item"
+          ]
+    shouldDesugar src
+
+  it "desugars for loop with variable iteration" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn count(xs: List(Int)) -> Unit:"
+          , "  for i in xs:"
+          , "    i"
+          ]
+    shouldDesugar src
+
+  it "desugars for loop to foreach application" $ do
+    -- Verify the structure of desugared for loop
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(xs: List(Int)) -> Unit:"
+          , "  for x in xs:"
+          , "    x"
+          ]
+    case parseModule "test" src of
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+      Right m -> case desugarModule m of
+        Left err -> expectationFailure $ "Desugar failed: " ++ show err
+        Right terms -> case terms of
+          [term] -> case term of
+            -- Should be: TmLam "xs" ... (TmApp (TmApp foreach xs) (TmLam "x" ... body))
+            C.TmLam _ _ bodyTerm -> case findForEach bodyTerm of
+              Just _ -> pure ()  -- Found foreach application
+              Nothing -> expectationFailure $ "Expected foreach in desugared output, got: " ++ show term
+            other -> expectationFailure $ "Expected lambda, got: " ++ show other
+          _ -> expectationFailure "Expected single term"
+
+  it "for loop body has access to loop variable" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(xs: List(Int)) -> Unit:"
+          , "  for x in xs:"
+          , "    let y = x"
+          , "    y"
+          ]
+    shouldDesugar src
+
+-- | Helper to find a foreach application in a term
+findForEach :: C.Term -> Maybe C.Term
+findForEach term = case term of
+  C.TmApp (C.TmApp (C.TmVar "foreach" _) _) _ -> Just term
+  C.TmApp f a -> findForEach f `orElse` findForEach a
+  C.TmLam _ _ body -> findForEach body
+  C.TmLet _ _ value body -> findForEach value `orElse` findForEach body
+  _ -> Nothing
+  where
+    orElse Nothing b = b
+    orElse a _ = a
