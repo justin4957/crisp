@@ -245,6 +245,34 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    it "formats resume as parameter name (issue #265)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "fn call_resume(resume: Unit -> Unit) -> Unit:"
+            , "  resume(())"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "resume"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats resume as field name idempotently (issue #265)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type Handler:"
+            , "  resume: Unit -> Unit"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          case formatSource defaultFormatOptions formatted of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats module with provides block followed by definitions" $ do
       let src = T.unlines
             [ "module Test"
