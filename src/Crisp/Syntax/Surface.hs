@@ -128,6 +128,7 @@ data TypeDef = TypeDef
   , typeDefConstructors :: ![Constructor]
   , typeDefModifiers    :: !TypeModifiers
   , typeDefDeriving     :: !(Maybe DerivingClause)
+  , typeDefImplements   :: ![Text]               -- ^ Trait implementations (e.g., : Action)
   , typeDefSpan         :: !Span
   } deriving stock (Eq, Show, Generic)
 

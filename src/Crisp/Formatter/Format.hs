@@ -203,10 +203,17 @@ prettyTypeDef opts ind td =
       deriv = case typeDefDeriving td of
         Nothing -> ""
         Just dc -> " deriving " <> prettyDerivingClause dc
+      -- Trait implementation: `: TraitName` (issue #261)
+      -- When present, constructors follow on next line without another colon
+      implements = case typeDefImplements td of
+        [] -> ""
+        traits -> ": " <> T.intercalate ", " traits
+      -- Constructors: need colon prefix only if no trait implementation
       constructors = case typeDefConstructors td of
         [] -> ""
-        cs -> ":\n" <> T.intercalate "\n" (map (prettyConstructor opts (ind + optIndentWidth opts)) cs)
-  in prefix <> deriv <> constructors
+        cs -> let colonPrefix = if null (typeDefImplements td) then ":\n" else "\n"
+              in colonPrefix <> T.intercalate "\n" (map (prettyConstructor opts (ind + optIndentWidth opts)) cs)
+  in prefix <> deriv <> implements <> constructors
 
 -- | Pretty print deriving clause
 prettyDerivingClause :: DerivingClause -> Text

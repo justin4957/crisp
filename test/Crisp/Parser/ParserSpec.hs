@@ -1644,6 +1644,66 @@ typeDefTests = describe "type definitions" $ do
         _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Trait implementation syntax (issue #261)
+  it "parses type with trait implementation (issue #261)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAction deriving (Eq): Action"
+          , "  HearCase"
+          , "  IssueInjunction"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefImplements td `shouldBe` ["Action"]
+          length (typeDefConstructors td) `shouldBe` 2
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type with trait implementation without deriving (issue #261)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type MyAction: Actionable"
+          , "  DoSomething"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefImplements td `shouldBe` ["Actionable"]
+          length (typeDefConstructors td) `shouldBe` 1
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type without trait implementation still works (issue #261)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Color:"
+          , "  Red"
+          , "  Green"
+          , "  Blue"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefImplements td `shouldBe` []
+          length (typeDefConstructors td) `shouldBe` 3
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "rejects kind keyword as trait name (issue #261)" $ do
+    -- ": Type" should be parsed as kind annotation, not trait implementation
+    let src = "module Test type MyType: Type"
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefImplements td `shouldBe` []
+          -- Type should be parsed as kind, not trait
+          case typeDefKind td of
+            Just _ -> pure ()
+            Nothing -> expectationFailure "Expected kind annotation"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   -- Type alias with 'where' refinement tests (issue #118)
   it "parses type alias with where refinement" $ do
     let src = "module Test type PositiveInt = Int where { self > 0 }"
