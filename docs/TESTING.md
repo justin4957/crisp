@@ -181,7 +181,8 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Function application: single/multiple args, nested, with literals
 - Let expressions: simple, with type annotation, nested, with patterns, layout-based round-trip formatting
 - If expressions: simple, complex conditions, nested branches, if without else defaults to Unit, in function body, else branch still works (issue #242)
-- Match expressions: keyword and subject (arms pending due to parser limitation)
+- Match expressions: keyword and subject, single/multiple arms, wildcard patterns
+- Match arm guards: simple guard, comparison guard, field access in guard, arm without guard, multiple arms with guards, string equality guard (issue #259)
 - Lambda expressions: backslash/unicode, single param, with application body
 - Fn closures: fn(x) -> expr, typed params, multiple params, zero params (issue #214)
 - Backslash lambda preserves LamBackslash style (issue #214)

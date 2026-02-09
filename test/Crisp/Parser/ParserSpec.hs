@@ -405,10 +405,70 @@ matchExpressionTests = describe "match expressions" $ do
     pendingWith "Tuple patterns require further parser work"
 
   it "parses match with guard" $ do
-    pendingWith "Guards require further parser work"
+    case parseExpr "test" "match x n | n > 0 -> y" of
+      Right (EMatch _ [arm] _) -> case matchArmGuard arm of
+        Just _ -> pure ()
+        Nothing -> expectationFailure "Expected guard expression"
+      Right other -> expectationFailure $ "Expected EMatch with one arm, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses match arm guard with comparison" $ do
+    case parseExpr "test" "match x n | n == 0 -> y" of
+      Right (EMatch _ [arm] _) -> case matchArmGuard arm of
+        Just (EBinOp OpEQ _ _ _) -> pure ()
+        Just other -> expectationFailure $ "Expected EBinOp OpEQ, got " ++ show other
+        Nothing -> expectationFailure "Expected guard expression"
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses match arm guard with field access" $ do
+    case parseExpr "test" "match x Pair(a, b) | a.value > 0 -> y" of
+      Right (EMatch _ [arm] _) -> case matchArmGuard arm of
+        Just (EBinOp OpGT (EFieldAccess _ "value" _) _ _) -> pure ()
+        Just other -> expectationFailure $ "Expected field access in guard, got " ++ show other
+        Nothing -> expectationFailure "Expected guard expression"
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses match arm without guard" $ do
+    case parseExpr "test" "match x n -> y" of
+      Right (EMatch _ [arm] _) -> case matchArmGuard arm of
+        Nothing -> pure ()
+        Just g -> expectationFailure $ "Expected no guard, got " ++ show g
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multiple arms with guards" $ do
+    case parseExpr "test" "match x n | n > 0 -> a n | n < 0 -> b _ -> c" of
+      Right (EMatch _ arms _) -> do
+        length arms `shouldBe` 3
+        -- First arm should have guard
+        case matchArmGuard (head arms) of
+          Just _ -> pure ()
+          Nothing -> expectationFailure "Expected guard on first arm"
+        -- Second arm should have guard
+        case matchArmGuard (arms !! 1) of
+          Just _ -> pure ()
+          Nothing -> expectationFailure "Expected guard on second arm"
+        -- Third arm (wildcard) should have no guard
+        case matchArmGuard (arms !! 2) of
+          Nothing -> pure ()
+          Just g -> expectationFailure $ "Expected no guard on wildcard arm, got " ++ show g
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
   it "parses match with nested patterns" $ do
     pendingWith "Nested patterns require further parser work"
+
+  it "parses guard with string equality (issue #259)" $ do
+    -- This tests the exact pattern from lex-sim: quebec.code == "QC"
+    case parseExpr "test" "match x State(c, q) | q.code == \"QC\" -> y" of
+      Right (EMatch _ [arm] _) -> case matchArmGuard arm of
+        Just (EBinOp OpEQ (EFieldAccess _ "code" _) (EStringLit _ "QC" _) _) -> pure ()
+        Just other -> expectationFailure $ "Expected field access == string literal, got " ++ show other
+        Nothing -> expectationFailure "Expected guard expression"
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
 lambdaTests :: Spec
 lambdaTests = describe "lambda expressions" $ do
