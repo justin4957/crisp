@@ -394,9 +394,19 @@ desugarExpr = \case
     fields' <- mapM (\(_, e) -> desugarExpr e) fields
     pure $ C.TmCon conName [] fields'
 
-  S.EFor _pat _iter _body _ ->
-    -- For loops need more sophisticated desugaring
-    throwError $ Other "For loops not yet implemented in desugarer"
+  S.EFor pat iter body _ -> do
+    -- For loops desugar to: foreach(collection, fn(pattern) -> body)
+    -- This treats for as an effectful iteration over a collection
+    iter' <- desugarExpr iter
+    -- Build the lambda for the loop body with pattern variable in scope
+    bodyLam <- extendPatternVars pat $ do
+      body' <- desugarExpr body
+      pat' <- desugarPattern pat
+      let paramName = patternToName pat
+          paramType = C.TyVar "_infer" 0  -- Type will be inferred
+      pure $ C.TmLam paramName paramType body'
+    -- Apply foreach to the collection and the lambda
+    pure $ C.TmApp (C.TmApp (C.TmVar "foreach" 0) iter') bodyLam
 
   S.EList elems _ -> do
     -- List literals desugar to nested Cons applications
@@ -515,6 +525,18 @@ desugarPattern = \case
     pure $ C.PatCon "Tuple" pats'
   S.PatLit _ _ -> throwError $ InvalidPattern "Literal patterns not yet supported"
   S.PatTyped pat _ _ -> desugarPattern pat
+
+-- | Extract a name from a pattern for use as a lambda parameter
+-- For simple variables, use the name directly.
+-- For complex patterns, generate a fresh name and use pattern matching.
+patternToName :: S.Pattern -> Text
+patternToName = \case
+  S.PatVar name _ -> name
+  S.PatWildcard _ -> "_"
+  S.PatCon _ _ _ -> "_pat"  -- Complex patterns get a placeholder name
+  S.PatTuple _ _ -> "_pat"
+  S.PatLit _ _ -> "_pat"
+  S.PatTyped p _ _ -> patternToName p
 
 -- | Extend environment with pattern-bound variables
 extendPatternVars :: S.Pattern -> Desugar a -> Desugar a
