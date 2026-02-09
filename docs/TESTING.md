@@ -1067,6 +1067,14 @@ The desugaring test suite covers surface-to-core transformation (~28 tests):
 - Trait with method returning different type: `hash(self) -> Int`
 - Multiple traits in same module
 
+**Impl Definition Desugaring Tests (issue #274)**
+- Simple impl with one method: `impl Show for Color`
+- Impl with match expression in method body
+- Impl with multiple methods: `impl Describable for Item`
+- Impl for parameterized type: `impl Show for Box(Int)`
+- Multiple impl blocks in same module
+- Impl with multiple parameters: `fn process(d: Doubler, x: Int)`
+
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
 The pattern compiler test suite covers pattern match elaboration (~40 tests):
