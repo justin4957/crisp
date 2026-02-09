@@ -99,7 +99,7 @@ desugarDef = \case
   S.DefEffect _eff -> throwError $ Other "Effect definitions not yet implemented"
   S.DefHandler _h -> throwError $ Other "Handler definitions not yet implemented"
   S.DefTrait t -> desugarTraitDef t
-  S.DefImpl _i -> throwError $ Other "Impl definitions not yet implemented"
+  S.DefImpl i -> desugarImplDef i
   S.DefExternal _e -> throwError $ Other "External definitions not yet implemented"
   S.DefTypeAlias a -> desugarTypeAlias a
   S.DefLet ld -> desugarLetDef ld
@@ -292,6 +292,70 @@ desugarTraitDef trait = do
       C.TySigma n t1 t2 -> C.TySigma n (substituteSelf param t1) (substituteSelf param t2)
       C.TyRefined t ps -> C.TyRefined (substituteSelf param t) ps
       other -> other
+
+-- | Desugar an impl block using dictionary-passing style
+-- An impl block creates a dictionary value (a record) containing the method implementations.
+--
+-- Example:
+--   impl Action for JudicialAction:
+--     fn name(self) -> String:
+--       match self
+--         Ruling -> "Ruling"
+--
+-- Desugars to a dictionary instance (conceptually):
+--   Action_JudicialAction_Instance : Action_Dict(JudicialAction)
+--   Action_JudicialAction_Instance = { name = \self -> match self ... }
+--
+desugarImplDef :: S.ImplDef -> Desugar C.Term
+desugarImplDef impl = do
+  let traitName = S.implDefTrait impl
+      implType = S.implDefType impl
+      methods = S.implDefMethods impl
+      -- Generate dictionary instance name: Trait_Type_Instance
+      instanceName = traitName <> "_" <> typeToName implType <> "_Instance"
+      dictTypeName = traitName <> "_Dict"
+
+  -- Desugar the implementing type
+  implTypeCoreType <- desugarType implType
+
+  -- Desugar each method implementation
+  methodTerms <- mapM desugarImplMethod methods
+
+  -- Build a record term containing all method implementations
+  -- For a single method, just use the method term
+  -- For multiple methods, use nested pairs (sigma introduction)
+  let dictValue = buildMethodRecord methodTerms
+
+  -- The dictionary type is TraitName_Dict applied to the implementing type
+  let dictType = C.TyCon dictTypeName [implTypeCoreType]
+
+  -- Return a let binding that introduces the instance
+  -- let InstanceName : DictType = dictValue in InstanceName
+  pure $ C.TmLet instanceName dictType dictValue (C.TmVar instanceName 0)
+  where
+    -- Extract a simple name from a type for use in instance naming
+    typeToName :: S.Type -> Text
+    typeToName = \case
+      S.TyName name _ -> name
+      S.TyApp base _ _ -> typeToName base
+      _ -> "Anon"
+
+    -- Desugar a method implementation (a FunctionDef)
+    desugarImplMethod :: S.FunctionDef -> Desugar (Text, C.Term)
+    desugarImplMethod fn = do
+      let methodName = S.fnDefName fn
+      methodTerm <- desugarFn fn
+      pure (methodName, methodTerm)
+
+    -- Build a record-like term from method implementations
+    -- Using nested pairs to represent records
+    buildMethodRecord :: [(Text, C.Term)] -> C.Term
+    buildMethodRecord [] = C.TmCon "Unit" [] []
+    buildMethodRecord [(_, term)] = term
+    buildMethodRecord ((name, term):rest) =
+      -- Create a pair: (term, buildMethodRecord rest)
+      -- Represented as a constructor application
+      C.TmCon "Pair" [] [term, buildMethodRecord rest]
 
 -- | Desugar a function definition
 -- Parameters must be bound in the environment before desugaring the body

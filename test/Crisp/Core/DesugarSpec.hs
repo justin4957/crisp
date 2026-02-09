@@ -42,6 +42,7 @@ spec = do
     functionTests
     expressionTests
     traitDefinitionTests
+    implDefinitionTests
 
 -- =============================================================================
 -- Type Definition Tests (issue #246)
@@ -348,5 +349,121 @@ traitDefinitionTests = describe "trait definitions (issue #264)" $ do
           , ""
           , "trait Clone:"
           , "  fn clone(self) -> Self"
+          ]
+    shouldDesugar src
+
+-- =============================================================================
+-- Impl Definition Tests (issue #274)
+-- =============================================================================
+
+implDefinitionTests :: Spec
+implDefinitionTests = describe "impl definitions (issue #274)" $ do
+  it "desugars simple impl with one method" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "trait Show:"
+          , "  fn show(self) -> String"
+          , ""
+          , "type Color:"
+          , "  Red"
+          , "  Green"
+          , ""
+          , "impl Show for Color:"
+          , "  fn show(c: Color) -> String:"
+          , "    \"color\""
+          ]
+    shouldDesugar src
+
+  it "desugars impl with match expression in method" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "trait Action:"
+          , "  fn name(self) -> String"
+          , ""
+          , "type JudicialAction:"
+          , "  Ruling"
+          , "  Order"
+          , ""
+          , "impl Action for JudicialAction:"
+          , "  fn name(action: JudicialAction) -> String:"
+          , "    match action"
+          , "      Ruling -> \"Ruling\""
+          , "      Order -> \"Order\""
+          ]
+    shouldDesugar src
+
+  it "desugars impl with multiple methods" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "trait Describable:"
+          , "  fn name(self) -> String"
+          , "  fn description(self) -> String"
+          , ""
+          , "type Item:"
+          , "  Book(title: String)"
+          , ""
+          , "impl Describable for Item:"
+          , "  fn name(i: Item) -> String:"
+          , "    \"item\""
+          , "  fn description(i: Item) -> String:"
+          , "    \"an item\""
+          ]
+    shouldDesugar src
+
+  it "desugars impl for parameterized type" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "trait Show:"
+          , "  fn show(self) -> String"
+          , ""
+          , "type Box(A):"
+          , "  value: A"
+          , ""
+          , "impl Show for Box(Int):"
+          , "  fn show(b: Box(Int)) -> String:"
+          , "    \"box\""
+          ]
+    shouldDesugar src
+
+  it "desugars multiple impl blocks in module" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "trait Show:"
+          , "  fn show(self) -> String"
+          , ""
+          , "type Red:"
+          , "  Red"
+          , ""
+          , "type Blue:"
+          , "  Blue"
+          , ""
+          , "impl Show for Red:"
+          , "  fn show(r: Red) -> String:"
+          , "    \"red\""
+          , ""
+          , "impl Show for Blue:"
+          , "  fn show(b: Blue) -> String:"
+          , "    \"blue\""
+          ]
+    shouldDesugar src
+
+  it "desugars impl with multiple parameters" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "trait Processor:"
+          , "  fn process(self, x: Int) -> Int"
+          , ""
+          , "type Doubler:"
+          , "  Doubler"
+          , ""
+          , "impl Processor for Doubler:"
+          , "  fn process(d: Doubler, x: Int) -> Int:"
+          , "    x + x"
           ]
     shouldDesugar src
