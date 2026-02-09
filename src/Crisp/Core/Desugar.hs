@@ -98,7 +98,7 @@ desugarDef = \case
   S.DefType ty -> desugarTypeDef ty
   S.DefEffect _eff -> throwError $ Other "Effect definitions not yet implemented"
   S.DefHandler _h -> throwError $ Other "Handler definitions not yet implemented"
-  S.DefTrait _t -> throwError $ Other "Trait definitions not yet implemented"
+  S.DefTrait t -> desugarTraitDef t
   S.DefImpl _i -> throwError $ Other "Impl definitions not yet implemented"
   S.DefExternal _e -> throwError $ Other "External definitions not yet implemented"
   S.DefTypeAlias a -> desugarTypeAlias a
@@ -222,6 +222,76 @@ desugarTypeAlias ta = do
   -- For now, emit a simple annotation that represents the alias
   -- The alias name is bound to its base type
   pure $ C.TmAnnot (C.TmCon aliasName [] []) baseType
+
+-- | Desugar a trait definition using dictionary-passing style
+-- A trait becomes a record type containing method functions.
+--
+-- Example:
+--   trait Action:
+--     fn describe(self) -> String
+--
+-- Desugars to a dictionary type (conceptually):
+--   type Action_Dict(A) = { describe: A -> String }
+--
+-- The dictionary type is represented as a type constructor with
+-- fields for each method.
+desugarTraitDef :: S.TraitDef -> Desugar C.Term
+desugarTraitDef trait = do
+  let traitName = S.traitDefName trait
+      dictName = traitName <> "_Dict"
+      methods = S.traitDefMethods trait
+      -- Get the type parameter (e.g., A in "trait Ord A")
+      mTypeParam = S.traitDefParam trait
+
+  -- Build method field types
+  -- Each method becomes a field in the dictionary record
+  methodTypes <- mapM (desugarMethodType mTypeParam) methods
+
+  -- Create the dictionary type constructor
+  -- For a trait with parameter A and methods [m1: T1, m2: T2],
+  -- we create: type TraitName_Dict(A) = { m1: T1, m2: T2 }
+  let dictType = case mTypeParam of
+        Just param -> C.TyForall param (C.KiType 0) $
+                        buildRecordType methodTypes
+        Nothing -> buildRecordType methodTypes
+
+  -- Return a type annotation representing the dictionary type definition
+  pure $ C.TmAnnot (C.TmCon dictName [] []) dictType
+  where
+    -- Build a record-like type from method name/type pairs
+    -- Using nested sigma types to represent records
+    buildRecordType :: [(Text, C.Type)] -> C.Type
+    buildRecordType [] = C.simpleType "Unit"
+    buildRecordType [(_, ty)] = ty
+    buildRecordType ((name, ty):rest) =
+      C.TySigma name ty (buildRecordType rest)
+
+    -- Desugar a trait method's type signature
+    desugarMethodType :: Maybe Text -> S.TraitMethod -> Desugar (Text, C.Type)
+    desugarMethodType mParam method = do
+      let methodName = S.traitMethodName method
+      methodTy <- desugarType (S.traitMethodType method)
+      -- Substitute Self with the trait's type parameter if present
+      let finalTy = case mParam of
+            Just param -> substituteSelf param methodTy
+            Nothing -> methodTy
+      pure (methodName, finalTy)
+
+    -- Replace TyVar "Self" with the trait's type parameter
+    substituteSelf :: Text -> C.Type -> C.Type
+    substituteSelf param = \case
+      C.TyVar "Self" _ -> C.TyVar param 0
+      C.TyCon name args -> C.TyCon name (map (substituteSelf param) args)
+      C.TyPi n t1 eff t2 -> C.TyPi n (substituteSelf param t1) eff (substituteSelf param t2)
+      C.TyForall n k t -> C.TyForall n k (substituteSelf param t)
+      C.TyForallDep n t1 t2 -> C.TyForallDep n (substituteSelf param t1) (substituteSelf param t2)
+      C.TyLazy t -> C.TyLazy (substituteSelf param t)
+      C.TyLinear t -> C.TyLinear (substituteSelf param t)
+      C.TyRef t -> C.TyRef (substituteSelf param t)
+      C.TyRefMut t -> C.TyRefMut (substituteSelf param t)
+      C.TySigma n t1 t2 -> C.TySigma n (substituteSelf param t1) (substituteSelf param t2)
+      C.TyRefined t ps -> C.TyRefined (substituteSelf param t) ps
+      other -> other
 
 -- | Desugar a function definition
 -- Parameters must be bound in the environment before desugaring the body

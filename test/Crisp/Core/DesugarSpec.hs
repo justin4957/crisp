@@ -41,6 +41,7 @@ spec = do
     typeAliasTests
     functionTests
     expressionTests
+    traitDefinitionTests
 
 -- =============================================================================
 -- Type Definition Tests (issue #246)
@@ -289,3 +290,63 @@ findForEach term = case term of
   where
     orElse Nothing b = b
     orElse a _ = a
+
+-- =============================================================================
+-- Trait Definition Tests (issue #264)
+-- =============================================================================
+
+traitDefinitionTests :: Spec
+traitDefinitionTests = describe "trait definitions (issue #264)" $ do
+  it "desugars simple trait with one method" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "trait Show:"
+          , "  fn show(self) -> String"
+          ]
+    shouldDesugar src
+
+  it "desugars trait with type parameter" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "trait Ord A:"
+          , "  fn compare(x: A, y: A) -> Int"
+          ]
+    shouldDesugar src
+
+  it "desugars trait with multiple methods" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "trait Num A:"
+          , "  fn add(x: A, y: A) -> A"
+          , "  fn sub(x: A, y: A) -> A"
+          , "  fn mul(x: A, y: A) -> A"
+          ]
+    shouldDesugar src
+
+  it "desugars trait with Self type in method signature" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "trait Clone:"
+          , "  fn clone(self) -> Self"
+          ]
+    shouldDesugar src
+
+  it "desugars trait with method returning different type" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "trait Hash:"
+          , "  fn hash(self) -> Int"
+          ]
+    shouldDesugar src
+
+  it "desugars multiple traits in module" $ do
+    let src = T.unlines
+          [ "module Test"
+          , ""
+          , "trait Show:"
+          , "  fn show(self) -> String"
+          , ""
+          , "trait Clone:"
+          , "  fn clone(self) -> Self"
+          ]
+    shouldDesugar src
