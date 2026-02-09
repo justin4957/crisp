@@ -219,7 +219,7 @@ keywordMap = Map.fromList
   , ("linear", KwLinear)
   , ("lazy", KwLazy)
   , ("perform", KwPerform)
-  , ("resume", KwResume)
+  -- resume is context-sensitive (issue #265), parsed by contextKeyword in handler clauses
   , ("return", KwReturn)
   , ("where", KwWhere)
   , ("forall", KwForall)

@@ -2334,9 +2334,38 @@ handlerDefTests = describe "handler definitions" $ do
         _ -> expectationFailure "Expected single handler definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
-  -- Known parser limitations
+  -- Handler operation clause tests (issue #265)
   it "parses handler with operation clause" $ do
-    pendingWith "Parser limitation: resume keyword conflict and clause parsing"
+    let src = T.unlines
+          [ "module Test"
+          , "handler Mock for Effect:"
+          , "  op(_) -> resume:"
+          , "    result"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses handler with resume function call in body (issue #265)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "handler MockResearch for LegalResearch:"
+          , "  lookup_provision(_) -> resume:"
+          , "    resume(None)"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses handler with multiple operation clauses using resume (issue #265)" $ do
+    -- Note: Multiple operation clauses have parsing limitations due to greedy pExpr
+    -- This test verifies that a single operation clause with resume works
+    pendingWith "Parser limitation: multiple clauses consume each other due to greedy pExpr"
+
+  it "parses handler with complex resume body (issue #265)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "handler MockAudit for Audit:"
+          , "  begin_audit_scope(name, _) -> resume:"
+          , "    resume(generate_scope_id(name))"
+          ]
+    shouldParse $ parseModule "test" src
 
   it "parses handler with introduced effects" $ do
     let src = "module Main handler Logged for State ! Log: return x -> x"
@@ -3002,6 +3031,58 @@ moduleTests = describe "modules" $ do
           , "  EffectDiff(effect: String)"
           ]
     shouldParse $ parseModule "test" src
+
+  -- resume as identifier (issue #265)
+  it "parses resume as field name (issue #265)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Handler:"
+          , "  resume: Unit -> Unit"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses resume as parameter name (issue #265)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn call_resume(resume: Unit -> Unit) -> Unit:"
+          , "  resume(())"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses resume as variable in let binding (issue #265)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(k: Unit -> Unit) -> Unit:"
+          , "  let resume = k"
+          , "  resume(())"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses resume as function name (issue #265)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn resume(x: Unit) -> Unit:"
+          , "  x"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "handler operation clause still works with resume keyword (issue #265)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "handler Mock for Effect:"
+          , "  op(_) -> resume:"
+          , "    resume(())"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefHandler hd] -> do
+          case handlerDefClauses hd of
+            [OpClause name _ resumeName _ _] -> do
+              name `shouldBe` "op"
+              resumeName `shouldBe` "resume"
+            _ -> expectationFailure "Expected OpClause"
+        _ -> expectationFailure "Expected handler definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
 
 -- =============================================================================
 -- Operator Precedence and Associativity Tests

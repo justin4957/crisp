@@ -102,8 +102,7 @@ spec = do
     it "lexes perform keyword" $ do
       lexKinds "perform" `shouldBe` Right [KwPerform]
 
-    it "lexes resume keyword" $ do
-      lexKinds "resume" `shouldBe` Right [KwResume]
+    -- resume is now context-sensitive (issue #265), tested below in identifier section
 
     it "lexes return keyword" $ do
       lexKinds "return" `shouldBe` Right [KwReturn]
@@ -128,6 +127,9 @@ spec = do
 
     it "lexes total as identifier (no longer keyword, issue #222)" $ do
       lexKinds "total" `shouldBe` Right [LowerIdent "total"]
+
+    it "lexes resume as identifier (context-sensitive, issue #265)" $ do
+      lexKinds "resume" `shouldBe` Right [LowerIdent "resume"]
 
     it "lexes mut keyword" $ do
       lexKinds "mut" `shouldBe` Right [KwMut]
@@ -525,7 +527,7 @@ spec = do
       lookupKeyword "linear" `shouldBe` Just KwLinear
       lookupKeyword "lazy" `shouldBe` Just KwLazy
       lookupKeyword "perform" `shouldBe` Just KwPerform
-      lookupKeyword "resume" `shouldBe` Just KwResume
+      lookupKeyword "resume" `shouldBe` Nothing  -- context-sensitive (issue #265)
       lookupKeyword "return" `shouldBe` Just KwReturn
       lookupKeyword "where" `shouldBe` Just KwWhere
       lookupKeyword "forall" `shouldBe` Just KwForall

@@ -912,7 +912,7 @@ pHandlerClause = choice
        name <- lowerIdent
        pats <- many pPatternAtom
        symbol "->"
-       keyword "resume"
+       contextKeyword "resume"  -- resume is context-sensitive (issue #265)
        symbol ":"
        body <- pExpr
        span' <- spanFrom start

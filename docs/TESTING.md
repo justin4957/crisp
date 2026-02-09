@@ -77,6 +77,7 @@ The lexer test suite covers:
 - `authority` lexes as identifier, not keyword (context-sensitive, issue #221)
 - `total` lexes as identifier, not keyword (removed, issue #222)
 - `effect` lexes as identifier, not keyword (context-sensitive, issue #244)
+- `resume` lexes as identifier, not keyword (context-sensitive, issue #265)
 
 **Identifiers (7 tests)**
 - Lowercase identifiers (`foo`, `camelCase`)
@@ -241,6 +242,9 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Effect definitions: with operations
 - Handler definitions: with return clause, with introduced effects
 - Handler state parameters: single value param, multiple value params, mixed with parameterless handlers (issue #185)
+- Handler operation clause with `-> resume:` block style (issue #265)
+- Handler with `resume(value)` function call in body (issue #265)
+- Handler with complex resume body expression (issue #265)
 
 **Module Tests (~10 tests)**
 - Minimal module, dotted path, authority
@@ -261,6 +265,11 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Effect definition still works (issue #244)
 - Provides effect still works (issue #244)
 - Effect in constructor arguments (issue #244)
+- Resume as field name (issue #265)
+- Resume as parameter name (issue #265)
+- Resume as variable in let binding (issue #265)
+- Resume as function name (issue #265)
+- Handler operation clause with resume keyword still works (issue #265)
 
 **Doc Comment Tests (~14 tests)**
 - Multi-line doc comment with pipe on continuation lines parsed correctly
@@ -367,6 +376,8 @@ The formatter test suite covers source code formatting (~67 tests):
 - Authority as identifier idempotent formatting (issue #221)
 - Total as variable name formatting (issue #222)
 - Total as field name idempotent formatting (issue #222)
+- Resume as parameter name formatting (issue #265)
+- Resume as field name idempotent formatting (issue #265)
 - Provides block: with external fn (issue #156)
 - Provides block: external fn with type annotation (issue #156)
 - Provides block: external fn idempotent formatting (issue #156)
