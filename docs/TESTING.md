@@ -1011,7 +1011,7 @@ The CPS transformation test suite covers continuation-passing style transformati
 
 ### Desugaring Tests (`test/Crisp/Core/DesugarSpec.hs`)
 
-The desugaring test suite covers surface-to-core transformation (~22 tests):
+The desugaring test suite covers surface-to-core transformation (~28 tests):
 
 **Type Definition Tests (issue #246)**
 - Simple enum types: `Red | Green | Blue`
@@ -1044,6 +1044,14 @@ The desugaring test suite covers surface-to-core transformation (~22 tests):
 - For loop with variable iteration
 - For loop desugars to `foreach(collection, fn(pattern) -> body)` structure
 - For loop body has access to loop variable
+
+**Trait Definition Desugaring Tests (issue #264)**
+- Simple trait with one method
+- Trait with type parameter: `Ord A`
+- Trait with multiple methods: `Num A` (add, sub, mul)
+- Trait with Self type in method signature: `clone(self) -> Self`
+- Trait with method returning different type: `hash(self) -> Int`
+- Multiple traits in same module
 
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 
