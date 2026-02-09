@@ -1280,6 +1280,59 @@ functionDefTests = describe "function definitions" $ do
     let src = "module Main fn foo(x: Int): let y = x in y"
     shouldParse $ parseModule "test" src
 
+  -- Parenthesis-style type parameters (issue #266)
+  it "parses function with parenthesis type params (issue #266)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn non_empty(A)(list: List(A)) -> Option(A):"
+          , "  list"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses function with multiple paren type params (issue #266)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn map_fn(A, B)(list: List(A), f: fn(A) -> B) -> List(B):"
+          , "  list"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "extracts paren type params correctly (issue #266)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn identity(A)(x: A) -> A:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fn] -> do
+          fnDefName fn `shouldBe` "identity"
+          length (fnDefTypeParams fn) `shouldBe` 1
+          length (fnDefParams fn) `shouldBe` 1
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses function with no value params but paren type params (issue #266)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn default_value(A)() -> A:"
+          , "  undefined"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "bracket type params still work with new paren support (issue #266)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn identity[A](x: A) -> A:"
+          , "  x"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fn] -> do
+          length (fnDefTypeParams fn) `shouldBe` 1
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 typeDefTests :: Spec
 typeDefTests = describe "type definitions" $ do
   it "parses simple type definition" $ do
