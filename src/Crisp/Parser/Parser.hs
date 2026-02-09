@@ -356,7 +356,13 @@ pDefinition = do
              constraints <- option [] pTypeDefConstraints
              mKind <- optional (try pTypeDefKind)
              derivBefore <- optional pDerivingClause
-             cons <- optional (symbol ":" *> pConstructors)
+             -- Parse colon-started section: either constructors or trait implementation + constructors
+             -- Syntax options:
+             --   type Color:           -- colon, then constructors on next line
+             --     Red
+             --   type X deriving (Eq): Action    -- colon, trait name, then constructors on next line
+             --     HearCase
+             (implements, cons) <- option ([], Nothing) pColonSection
              -- Support deriving after record fields (issue #241)
              derivAfter <- optional pDerivingClause
              let deriv = derivAfter <|> derivBefore
@@ -366,7 +372,7 @@ pDefinition = do
                    Just [RecordConstructor "" fields s] ->
                      [RecordConstructor name fields s]
                    _ -> maybe [] id cons
-             pure $ DefType $ TypeDef doc name params constraints mKind fixedCons mods deriv span'
+             pure $ DefType $ TypeDef doc name params constraints mKind fixedCons mods deriv implements span'
         ]
 
     -- Type parameter group that doesn't consume = sign
@@ -387,18 +393,66 @@ pTypeDef = do
   -- Kind annotation must be followed by a valid kind keyword, not a constructor
   mKind <- optional (try pTypeDefKind)
   derivBefore <- optional pDerivingClause
-  cons <- optional (symbol ":" *> pConstructors)
+  -- Parse colon-started section: either constructors or trait implementation + constructors
+  (implements, cons) <- option ([], Nothing) pColonSection
   -- Support deriving after record fields (issue #241)
   derivAfter <- optional pDerivingClause
   let deriv = derivAfter <|> derivBefore
   span' <- spanFrom start
-  pure $ TypeDef Nothing name params constraints mKind (maybe [] id cons) mods deriv span'
+  pure $ TypeDef Nothing name params constraints mKind (maybe [] id cons) mods deriv implements span'
   where
     -- Parse kind annotation for type definition: : Type or : Type -> Type
     -- Uses try to backtrack if what follows : isn't a valid kind
     pTypeDefKind = do
       symbol ":"
       pKind
+
+-- | Parse the colon-started section of a type definition (issue #261)
+-- This handles both:
+--   type Color:         -- just constructors
+--     Red
+--   type X: Action      -- trait implementation, then constructors
+--     HearCase
+--
+-- The key distinction is whether the identifier after `:` is on the SAME LINE
+-- as the colon (trait implementation) or on a DIFFERENT LINE (constructor).
+--
+-- Returns (trait implementations, constructors)
+pColonSection :: Parser ([Text], Maybe [Constructor])
+pColonSection = do
+  -- Record position BEFORE consuming the colon and whitespace
+  colonPos <- getSourcePos
+  let colonLine = unPos $ sourceLine colonPos
+  -- Now consume the colon (and trailing whitespace)
+  symbol ":"
+  -- Try to parse trait implementation first
+  -- A trait name is an uppercase identifier that's on the SAME LINE as the colon
+  mTrait <- optional (try $ pTraitImplName colonLine)
+  case mTrait of
+    Just trait -> do
+      -- Trait was parsed, now parse constructors (without colon, they follow on next line)
+      cons <- pConstructors
+      pure ([trait], Just cons)
+    Nothing -> do
+      -- No trait, parse constructors directly
+      cons <- pConstructors
+      pure ([], Just cons)
+  where
+    -- Parse a trait name that's on the SAME LINE as the colon
+    -- Must be uppercase, not a kind keyword
+    pTraitImplName colonLine = do
+      -- Check position of the identifier
+      pos <- getSourcePos
+      let identLine = unPos $ sourceLine pos
+      -- Only parse as trait if on the same line as the colon
+      if identLine /= colonLine
+        then fail "Trait name must be on the same line as the colon"
+        else do
+          name <- upperIdent
+          -- Reject kind keywords
+          if name `elem` ["Type", "Prop", "Linear"]
+            then fail "Expected trait name, got kind keyword"
+            else pure name
 
 -- | Parse a block of field constraints: { field: Pattern, ... }
 pFieldConstraintBlock :: Parser [FieldConstraint]
