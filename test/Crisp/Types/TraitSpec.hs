@@ -471,6 +471,44 @@ letDefParsingTests = describe "top-level let bindings" $ do
           ]
     shouldParse $ parseModule "test" src
 
+  it "parses qualified let binding (issue #276)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type Date:"
+          , "  year: Int"
+          , "  month: Int"
+          , "  day: Int"
+          , "let Date.max = Date { year = 9999, month = 12, day = 31 }"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses multiple qualified let bindings (issue #276)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "type Date:"
+          , "  year: Int"
+          , "let Date.max = Date { year = 9999, month = 12, day = 31 }"
+          , "let Date.min = Date { year = 0, month = 1, day = 1 }"
+          ]
+    case parseModule "test" src of
+      Right m -> length (moduleDefinitions m) `shouldBe` 3  -- type + 2 lets
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "extracts qualified name from PatQualified (issue #276)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "let Date.max = 42"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefLet ld] -> case letDefPattern ld of
+          PatQualified typeName fieldName _ -> do
+            typeName `shouldBe` "Date"
+            fieldName `shouldBe` "max"
+          other -> expectationFailure $ "Expected PatQualified, got " ++ show other
+        _ -> expectationFailure "Expected single let definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Deriving Clause Parsing Tests
 -- =============================================================================

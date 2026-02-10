@@ -1044,6 +1044,12 @@ The desugaring test suite covers surface-to-core transformation (~28 tests):
 - Type alias with constraint: `where status: Active`
 - Type alias with extended fields: `extended with:`
 
+**Qualified Let Binding Tests (issue #276)**
+- Simple qualified let: `let Date.max = 42`
+- Multiple qualified let bindings
+- Qualified let with record construction: `let Date.max = Date { year = 9999 }`
+- Mixed qualified and simple let bindings
+
 **Function Tests**
 - Simple function with parameter
 - Function with multiple parameters

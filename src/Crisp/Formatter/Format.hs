@@ -739,6 +739,7 @@ prettyPattern opts = \case
   PatTuple pats _ -> "(" <> T.intercalate ", " (map (prettyPattern opts) pats) <> ")"
   PatLit expr _ -> prettyExpr opts 0 expr
   PatTyped pat ty _ -> prettyPattern opts pat <> ": " <> prettyType opts 0 ty
+  PatQualified typeName fieldName _ -> typeName <> "." <> fieldName
 
 -- | Pretty print an atomic pattern (with parens if needed)
 prettyPatternAtom :: FormatOptions -> Pattern -> Text
@@ -747,6 +748,7 @@ prettyPatternAtom opts pat = case pat of
   PatWildcard {} -> prettyPattern opts pat
   PatLit {} -> prettyPattern opts pat
   PatTuple {} -> prettyPattern opts pat
+  PatQualified {} -> prettyPattern opts pat
   _ -> "(" <> prettyPattern opts pat <> ")"
 
 --------------------------------------------------------------------------------
