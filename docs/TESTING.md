@@ -238,6 +238,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Deriving clause position: after record fields single/multiple traits, after multiple fields, before colon regression (issue #241)
 - Deriving clause position consistency: after sum type constructors, single trait after sum type, sum type with constructor args, before colon for sum type, deriving with trait implementation (issue #278)
 - Trait implementation: `type X deriving (Eq): Trait` with constructors, without deriving, regular types without trait, kind keyword rejection (issue #261)
+- Type inheritance syntax: many constructors implementing trait, multiple types implementing same trait, without deriving, parameterized type implementing trait (issue #279)
 - Parameterized type aliases: parenthesized single param `(A)`, with refinement, multi-param `(K, V)`, TypeVar node verification, bare param regression, parenthesized params on regular type definitions (issue #238)
 - Extended type aliases: `extended with:` single field, multiple fields, parameterized base type, field name/type verification, non-extended alias regression (issue #239)
 - Constructor-level where constraints: `type RedOnly = Color where Red`, pattern with args `Mandatory(_)`, OR patterns `Red | Orange | Yellow` (issue #243)
@@ -419,6 +420,7 @@ The formatter test suite covers source code formatting (~67 tests):
 - Requires block
 - Type definitions: named fields, positional fields, mixed constructors
 - Deriving clause: before colon with sum type, after sum type constructors, idempotent formatting (issue #278)
+- Type inheritance: `type X deriving (Eq): Trait` formatting, idempotency, without deriving (issue #279)
 - Type alias with where refinement, field access, match, if expressions
 - Type alias with `extended with:` formatting (issue #239)
 - Float literal in refinement predicate formatting (issue #220)
