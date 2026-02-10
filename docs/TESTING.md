@@ -335,12 +335,21 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Float equality in refinement predicate (issue #220)
 - Integer refinement still works with float support (issue #220)
 
-**Known Parser Limitations (documented via pending tests)**
+**Known Parser Limitations (documented via pending tests and issues)**
 - Match arms don't parse correctly due to greedy pExpr
 - Do statements with binds/let don't work due to greedy expression parsing
 - With handler expression has same issue
 - Type constructors require layout (colon interpreted as kind annotation)
 - Multi-param lambdas don't parse due to greedy type parsing
+- Function calls not supported in where refinement predicates (issue #290)
+- Inline/nested sum type definitions in record fields not supported (issue #291)
+- Binary operators in local let bindings require parentheses (issue #292)
+
+**Fixed Parser Issues**
+- Lambda expressions (`fn(x) -> ...`) now work in match arm bodies (issue #288, PR #)
+- Nested match expressions now work in match arm bodies (issue #288)
+- If-then-else expressions now work in match arm bodies (issue #288)
+- Multiple tuple pattern match arms now parse correctly (issue #288)
 
 ### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
 
