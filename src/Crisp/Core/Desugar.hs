@@ -105,6 +105,7 @@ desugarDef = \case
   S.DefLet ld -> desugarLetDef ld
 
 -- | Desugar a top-level let binding to a core term
+-- Supports both simple variable patterns and qualified names (Type.name)
 desugarLetDef :: S.LetDef -> Desugar C.Term
 desugarLetDef ld = do
   value <- desugarExpr (S.letDefValue ld)
@@ -113,7 +114,12 @@ desugarLetDef ld = do
     Nothing -> pure $ C.TyVar "_infer" 0
   case S.letDefPattern ld of
     S.PatVar name _ -> pure $ C.TmLet name ty value (C.TmVar name 0)
-    _ -> throwError $ InvalidPattern "Only variable patterns supported in top-level let"
+    -- Qualified name: Type.field becomes a binding named "Type_field"
+    -- The qualified access (Type.field) is handled by field access parsing
+    S.PatQualified typeName fieldName _ ->
+      let qualifiedName = typeName <> "_" <> fieldName
+      in pure $ C.TmLet qualifiedName ty value (C.TmVar qualifiedName 0)
+    _ -> throwError $ InvalidPattern "Only variable or qualified patterns supported in top-level let"
 
 -- | Desugar a type definition
 -- Type definitions are desugared to a sequence of constructor functions.
@@ -659,6 +665,9 @@ desugarPattern = \case
     pure $ C.PatCon "Tuple" pats'
   S.PatLit _ _ -> throwError $ InvalidPattern "Literal patterns not yet supported"
   S.PatTyped pat _ _ -> desugarPattern pat
+  S.PatQualified typeName fieldName _ ->
+    -- Qualified patterns are only used in let bindings, not in match patterns
+    pure $ C.PatVar (typeName <> "_" <> fieldName)
 
 -- | Extract a name from a pattern for use as a lambda parameter
 -- For simple variables, use the name directly.
@@ -671,6 +680,7 @@ patternToName = \case
   S.PatTuple _ _ -> "_pat"
   S.PatLit _ _ -> "_pat"
   S.PatTyped p _ _ -> patternToName p
+  S.PatQualified typeName fieldName _ -> typeName <> "_" <> fieldName
 
 -- | Extend environment with pattern-bound variables
 extendPatternVars :: S.Pattern -> Desugar a -> Desugar a
@@ -681,6 +691,7 @@ extendPatternVars pat m = case pat of
   S.PatTuple pats _ -> foldr extendPatternVars m pats
   S.PatLit _ _ -> m
   S.PatTyped p _ _ -> extendPatternVars p m
+  S.PatQualified typeName fieldName _ -> extendTerm (typeName <> "_" <> fieldName) m
 
 -- | Desugar a type
 desugarType :: S.Type -> Desugar C.Type

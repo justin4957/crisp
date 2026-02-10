@@ -39,6 +39,7 @@ spec = do
   describe "Crisp.Core.Desugar" $ do
     typeDefinitionTests
     typeAliasTests
+    qualifiedLetTests
     functionTests
     expressionTests
     traitDefinitionTests
@@ -135,6 +136,44 @@ typeAliasTests = describe "type aliases (issue #246)" $ do
           [ "module Test"
           , "type Extended = Base extended with:"
           , "  extra: Int"
+          ]
+    shouldDesugar src
+
+-- =============================================================================
+-- Qualified Let Binding Tests (issue #276)
+-- =============================================================================
+
+qualifiedLetTests :: Spec
+qualifiedLetTests = describe "qualified let bindings (issue #276)" $ do
+  it "desugars qualified let binding" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "let Date.max = 42"
+          ]
+    shouldDesugar src
+
+  it "desugars multiple qualified let bindings" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "let Date.max = 9999"
+          , "let Date.min = 0"
+          ]
+    shouldDesugar src
+
+  it "desugars qualified let with record construction" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Date:"
+          , "  year: Int"
+          , "let Date.max = Date { year = 9999 }"
+          ]
+    shouldDesugar src
+
+  it "desugars mixed qualified and simple let bindings" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "let Date.max = 9999"
+          , "let simple = 42"
           ]
     shouldDesugar src
 

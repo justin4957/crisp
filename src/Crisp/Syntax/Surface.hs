@@ -486,4 +486,5 @@ data Pattern
   | PatTuple ![Pattern] !Span                   -- ^ Tuple pattern
   | PatLit !Expr !Span                          -- ^ Literal pattern
   | PatTyped !Pattern !Type !Span               -- ^ Type-annotated pattern
+  | PatQualified !Text !Text !Span              -- ^ Qualified name: Type.name (for associated constants)
   deriving stock (Eq, Show, Generic)

@@ -1109,16 +1109,32 @@ pFunctionDef doc = do
       pure $ TypeVar name Nothing span'
 
 -- | Parse a top-level let binding: @let pattern: Type = expr@
+-- Supports both simple patterns and qualified names (Type.name for associated constants)
 pLetDef :: Maybe DocComment -> Parser LetDef
 pLetDef doc = do
   start <- getPos
   keyword "let"
-  pat <- pPattern
+  pat <- pLetPattern
   mTy <- optional (symbol ":" *> pType)
   symbol "="
   value <- pExpr
   span' <- spanFrom start
   pure $ LetDef doc pat mTy value span'
+
+-- | Parse a pattern for let bindings, including qualified names
+-- Qualified names: Type.name (for associated constants like Date.max)
+pLetPattern :: Parser Pattern
+pLetPattern = try pQualifiedPattern <|> pPattern
+
+-- | Parse a qualified pattern: Type.name
+pQualifiedPattern :: Parser Pattern
+pQualifiedPattern = do
+  start <- getPos
+  typeName <- upperIdent
+  symbol "."
+  fieldName <- lowerIdent
+  span' <- spanFrom start
+  pure $ PatQualified typeName fieldName span'
 
 pParam :: Parser Param
 pParam = do
