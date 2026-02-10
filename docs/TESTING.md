@@ -1028,7 +1028,7 @@ The CPS transformation test suite covers continuation-passing style transformati
 
 ### Desugaring Tests (`test/Crisp/Core/DesugarSpec.hs`)
 
-The desugaring test suite covers surface-to-core transformation (~28 tests):
+The desugaring test suite covers surface-to-core transformation (~35 tests):
 
 **Type Definition Tests (issue #246)**
 - Simple enum types: `Red | Green | Blue`
@@ -1083,6 +1083,15 @@ The desugaring test suite covers surface-to-core transformation (~28 tests):
 - Impl for parameterized type: `impl Show for Box(Int)`
 - Multiple impl blocks in same module
 - Impl with multiple parameters: `fn process(d: Doubler, x: Int)`
+
+**UFCS (Uniform Function Call Syntax) Tests (issue #277)**
+- Property-style access: `x.is_none` desugars to `is_none(x)`
+- Method call: `xs.contains(y)` desugars to `contains(xs, y)`
+- Chained field access: `x.field.is_none` desugars to `is_none(field(x))`
+- Method with lambda: `xs.all(fn(x) -> ...)` desugars to `all(xs, fn(x) -> ...)`
+- Nested method calls: `r2.all(fn(x) -> r1.contains(x))`
+- Zero-argument method call: `xs.length()` desugars to `length(xs)`
+- Multi-argument method: `x.slice(a, b, c)` desugars to `slice(x, a, b, c)`
 
 ### Pattern Compiler Tests (`test/Crisp/Core/PatternSpec.hs`)
 

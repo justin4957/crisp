@@ -44,6 +44,7 @@ spec = do
     expressionTests
     traitDefinitionTests
     implDefinitionTests
+    ufcsTests
 
 -- =============================================================================
 -- Type Definition Tests (issue #246)
@@ -506,3 +507,130 @@ implDefinitionTests = describe "impl definitions (issue #274)" $ do
           , "    x + x"
           ]
     shouldDesugar src
+
+-- =============================================================================
+-- UFCS (Uniform Function Call Syntax) Tests (issue #277)
+-- =============================================================================
+
+ufcsTests :: Spec
+ufcsTests = describe "UFCS desugaring (issue #277)" $ do
+  it "desugars property-style access x.is_none to is_none(x)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(x: Option(Int)) -> Bool:"
+          , "  x.is_none"
+          ]
+    case parseModule "test" src of
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+      Right m -> case desugarModule m of
+        Left err -> expectationFailure $ "Desugar failed: " ++ show err
+        Right terms -> case terms of
+          [term] -> case term of
+            -- Should be: TmLam "x" ... (TmApp (TmVar "is_none") (TmVar "x"))
+            C.TmLam _ _ body -> case body of
+              C.TmApp (C.TmVar "is_none" _) (C.TmVar "x" _) -> pure ()
+              other -> expectationFailure $ "Expected is_none(x), got: " ++ show other
+            other -> expectationFailure $ "Expected lambda, got: " ++ show other
+          _ -> expectationFailure "Expected single term"
+
+  it "desugars method call x.contains(y) to contains(x, y)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(xs: List(Int), y: Int) -> Bool:"
+          , "  xs.contains(y)"
+          ]
+    case parseModule "test" src of
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+      Right m -> case desugarModule m of
+        Left err -> expectationFailure $ "Desugar failed: " ++ show err
+        Right terms -> case terms of
+          [term] -> case term of
+            C.TmLam _ _ (C.TmLam _ _ body) -> case body of
+              -- contains(xs, y) = ((contains xs) y)
+              C.TmApp (C.TmApp (C.TmVar "contains" _) (C.TmVar "xs" _)) (C.TmVar "y" _) -> pure ()
+              other -> expectationFailure $ "Expected contains(xs, y), got: " ++ show other
+            other -> expectationFailure $ "Expected nested lambdas, got: " ++ show other
+          _ -> expectationFailure "Expected single term"
+
+  it "desugars chained field access x.field.is_none" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(x: Record) -> Bool:"
+          , "  x.field.is_none"
+          ]
+    case parseModule "test" src of
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+      Right m -> case desugarModule m of
+        Left err -> expectationFailure $ "Desugar failed: " ++ show err
+        Right terms -> case terms of
+          [term] -> case term of
+            -- Should be: TmLam "x" ... (TmApp is_none (TmApp field x))
+            C.TmLam _ _ body -> case body of
+              C.TmApp (C.TmVar "is_none" _) (C.TmApp (C.TmVar "field" _) _) -> pure ()
+              other -> expectationFailure $ "Expected is_none(field(x)), got: " ++ show other
+            other -> expectationFailure $ "Expected lambda, got: " ++ show other
+          _ -> expectationFailure "Expected single term"
+
+  it "desugars method with lambda argument xs.all(fn(x) -> ...)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(xs: List(Int)) -> Bool:"
+          , "  xs.all(fn(x) -> x)"
+          ]
+    case parseModule "test" src of
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+      Right m -> case desugarModule m of
+        Left err -> expectationFailure $ "Desugar failed: " ++ show err
+        Right terms -> case terms of
+          [term] -> case term of
+            -- Should be: TmLam "xs" ... (TmApp (TmApp (TmVar "all") xs) lambda)
+            C.TmLam _ _ body -> case body of
+              C.TmApp (C.TmApp (C.TmVar "all" _) _) (C.TmLam _ _ _) -> pure ()
+              other -> expectationFailure $ "Expected all(xs, lambda), got: " ++ show other
+            other -> expectationFailure $ "Expected lambda, got: " ++ show other
+          _ -> expectationFailure "Expected single term"
+
+  it "desugars nested method calls r2.all(fn(x) -> r1.contains(x))" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(r1: List(Int), r2: List(Int)) -> Bool:"
+          , "  r2.all(fn(x) -> r1.contains(x))"
+          ]
+    shouldDesugar src
+
+  it "desugars zero-argument method call with parens x.length()" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(xs: List(Int)) -> Int:"
+          , "  xs.length()"
+          ]
+    case parseModule "test" src of
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+      Right m -> case desugarModule m of
+        Left err -> expectationFailure $ "Desugar failed: " ++ show err
+        Right terms -> case terms of
+          [term] -> case term of
+            C.TmLam _ _ body -> case body of
+              C.TmApp (C.TmVar "length" _) _ -> pure ()
+              other -> expectationFailure $ "Expected length(xs), got: " ++ show other
+            other -> expectationFailure $ "Expected lambda, got: " ++ show other
+          _ -> expectationFailure "Expected single term"
+
+  it "desugars method with multiple arguments x.method(a, b, c)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "fn test(x: String, a: Int, b: Int, c: Int) -> String:"
+          , "  x.slice(a, b, c)"
+          ]
+    case parseModule "test" src of
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+      Right m -> case desugarModule m of
+        Left err -> expectationFailure $ "Desugar failed: " ++ show err
+        Right terms -> case terms of
+          [term] -> verifySlice term
+          _ -> expectationFailure "Expected single term"
+    where
+      -- Verify slice is applied to x and three arguments
+      verifySlice (C.TmLam _ _ rest) = verifySlice rest
+      verifySlice (C.TmApp (C.TmApp (C.TmApp (C.TmApp (C.TmVar "slice" _) _) _) _) _) = pure ()
+      verifySlice other = expectationFailure $ "Expected slice(x, a, b, c), got: " ++ show other
