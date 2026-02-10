@@ -1853,6 +1853,86 @@ typeDefTests = describe "type definitions" $ do
         _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Type inheritance syntax tests (issue #279)
+  it "parses type with many constructors implementing trait (issue #279)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAction deriving (Eq): Action"
+          , "  Ruling"
+          , "  Order"
+          , "  Judgment"
+          , "  SentenceImposition"
+          , "  Dismissal"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefName td `shouldBe` "JudicialAction"
+          typeDefImplements td `shouldBe` ["Action"]
+          derivingTraits <$> typeDefDeriving td `shouldBe` Just ["Eq"]
+          length (typeDefConstructors td) `shouldBe` 5
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multiple types implementing same trait (issue #279)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAction deriving (Eq): Action"
+          , "  Ruling"
+          , "  Order"
+          , ""
+          , "type LegislativeAction deriving (Eq): Action"
+          , "  Enactment"
+          , "  Amendment"
+          , "  Repeal"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td1, DefType td2] -> do
+          typeDefName td1 `shouldBe` "JudicialAction"
+          typeDefImplements td1 `shouldBe` ["Action"]
+          length (typeDefConstructors td1) `shouldBe` 2
+          typeDefName td2 `shouldBe` "LegislativeAction"
+          typeDefImplements td2 `shouldBe` ["Action"]
+          length (typeDefConstructors td2) `shouldBe` 3
+        _ -> expectationFailure "Expected two type definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses type implementing trait without deriving (issue #279)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type ExecutiveAction: Action"
+          , "  Execute"
+          , "  Veto"
+          , "  Pardon"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefName td `shouldBe` "ExecutiveAction"
+          typeDefImplements td `shouldBe` ["Action"]
+          typeDefDeriving td `shouldBe` Nothing
+          length (typeDefConstructors td) `shouldBe` 3
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses parameterized type implementing trait (issue #279)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Result T deriving (Eq): Monad"
+          , "  Ok(value: T)"
+          , "  Err(error: String)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefName td `shouldBe` "Result"
+          typeDefImplements td `shouldBe` ["Monad"]
+          length (typeDefParams td) `shouldBe` 1
+          length (typeDefConstructors td) `shouldBe` 2
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   -- Type alias with 'where' refinement tests (issue #118)
   it "parses type alias with where refinement" $ do
     let src = "module Test type PositiveInt = Int where { self > 0 }"

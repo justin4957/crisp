@@ -555,6 +555,55 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    -- Type inheritance syntax tests (issue #279)
+    it "formats type with trait implementation (issue #279)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type JudicialAction deriving (Eq): Action"
+            , "  Ruling"
+            , "  Order"
+            , "  Judgment"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf ": Action"
+          formatted `shouldSatisfy` T.isInfixOf "deriving"
+          formatted `shouldSatisfy` T.isInfixOf "Ruling"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats type with trait implementation idempotently (issue #279)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type JudicialAction deriving (Eq): Action"
+            , "  Ruling"
+            , "  Order"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
+    it "formats type implementing trait without deriving (issue #279)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type MyAction: Actionable"
+            , "  DoSomething"
+            , "  DoNothing"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf ": Actionable"
+          formatted `shouldSatisfy` T.isInfixOf "DoSomething"
+        Left _ -> expectationFailure "Expected Right"
+
     it "formats type with named field constructors" $ do
       let src = T.unlines
             [ "module Test"
