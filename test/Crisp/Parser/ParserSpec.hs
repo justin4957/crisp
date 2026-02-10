@@ -470,6 +470,58 @@ matchExpressionTests = describe "match expressions" $ do
       Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Issue #288: Lambda expressions in match arm bodies
+  it "parses lambda in match arm body (issue #288)" $ do
+    case parseExpr "test" "match x Some(xs) -> xs.all(fn(y) -> y > 0)" of
+      Right (EMatch _ [arm] _) -> case matchArmBody arm of
+        EMethodCall _ "all" [ELam LamFnArrow _ _ _] _ -> pure ()
+        other -> expectationFailure $ "Expected method call with lambda, got " ++ show other
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses nested match in match arm body (issue #288)" $ do
+    case parseExpr "test" "match x Some(a) -> match a True -> 1 False -> 0" of
+      Right (EMatch _ [arm] _) -> case matchArmBody arm of
+        EMatch _ innerArms _ -> length innerArms `shouldBe` 2
+        other -> expectationFailure $ "Expected nested EMatch, got " ++ show other
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses if-then-else in match arm body (issue #288)" $ do
+    case parseExpr "test" "match x Some(n) -> if n > 0 then n else 0" of
+      Right (EMatch _ [arm] _) -> case matchArmBody arm of
+        EIf _ _ _ _ -> pure ()
+        other -> expectationFailure $ "Expected EIf, got " ++ show other
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses lambda with method call in match arm (issue #288)" $ do
+    -- Pattern from lex-sim: r2.all(fn(x) -> r1.contains(x))
+    case parseExpr "test" "match x Pair(r1, r2) -> r2.all(fn(x) -> r1.contains(x))" of
+      Right (EMatch _ [arm] _) -> case matchArmBody arm of
+        EMethodCall _ "all" [ELam LamFnArrow _ _ _] _ -> pure ()
+        other -> expectationFailure $ "Expected method call with lambda, got " ++ show other
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multiple match arms with lambdas (issue #288)" $ do
+    case parseExpr "test" "match x Some(xs) -> xs.map(fn(y) -> y + 1) None -> xs" of
+      Right (EMatch _ arms _) -> do
+        length arms `shouldBe` 2
+        case matchArmBody (head arms) of
+          EMethodCall _ "map" [ELam LamFnArrow _ _ _] _ -> pure ()
+          other -> expectationFailure $ "Expected method call with lambda, got " ++ show other
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses chained method calls with lambda in match arm (issue #288)" $ do
+    case parseExpr "test" "match x Some(xs) -> xs.filter(fn(y) -> y > 0).length" of
+      Right (EMatch _ [arm] _) -> case matchArmBody arm of
+        EFieldAccess (EMethodCall _ "filter" _ _) "length" _ -> pure ()
+        other -> expectationFailure $ "Expected chained method call, got " ++ show other
+      Right other -> expectationFailure $ "Expected EMatch, got " ++ show other
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 lambdaTests :: Spec
 lambdaTests = describe "lambda expressions" $ do
   it "parses lambda with backslash" $ do

@@ -2114,39 +2114,111 @@ pMatchArmBody = makeExprParser pMatchArmApp
       span' <- spanFrom start
       pure $ \left right -> EBinOp op left right span'
 
--- | Parse function application in match arm - only parenthesized arguments
+-- | Parse function application in match arm - only same-line parenthesized arguments
+-- This prevents consuming the next match arm's tuple pattern as a function argument
 pMatchArmApp :: Parser Expr
 pMatchArmApp = do
+  startLine <- unPos . sourceLine <$> getSourcePos
   start <- getPos
   base <- pMatchArmPostfix
-  args <- many pParenArg
+  args <- many (pSameLineParenArg startLine)
   span' <- spanFrom start
   case args of
     [] -> pure base
     _  -> pure $ EApp base (concat args) span'
   where
-    pParenArg = do
-      symbol "("
-      argList <- pMatchArmBody `sepBy1` symbol ","
-      symbol ")"
-      pure argList
+    -- Only consume parenthesized arguments that start on the same line
+    pSameLineParenArg startLine = try $ do
+      curLine <- unPos . sourceLine <$> getSourcePos
+      if curLine == startLine
+        then do
+          symbol "("
+          argList <- pMatchArmBody `sepBy1` symbol ","
+          symbol ")"
+          pure argList
+        else fail "parenthesized argument on different line"
 
--- | Parse postfix expressions in match arm - field access only
+-- | Parse postfix expressions in match arm - field access and method calls
 pMatchArmPostfix :: Parser Expr
 pMatchArmPostfix = do
-  start <- getPos
-  base <- pAtom
-  accesses <- many pMatchFieldAccess
-  span' <- spanFrom start
-  pure $ foldl (\e (field, s) -> EFieldAccess e field s) base accesses
+  base <- pMatchArmAtom
+  suffixes <- many pMatchArmSuffix
+  pure $ foldl applyMatchSuffix base suffixes
   where
-    pMatchFieldAccess = do
-      fieldStart <- getPos
+    pMatchArmSuffix = try $ do
+      s <- getPos
       symbol "."
+      notFollowedBy (char '.')  -- Don't consume range operator
       notFollowedBy upperIdent
       field <- lowerIdent
-      span' <- spanFrom fieldStart
-      pure (field, span')
+      -- Check for method call with parenthesized args
+      mArgs <- optional $ do
+        symbol "("
+        args <- pMatchArmBody `sepBy` symbol ","
+        symbol ")"
+        pure args
+      span' <- spanFrom s
+      pure $ DotSuffix field mArgs span'
+
+    applyMatchSuffix receiver (DotSuffix field Nothing s) = EFieldAccess receiver field s
+    applyMatchSuffix receiver (DotSuffix method (Just args) s) = EMethodCall receiver method args s
+    applyMatchSuffix receiver (IndexSuffix idx s) = EIndex receiver idx s
+
+-- | Parse atoms in match arm bodies - includes keyword expressions like fn, match, if
+pMatchArmAtom :: Parser Expr
+pMatchArmAtom = choice
+  [ pFnClosure        -- fn(x) -> expr
+  , pMatchArmNested   -- Nested match
+  , pIfInMatchArm     -- if-then-else
+  , pLetInMatchArm    -- let binding
+  , pPerform          -- perform Effect.op
+  , pLazy             -- lazy expr
+  , pForce            -- force expr
+  , pNot              -- not expr
+  , pLiteral          -- Literals
+  , pListLiteral      -- [a, b, c]
+  , try pRecordConstruction  -- Type { field = value }
+  , pSelfVar          -- self
+  , pVar              -- Variables and constructors
+  , pParens           -- (expr) or tuples
+  ]
+
+-- | Parse nested match in match arm body
+pMatchArmNested :: Parser Expr
+pMatchArmNested = do
+  start <- getPos
+  keyword "match"
+  subject <- pMatchArmPostfix  -- Use restricted subject parser
+  arms <- many pMatchArm
+  span' <- spanFrom start
+  pure $ EMatch subject arms span'
+
+-- | Parse if-then-else in match arm body
+pIfInMatchArm :: Parser Expr
+pIfInMatchArm = do
+  start <- getPos
+  keyword "if"
+  cond <- pMatchArmBody
+  keyword "then"
+  then' <- pMatchArmBody
+  mElse <- optional (keyword "else" *> pMatchArmBody)
+  span' <- spanFrom start
+  let else' = fromMaybe (EUnit span') mElse
+  pure $ EIf cond then' else' span'
+
+-- | Parse let binding in match arm body
+pLetInMatchArm :: Parser Expr
+pLetInMatchArm = do
+  start <- getPos
+  keyword "let"
+  pat <- pPattern
+  mTy <- optional (symbol ":" *> pType)
+  symbol "="
+  value <- pMatchArmBody
+  keyword "in"
+  body <- pMatchArmBody
+  span' <- spanFrom start
+  pure $ ELet pat mTy value body span'
 
 pIf :: Parser Expr
 pIf = do
