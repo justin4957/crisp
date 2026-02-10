@@ -354,6 +354,43 @@ implParsingTests = describe "impl definitions" $ do
         _ -> expectationFailure "Expected single impl definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  it "parses impl with typed self parameter (issue #275)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "impl Action for JudicialAction:"
+          , "  fn describe(self: JudicialAction) -> String: \"judicial\""
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefImpl impl] -> case implDefMethods impl of
+          [fd] -> case fnDefParams fd of
+            [p] -> do
+              paramName p `shouldBe` "self"
+              case paramType p of
+                TyName "JudicialAction" _ -> pure ()
+                other -> expectationFailure $ "Expected JudicialAction type, got " ++ show other
+            _ -> expectationFailure "Expected single parameter"
+          _ -> expectationFailure "Expected single method"
+        _ -> expectationFailure "Expected single impl definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses self as regular function parameter (issue #275)" $ do
+    let src = T.unlines
+          [ "module Main"
+          , "fn process(self: Int) -> Int: self + 1"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefFn fd] -> case fnDefParams fd of
+          [p] -> do
+            paramName p `shouldBe` "self"
+            case paramType p of
+              TyName "Int" _ -> pure ()
+              other -> expectationFailure $ "Expected Int type, got " ++ show other
+          _ -> expectationFailure "Expected single parameter"
+        _ -> expectationFailure "Expected single function definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
 -- =============================================================================
 -- Top-Level Let Binding Parsing Tests
 -- =============================================================================

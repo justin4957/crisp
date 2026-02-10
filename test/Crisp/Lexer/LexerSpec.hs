@@ -131,6 +131,9 @@ spec = do
     it "lexes resume as identifier (context-sensitive, issue #265)" $ do
       lexKinds "resume" `shouldBe` Right [LowerIdent "resume"]
 
+    it "lexes self as identifier (context-sensitive, issue #275)" $ do
+      lexKinds "self" `shouldBe` Right [LowerIdent "self"]
+
     it "lexes mut keyword" $ do
       lexKinds "mut" `shouldBe` Right [KwMut]
 
@@ -538,6 +541,7 @@ spec = do
       lookupKeyword "total" `shouldBe` Nothing
       lookupKeyword "mut" `shouldBe` Just KwMut
       lookupKeyword "ref" `shouldBe` Just KwRef
+      lookupKeyword "self" `shouldBe` Nothing  -- context-sensitive (issue #275)
 
     it "returns Nothing for non-keywords" $ do
       lookupKeyword "foo" `shouldBe` Nothing
