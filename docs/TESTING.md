@@ -241,6 +241,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Type inheritance syntax: many constructors implementing trait, multiple types implementing same trait, without deriving, parameterized type implementing trait (issue #279)
 - Parameterized type aliases: parenthesized single param `(A)`, with refinement, multi-param `(K, V)`, TypeVar node verification, bare param regression, parenthesized params on regular type definitions (issue #238)
 - Extended type aliases: `extended with:` single field, multiple fields, parameterized base type, field name/type verification, non-extended alias regression (issue #239)
+- Extended with parameterized base: many fields like lex-sim authority, multiple extended types in same module, nested parameterized types in fields (issue #280)
 - Constructor-level where constraints: `type RedOnly = Color where Red`, pattern with args `Mandatory(_)`, OR patterns `Red | Orange | Yellow` (issue #243)
 - Layout-based field constraints: multi-line with layout, OR patterns, comma-separated, mixed comma and newline (issue #245)
 - Effect definitions: with operations
@@ -1047,6 +1048,10 @@ The desugaring test suite covers surface-to-core transformation (~35 tests):
 - Simple type alias: `type MyInt = Int`
 - Type alias with constraint: `where status: Active`
 - Type alias with extended fields: `extended with:`
+- Extended with parameterized base: `Authority(JudicialAction) extended with:` (issue #280)
+- Multiple extended types with parameterized base (issue #280)
+- Extended with many fields (issue #280)
+- Extended with nested parameterized types in fields (issue #280)
 
 **Qualified Let Binding Tests (issue #276)**
 - Simple qualified let: `let Date.max = 42`

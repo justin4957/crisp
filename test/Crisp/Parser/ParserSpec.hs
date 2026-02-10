@@ -2086,6 +2086,59 @@ typeDefTests = describe "type definitions" $ do
         _ -> expectationFailure "Expected type alias definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Extended with parameterized base type lex-sim patterns (issue #280)
+  it "parses extended with many fields like lex-sim authority (issue #280)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAuthority = Authority(JudicialAction) extended with:"
+          , "  appointment: JudicialAppointment"
+          , "  tenure: TenureType"
+          , "  seniority: SeniorityLevel"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> do
+          typeAliasName td `shouldBe` "JudicialAuthority"
+          length (typeAliasExtendedFields td) `shouldBe` 3
+          map fieldName (typeAliasExtendedFields td) `shouldBe` ["appointment", "tenure", "seniority"]
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses multiple extended types in same module (issue #280)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAuth = Authority(JudicialAction) extended with:"
+          , "  appointment: JudicialAppointment"
+          , ""
+          , "type LegislativeAuth = Authority(LegislativeAction) extended with:"
+          , "  chamber: Chamber"
+          , "  election: ElectionRecord"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td1, DefTypeAlias td2] -> do
+          typeAliasName td1 `shouldBe` "JudicialAuth"
+          length (typeAliasExtendedFields td1) `shouldBe` 1
+          typeAliasName td2 `shouldBe` "LegislativeAuth"
+          length (typeAliasExtendedFields td2) `shouldBe` 2
+        _ -> expectationFailure "Expected two type alias definitions"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses extended with nested parameterized types (issue #280)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type LegislativeAuthority = Authority(LegislativeAction) extended with:"
+          , "  committees: List(CommitteeAssignment)"
+          , "  leadership: Option(LeadershipRole)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefTypeAlias td] -> do
+          typeAliasName td `shouldBe` "LegislativeAuthority"
+          length (typeAliasExtendedFields td) `shouldBe` 2
+        _ -> expectationFailure "Expected type alias definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   it "parses type alias with chained field access in where" $ do
     let src = "module Test type Valid = Record where { self.field.inner > 0 }"
     shouldParse $ parseModule "test" src

@@ -140,6 +140,49 @@ typeAliasTests = describe "type aliases (issue #246)" $ do
           ]
     shouldDesugar src
 
+  -- Extended with parameterized base type tests (issue #280)
+  it "desugars extended with parameterized base type (issue #280)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAuthority = Authority(JudicialAction) extended with:"
+          , "  appointment: JudicialAppointment"
+          , "  tenure: TenureType"
+          ]
+    shouldDesugar src
+
+  it "desugars multiple extended types with parameterized base (issue #280)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAuthority = Authority(JudicialAction) extended with:"
+          , "  appointment: JudicialAppointment"
+          , "  tenure: TenureType"
+          , ""
+          , "type LegislativeAuthority = Authority(LegislativeAction) extended with:"
+          , "  chamber: Chamber"
+          , "  election: ElectionRecord"
+          ]
+    shouldDesugar src
+
+  it "desugars extended with many fields (issue #280)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type LegislativeAuthority = Authority(LegislativeAction) extended with:"
+          , "  chamber: Chamber"
+          , "  election: ElectionRecord"
+          , "  committees: List(CommitteeAssignment)"
+          , "  leadership: Option(LeadershipRole)"
+          ]
+    shouldDesugar src
+
+  it "desugars extended with nested parameterized types (issue #280)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type ComplexAuth = Authority(List(Action)) extended with:"
+          , "  data: Map(String, Int)"
+          , "  options: Option(List(String))"
+          ]
+    shouldDesugar src
+
 -- =============================================================================
 -- Qualified Let Binding Tests (issue #276)
 -- =============================================================================
