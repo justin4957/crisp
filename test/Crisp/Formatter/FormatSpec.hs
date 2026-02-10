@@ -519,6 +519,42 @@ spec = describe "Crisp.Formatter.Format" $ do
             Left _ -> expectationFailure "Second format failed"
         Left _ -> expectationFailure "First format failed"
 
+    -- Deriving clause position consistency tests (issue #278)
+    it "formats deriving after sum type constructors (issue #278)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type Color:"
+            , "  Red"
+            , "  Green"
+            , "  Blue"
+            , "  deriving (Eq, Ord)"
+            ]
+          result = formatSource defaultFormatOptions src
+      result `shouldSatisfy` isRight
+      case result of
+        Right formatted -> do
+          formatted `shouldSatisfy` T.isInfixOf "deriving"
+          formatted `shouldSatisfy` T.isInfixOf "Red"
+        Left _ -> expectationFailure "Expected Right"
+
+    it "formats deriving after sum type idempotently (issue #278)" $ do
+      let src = T.unlines
+            [ "module Test"
+            , "type ThreatLevel:"
+            , "  Low"
+            , "  Medium"
+            , "  High"
+            , "  deriving (Eq)"
+            ]
+          result = formatSource defaultFormatOptions src
+      case result of
+        Right formatted -> do
+          let result2 = formatSource defaultFormatOptions formatted
+          case result2 of
+            Right formatted2 -> formatted2 `shouldBe` formatted
+            Left _ -> expectationFailure "Second format failed"
+        Left _ -> expectationFailure "First format failed"
+
     it "formats type with named field constructors" $ do
       let src = T.unlines
             [ "module Test"

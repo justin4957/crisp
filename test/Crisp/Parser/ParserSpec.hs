@@ -1697,6 +1697,102 @@ typeDefTests = describe "type definitions" $ do
         _ -> expectationFailure "Expected type definition"
       Left err -> expectationFailure $ "Parse failed: " ++ show err
 
+  -- Deriving clause position consistency tests (issue #278)
+  it "parses deriving after sum type constructors (issue #278)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Color:"
+          , "  Red"
+          , "  Green"
+          , "  Blue"
+          , "  deriving (Eq, Ord)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          length (typeDefConstructors td) `shouldBe` 3
+          case typeDefDeriving td of
+            Just dc -> derivingTraits dc `shouldBe` ["Eq", "Ord"]
+            Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses deriving after sum type with single trait (issue #278)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Status:"
+          , "  Active"
+          , "  Inactive"
+          , "  Pending"
+          , "  deriving Eq"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          length (typeDefConstructors td) `shouldBe` 3
+          case typeDefDeriving td of
+            Just dc -> derivingTraits dc `shouldBe` ["Eq"]
+            Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "parses deriving after sum type constructors with arguments (issue #278)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Result T E:"
+          , "  Ok(value: T)"
+          , "  Err(error: E)"
+          , "  deriving (Eq)"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          length (typeDefParams td) `shouldBe` 2
+          length (typeDefConstructors td) `shouldBe` 2
+          case typeDefDeriving td of
+            Just dc -> derivingTraits dc `shouldBe` ["Eq"]
+            Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "deriving before colon works for sum type (issue #278)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type ThreatLevel deriving (Eq, Ord):"
+          , "  Low"
+          , "  Medium"
+          , "  High"
+          , "  Critical"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          length (typeDefConstructors td) `shouldBe` 4
+          case typeDefDeriving td of
+            Just dc -> derivingTraits dc `shouldBe` ["Eq", "Ord"]
+            Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
+  it "deriving with trait implementation for sum type (issue #278)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type JudicialAction deriving (Eq): Action"
+          , "  HearCase"
+          , "  IssueOrder"
+          , "  DismissCase"
+          ]
+    case parseModule "test" src of
+      Right m -> case moduleDefinitions m of
+        [DefType td] -> do
+          typeDefImplements td `shouldBe` ["Action"]
+          length (typeDefConstructors td) `shouldBe` 3
+          case typeDefDeriving td of
+            Just dc -> derivingTraits dc `shouldBe` ["Eq"]
+            Nothing -> expectationFailure "Expected deriving clause"
+        _ -> expectationFailure "Expected type definition"
+      Left err -> expectationFailure $ "Parse failed: " ++ show err
+
   -- Trait implementation syntax (issue #261)
   it "parses type with trait implementation (issue #261)" $ do
     let src = T.unlines
