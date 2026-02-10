@@ -1130,14 +1130,18 @@ pParam = do
   pure $ Param name ty span'
 
 -- | Parse bare @self@ as a parameter with implicit @Self@ type
+-- Must be followed by ) or , - if followed by : it's a regular typed param
 pSelfParam :: Parser Param
-pSelfParam = do
+pSelfParam = try $ do
   start <- getPos
-  keyword "self"
+  contextKeyword "self"  -- self is context-sensitive (issue #275)
+  -- Only match bare self (not followed by colon for type annotation)
+  notFollowedBy (symbol ":")
   span' <- spanFrom start
   pure $ Param "self" (TyName "Self" span') span'
 
 -- | Parse either a bare @self@ parameter or a regular @name: Type@ parameter
+-- For @self: Type@ we fall through to pParam since self is now a valid identifier
 pParamOrSelf :: Parser Param
 pParamOrSelf = pSelfParam <|> pParam
 
@@ -1547,7 +1551,7 @@ pRefinementInt = do
 pRefinementSelf :: Parser Expr
 pRefinementSelf = do
   start <- getPos
-  keyword "self"
+  contextKeyword "self"  -- self is context-sensitive (issue #275)
   span' <- spanFrom start
   pure $ EVar "self" span'
 
@@ -2413,7 +2417,7 @@ pChar = do
 pSelfVar :: Parser Expr
 pSelfVar = do
   start <- getPos
-  keyword "self"
+  contextKeyword "self"  -- self is context-sensitive (issue #275)
   span' <- spanFrom start
   pure $ EVar "self" span'
 

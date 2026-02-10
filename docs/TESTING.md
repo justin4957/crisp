@@ -78,6 +78,7 @@ The lexer test suite covers:
 - `total` lexes as identifier, not keyword (removed, issue #222)
 - `effect` lexes as identifier, not keyword (context-sensitive, issue #244)
 - `resume` lexes as identifier, not keyword (context-sensitive, issue #265)
+- `self` lexes as identifier, not keyword (context-sensitive, issue #275)
 
 **Identifiers (7 tests)**
 - Lowercase identifiers (`foo`, `camelCase`)
@@ -316,6 +317,8 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Parses impl with self parameter (issue #213)
 - Parses impl with self in match expression (issue #213)
 - Parses impl method self param as first param (issue #213)
+- Parses impl with typed self parameter: `fn describe(self: JudicialAction)` (issue #275)
+- Parses self as regular function parameter: `fn process(self: Int)` (issue #275)
 - Parses effect with single type parameter (issue #171)
 - Parses effect with multiple type parameters (issue #171)
 - Parses effect without type params still works (issue #171)

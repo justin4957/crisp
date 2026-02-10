@@ -70,7 +70,7 @@ data TokenKind
   | KwFor
   | KwDeriving
   | KwExternal
-  | KwSelf
+  -- KwSelf removed: self is context-sensitive (issue #275), parsed by contextKeyword
   | KwBreak
   | KwNot
 
@@ -176,7 +176,7 @@ isKeyword = \case
   KwFor -> True
   KwDeriving -> True
   KwExternal -> True
-  KwSelf -> True
+  -- KwSelf removed: self is context-sensitive (issue #275)
   KwBreak -> True
   KwNot -> True
   _ -> False
@@ -236,7 +236,7 @@ keywordMap = Map.fromList
   , ("for", KwFor)
   , ("deriving", KwDeriving)
   , ("external", KwExternal)
-  , ("self", KwSelf)
+  -- self is context-sensitive (issue #275), parsed by contextKeyword in parser
   , ("break", KwBreak)
   , ("not", KwNot)
   ]
