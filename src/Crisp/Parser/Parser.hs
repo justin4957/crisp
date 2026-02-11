@@ -1535,17 +1535,39 @@ pRefinementBool = do
   span' <- spanFrom start
   pure $ ECon name span'
 
--- | Parse field access chain: .field.field2...
+-- | Parse postfix chain: .field, .field2, (args), etc.
+-- Supports both field access and function application in refinement contexts
 pFieldAccessChain :: Expr -> Parser Expr
 pFieldAccessChain base = do
-  mField <- optional (symbol "." *> lowerIdent)
-  case mField of
+  suffix <- optional (pRefinementFieldAccess <|> pRefinementFuncCall)
+  case suffix of
     Nothing -> pure base
-    Just field -> do
-      start <- getPos
-      span' <- spanFrom start
-      let accessed = EFieldAccess base field span'
-      pFieldAccessChain accessed
+    Just mkExpr -> do
+      result <- mkExpr base
+      pFieldAccessChain result
+  where
+    -- Parse .field suffix
+    pRefinementFieldAccess :: Parser (Expr -> Parser Expr)
+    pRefinementFieldAccess = do
+      symbol "."
+      field <- lowerIdent
+      pure $ \b -> do
+        start <- getPos
+        span' <- spanFrom start
+        pure $ EFieldAccess b field span'
+
+    -- Parse (args) suffix for function calls
+    pRefinementFuncCall :: Parser (Expr -> Parser Expr)
+    pRefinementFuncCall = do
+      symbol "("
+      args <- pRefinementExprAtom `sepBy` symbol ","
+      symbol ")"
+      pure $ \b -> do
+        start <- getPos
+        span' <- spanFrom start
+        case args of
+          [] -> pure $ EApp b [] span'  -- Function call with no args: f()
+          _  -> pure $ EApp b args span'
 
 -- | Parse a float literal in a refinement
 pRefinementFloat :: Parser Expr

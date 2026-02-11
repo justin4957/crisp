@@ -2255,6 +2255,31 @@ typeDefTests = describe "type definitions" $ do
     let src = "module Test type PositiveInt = Int where { self > 0 }"
     shouldParse $ parseModule "test" src
 
+  -- Function calls in refinement predicates (issue #290)
+  it "parses function call in refinement predicate (issue #290)" $ do
+    let src = "module Test type ValidFoo = Foo where { is_valid(self) }"
+    shouldParse $ parseModule "test" src
+
+  it "parses function call with field access argument in refinement (issue #290)" $ do
+    let src = "module Test type ValidBar = Bar where { check(self.value) }"
+    shouldParse $ parseModule "test" src
+
+  it "parses function call with multiple arguments in refinement (issue #290)" $ do
+    let src = "module Test type ValidRange = Range where { in_range(self.min, self.max) }"
+    shouldParse $ parseModule "test" src
+
+  it "parses chained function calls in refinement (issue #290)" $ do
+    let src = "module Test type Nested = Item where { validate(process(self.data)) }"
+    shouldParse $ parseModule "test" src
+
+  it "parses method-style call on field in refinement (issue #290)" $ do
+    let src = "module Test type NonEmpty = List where { self.len() > 0 }"
+    shouldParse $ parseModule "test" src
+
+  it "parses function call in comparison in refinement (issue #290)" $ do
+    let src = "module Test type ValidScore = Score where { normalize(self.value) >= 0 }"
+    shouldParse $ parseModule "test" src
+
   -- Constrained type aliases with 'where field: Pattern' syntax (issue #168)
   it "parses type alias with where field constraint (issue #168)" $ do
     let src = "module Test type TrialCourt = Court where level: TrialCourt"
