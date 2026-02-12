@@ -18,7 +18,7 @@ import Crisp.Syntax.Surface
 import Crisp.Syntax.Span
 import Crisp.Lexer.Token (lookupKeyword)
 
-import Control.Monad (void)
+import Control.Monad (void, when)
 import Data.Maybe (fromMaybe)
 import Control.Monad.Combinators.Expr
 import Data.Text (Text)
@@ -610,13 +610,30 @@ pConstructors = choice
 pConstructor :: Parser Constructor
 pConstructor = do
   start <- getPos
+  startLine <- unPos . sourceLine <$> getSourcePos
   name <- upperIdent
   choice
     [ -- GADT constructor: Cons : Type
+      -- Also detects and reports nested type definition attempts
       do symbol ":"
-         ty <- pType
-         span' <- spanFrom start
-         pure $ GadtConstructor name ty span'
+         -- After consuming colon and whitespace, check if we're on a different line
+         -- AND the next thing is an uppercase identifier (a constructor)
+         currentLine <- unPos . sourceLine <$> getSourcePos
+         -- If we moved to a new line and see an uppercase identifier, it's a nested type attempt
+         mNextCon <- optional $ lookAhead upperIdent
+         case mNextCon of
+           Just _ | currentLine > startLine ->
+             fail $ "Nested/inline type definitions are not supported. "
+                 ++ "Define '" ++ T.unpack name ++ "' as a separate type:\n\n"
+                 ++ "  type " ++ T.unpack name ++ ":\n"
+                 ++ "    Constructor1\n"
+                 ++ "    Constructor2\n\n"
+                 ++ "Then reference it in the parent type."
+           _ -> do
+             -- Normal GADT constructor
+             ty <- pType
+             span' <- spanFrom start
+             pure $ GadtConstructor name ty span'
     , -- Record constructor with braces: { field: Type, ... }
       try $ do
         symbol "{"

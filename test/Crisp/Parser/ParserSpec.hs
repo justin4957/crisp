@@ -2280,6 +2280,37 @@ typeDefTests = describe "type definitions" $ do
     let src = "module Test type ValidScore = Score where { normalize(self.value) >= 0 }"
     shouldParse $ parseModule "test" src
 
+  -- Inline/nested sum types are not supported - clear error message (issue #291)
+  it "provides helpful error for inline sum type definition (issue #291)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type LegislativeNote:"
+          , "  NoteType:"
+          , "    Marginal(text: String)"
+          , "    Footnote(text: String)"
+          ]
+    case parseModule "test" src of
+      Left err -> do
+        -- Error message should mention the nested type and suggest a workaround
+        let errStr = show err
+        errStr `shouldSatisfy` \s -> "Nested/inline type definitions are not supported" `T.isInfixOf` T.pack s
+        errStr `shouldSatisfy` \s -> "NoteType" `T.isInfixOf` T.pack s
+      Right _ -> expectationFailure "Should have failed to parse nested type definition"
+
+  it "provides helpful error with correct nested type name (issue #291)" $ do
+    let src = T.unlines
+          [ "module Test"
+          , "type Parent:"
+          , "  Child:"
+          , "    VariantA"
+          , "    VariantB"
+          ]
+    case parseModule "test" src of
+      Left err -> do
+        let errStr = show err
+        errStr `shouldSatisfy` \s -> "Child" `T.isInfixOf` T.pack s
+      Right _ -> expectationFailure "Should have failed to parse nested type definition"
+
   -- Constrained type aliases with 'where field: Pattern' syntax (issue #168)
   it "parses type alias with where field constraint (issue #168)" $ do
     let src = "module Test type TrialCourt = Court where level: TrialCourt"
