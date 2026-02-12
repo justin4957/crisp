@@ -340,6 +340,12 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - Chained function calls in refinement (issue #290)
 - Method-style call on field in refinement (issue #290)
 - Function call in comparison in refinement (issue #290)
+- Comparison operator in let binding (issue #292)
+- Arithmetic operator in let binding (issue #292)
+- Logical operators in let binding (issue #292)
+- Compound logical expression in let binding (issue #292)
+- Mixed arithmetic with precedence in let binding (issue #292)
+- Multiple let bindings with operators (issue #292)
 
 **Known Parser Limitations (documented via pending tests and issues)**
 - Match arms don't parse correctly due to greedy pExpr
@@ -347,7 +353,6 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - With handler expression has same issue
 - Type constructors require layout (colon interpreted as kind annotation)
 - Multi-param lambdas don't parse due to greedy type parsing
-- Binary operators in local let bindings require parentheses (issue #292)
 
 **Unsupported Syntax (with clear error messages)**
 - Inline/nested sum type definitions: `Type: NestedType: ...` - error message suggests defining nested type separately (issue #291)
@@ -358,6 +363,7 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - If-then-else expressions now work in match arm bodies (issue #288, PR #293)
 - Multiple tuple pattern match arms now parse correctly (issue #288, PR #293)
 - Function calls now work in where refinement predicates (issue #290)
+- Binary operators now work in let bindings: `let x = a > b`, `let sum = a + b`, `let both = a && b` (issue #292)
 
 ### Formatter Tests (`test/Crisp/Formatter/FormatSpec.hs`)
 
