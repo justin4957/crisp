@@ -2311,6 +2311,63 @@ typeDefTests = describe "type definitions" $ do
         errStr `shouldSatisfy` \s -> "Child" `T.isInfixOf` T.pack s
       Right _ -> expectationFailure "Should have failed to parse nested type definition"
 
+  -- Binary operators in let bindings (issue #292)
+  it "parses comparison operator in let binding (issue #292)" $ do
+    let src = T.unlines
+          [ "module Test provides fn test"
+          , "fn test(a: Int, b: Int) -> Bool:"
+          , "  let higher = a > b"
+          , "  higher"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses arithmetic operator in let binding (issue #292)" $ do
+    let src = T.unlines
+          [ "module Test provides fn test"
+          , "fn test(a: Int, b: Int) -> Int:"
+          , "  let sum = a + b"
+          , "  sum"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses logical operators in let binding (issue #292)" $ do
+    let src = T.unlines
+          [ "module Test provides fn test"
+          , "fn test(a: Int, b: Int) -> Bool:"
+          , "  let both = a > 0 && b > 0"
+          , "  both"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses compound logical expression in let binding (issue #292)" $ do
+    let src = T.unlines
+          [ "module Test provides fn test"
+          , "fn test(a: Int, b: Int, c: Int) -> Bool:"
+          , "  let result = a > 0 && b < 10 || c == 5"
+          , "  result"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses mixed arithmetic with precedence in let binding (issue #292)" $ do
+    let src = T.unlines
+          [ "module Test provides fn test"
+          , "fn test(a: Int, b: Int, c: Int) -> Int:"
+          , "  let result = a + b * c"
+          , "  result"
+          ]
+    shouldParse $ parseModule "test" src
+
+  it "parses multiple let bindings with operators (issue #292)" $ do
+    let src = T.unlines
+          [ "module Test provides fn test"
+          , "fn test(a: Int, b: Int) -> Int:"
+          , "  let sum = a + b"
+          , "  let diff = a - b"
+          , "  let prod = a * b"
+          , "  sum"
+          ]
+    shouldParse $ parseModule "test" src
+
   -- Constrained type aliases with 'where field: Pattern' syntax (issue #168)
   it "parses type alias with where field constraint (issue #168)" $ do
     let src = "module Test type TrialCourt = Court where level: TrialCourt"

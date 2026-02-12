@@ -1901,9 +1901,68 @@ pLet = do
       , pLetValueSimple
       ]
 
-    -- Parse a simple let value (atom-based with same-line args)
+    -- Parse a simple let value with binary operator support (issue #292)
+    -- Uses nested makeExprParser calls like pExpr to properly handle precedence
     pLetValueSimple :: Parser Expr
-    pLetValueSimple = do
+    pLetValueSimple = pLetLogical
+
+    -- Logical operators (lowest precedence): ||, &&
+    pLetLogical :: Parser Expr
+    pLetLogical = makeExprParser pLetCompare
+      [ [InfixL pLetOr]
+      , [InfixL pLetAnd]
+      ]
+      where
+        pLetOr = mkLetBinOp "||" OpOr
+        pLetAnd = mkLetBinOp "&&" OpAnd
+
+    -- Comparison operators (non-associative): <, <=, >, >=, ==, /=
+    pLetCompare :: Parser Expr
+    pLetCompare = makeExprParser pLetAddSub
+      [ [InfixN pLetLe, InfixN pLetLt, InfixN pLetGe, InfixN pLetGt, InfixN pLetEq, InfixN pLetNe] ]
+      where
+        pLetLe = mkLetBinOp "<=" OpLE
+        pLetLt = mkLetBinOp "<" OpLT
+        pLetGe = mkLetBinOp ">=" OpGE
+        pLetGt = mkLetBinOp ">" OpGT
+        pLetEq = mkLetBinOp "==" OpEQ
+        pLetNe = mkLetBinOp "/=" OpNE
+
+    -- Additive operators: +, -, ++
+    pLetAddSub :: Parser Expr
+    pLetAddSub = makeExprParser pLetMulDiv
+      [ [InfixL pLetConcat, InfixL pLetAdd, InfixL pLetSub] ]
+      where
+        pLetConcat = mkLetBinOp "++" OpConcat
+        pLetAdd = mkLetBinOp "+" OpAdd
+        -- Subtraction must not be followed by '>' (arrow) or '-' (comment start)
+        pLetSub = do
+          start <- getPos
+          void $ try (string "-" <* notFollowedBy (char '>') <* notFollowedBy (char '-'))
+          sc
+          span' <- spanFrom start
+          pure $ \left right -> EBinOp OpSub left right span'
+
+    -- Multiplicative operators (highest binary precedence): *, /, %
+    pLetMulDiv :: Parser Expr
+    pLetMulDiv = makeExprParser pLetValueApp
+      [ [InfixL pLetMul, InfixL pLetDiv, InfixL pLetMod] ]
+      where
+        pLetMul = mkLetBinOp "*" OpMul
+        pLetDiv = mkLetBinOp "/" OpDiv
+        pLetMod = mkLetBinOp "%" OpMod
+
+    -- Helper for creating binary operators
+    mkLetBinOp :: Text -> BinOp -> Parser (Expr -> Expr -> Expr)
+    mkLetBinOp sym op = do
+      start <- getPos
+      void $ symbol sym
+      span' <- spanFrom start
+      pure $ \left right -> EBinOp op left right span'
+
+    -- Parse function application for let values (atom-based with same-line args)
+    pLetValueApp :: Parser Expr
+    pLetValueApp = do
       startLine <- unPos . sourceLine <$> getSourcePos
       start <- getPos
       func <- pLetPostfix
