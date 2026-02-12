@@ -13,8 +13,9 @@ module Crisp.CLI.Commands
   ) where
 
 import Crisp.CLI.Options
-import Crisp.Parser.Parser (parseModule)
+import Crisp.Parser.Parser (parseModule, ParseError)
 import Crisp.Core.Desugar (desugarModule)
+import Text.Megaparsec (errorBundlePretty)
 import Crisp.IR.TypedIR (newModule, encodeModule)
 import Crisp.Codegen.Wasm (compileToWasm)
 import qualified Crisp.Formatter.Format as Fmt
@@ -55,7 +56,7 @@ runCompile verbose copts = do
   -- Parse
   when verbose $ putStrLn "Parsing..."
   case parseModule inputFile source of
-    Left err -> pure $ Left $ "Parse error:\n" ++ show err
+    Left err -> pure $ Left $ "Parse error:\n" ++ errorBundlePretty err
     Right ast -> do
       when verbose $ putStrLn "Desugaring..."
 
@@ -97,7 +98,7 @@ runCheck verbose copts = do
   -- Parse
   when verbose $ putStrLn "Parsing..."
   case parseModule inputFile source of
-    Left err -> pure $ Left $ "Parse error:\n" ++ show err
+    Left err -> pure $ Left $ "Parse error:\n" ++ errorBundlePretty err
     Right ast -> do
       when verbose $ putStrLn "Desugaring..."
 

@@ -347,8 +347,10 @@ The parser test suite covers (~155 passing tests, ~27 pending for known limitati
 - With handler expression has same issue
 - Type constructors require layout (colon interpreted as kind annotation)
 - Multi-param lambdas don't parse due to greedy type parsing
-- Inline/nested sum type definitions in record fields not supported (issue #291)
 - Binary operators in local let bindings require parentheses (issue #292)
+
+**Unsupported Syntax (with clear error messages)**
+- Inline/nested sum type definitions: `Type: NestedType: ...` - error message suggests defining nested type separately (issue #291)
 
 **Fixed Parser Issues**
 - Lambda expressions (`fn(x) -> ...`) now work in match arm bodies (issue #288, PR #293)
